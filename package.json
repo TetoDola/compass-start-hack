@@ -1,0 +1,41 @@
+{
+  "name": "compass-customer-brief",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "prepare:data": "node scripts/prepare-data.mjs",
+    "dev": "npm run prepare:data && vite --host 127.0.0.1",
+    "build": "npm run prepare:data && tsc --noEmit && vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "test": "tsx --test src/lib/*.test.ts server/*.test.ts",
+    "warm:funds": "tsx scripts/warm-funds.ts",
+    "benchmark:brief": "tsx scripts/benchmark-brief.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "cheerio": "^1.2.0",
+    "d3-drag": "^3.0.0",
+    "d3-force": "^3.0.0",
+    "d3-selection": "^3.0.0",
+    "d3-zoom": "^3.0.0",
+    "lucide-react": "^1.47.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "@types/d3-drag": "^3.0.7",
+    "@types/d3-force": "^3.0.10",
+    "@types/d3-selection": "^3.0.12",
+    "@types/d3-zoom": "^3.0.8",
+    "@types/node": "^26.6.1",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "tsx": "^4.23.13",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.0"
+  },
+  "private": true
+}

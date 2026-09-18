@@ -1,0 +1,94 @@
+{
+  "counts": {
+    "clients": 47,
+    "portfolios": 57,
+    "clients_with_multiple_portfolios": 9,
+    "Proposals": 206,
+    "Transactions": 1274,
+    "SuitabilityViolations": 180,
+    "ClientNotes": 153,
+    "IndividualRuleOverrides": 3,
+    "SecurityPositions": 703,
+    "AccountPositions": 123,
+    "PerformanceHistory": 3306,
+    "reference_collections": {
+      "Securities": 504,
+      "FundUnbundlingMappings": 48101,
+      "SuitabilityRules": 54,
+      "RiskProfiles": 5,
+      "InvestmentServices": 7,
+      "Strategies": 6,
+      "StrategicAssetAllocations": 16,
+      "ProposalStatuses": 3,
+      "AdvisoryTypes": 2,
+      "RecommendationLists": 1,
+      "EsgProfiles": 2,
+      "Tags": 19
+    },
+    "funds_with_breakdowns": 141
+  },
+  "coverage_clients": {
+    "Proposals": 29,
+    "Transactions": 28,
+    "SuitabilityViolations": 26,
+    "ClientNotes": 47,
+    "Tags": 35
+  },
+  "null_client_fields": {
+    "Company": 43,
+    "IndividualRuleOverrides": 44,
+    "EsgProfileId": 19,
+    "EsgProfileName": 19,
+    "Proposals": 17,
+    "Transactions": 18,
+    "SuitabilityViolations": 20,
+    "FirstName": 4,
+    "LastName": 4,
+    "Birthday": 4,
+    "RegulatoryClientTypeId": 1,
+    "RegulatoryClientTypeName": 1,
+    "RiskProfileId": 4,
+    "RiskProfileName": 4,
+    "ProfilingDateUtc": 4
+  },
+  "portfolio_field_coverage": {
+    "Volatility": 50,
+    "ExpectedReturn": 51,
+    "ValueAtRisk": 51,
+    "PerformanceYTD": 0
+  },
+  "proposal_statuses": {
+    "Final": 125,
+    "Abgelehnt": 76,
+    "Entwurf": 5
+  },
+  "unresolved_holding_security_ids": 0,
+  "duplicate_isin_groups": 12,
+  "fund_weight_sum_range": [
+    99.99993,
+    100.00173
+  ],
+  "fund_rows_with_multiple_dimensions": 48101,
+  "violations_with_trace": 177,
+  "unresolved_within_client_links": {
+    "Proposals": {
+      "CASE-008": 1
+    },
+    "SuitabilityViolations": {
+      "CASE-008": 12,
+      "CASE-038": 15
+    },
+    "Transactions": {}
+  },
+  "case_012": {
+    "reported_liquidity_chf": 328.18,
+    "shortfall_if_15000_chf_goal_is_reconfirmed": 14671.82,
+    "security_positions": 5,
+    "recorded_violations": 21,
+    "existing_proposals": 18
+  },
+  "case_005_01": {
+    "fund_breakdown_coverage_fraction": 0.7132000000000001,
+    "it_exposure_through_covered_funds_fraction": 0.16581326327117366
+  }
+}

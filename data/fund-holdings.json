@@ -1,0 +1,86 @@
+[
+  {
+    "isin": "LU0629459743",
+    "name": "UBS MSCI World Socially Responsible ETF",
+    "asOf": "2026-01-31",
+    "retrievedAt": "2026-09-18",
+    "sourceName": "UBS fund factsheet · Swiss Fund Data",
+    "sourceUrl": "https://swissfunddata.ch/sfdpub/docs/fsm-2880_17_01-20260131-en.pdf",
+    "coverage": "top-holdings",
+    "holdings": [
+      { "name": "Tesla", "weight": 0.049 },
+      { "name": "Nvidia", "weight": 0.048 },
+      { "name": "Microsoft", "weight": 0.041 },
+      { "name": "ASML", "weight": 0.029 },
+      { "name": "Advanced Micro Devices", "weight": 0.020 },
+      { "name": "Home Depot", "weight": 0.019 },
+      { "name": "Caterpillar", "weight": 0.016 },
+      { "name": "Coca-Cola", "weight": 0.016 },
+      { "name": "Lam Research", "weight": 0.015 },
+      { "name": "Applied Materials", "weight": 0.013 }
+    ]
+  },
+  {
+    "isin": "IE00B4L5Y983",
+    "name": "iShares Core MSCI World ETF",
+    "asOf": "2026-09-09",
+    "retrievedAt": "2026-09-18",
+    "sourceName": "BlackRock / iShares · published holdings",
+    "sourceUrl": "https://www.ishares.com/uk/individual/en/products/251882/?siteEntryPassthrough=true&switchLocale=y",
+    "coverage": "top-holdings",
+    "holdings": [
+      { "name": "Nvidia", "isin": "US67066G1040", "weight": 0.0563 },
+      { "name": "Apple", "isin": "US0378331005", "weight": 0.0507 },
+      { "name": "Microsoft", "isin": "US5949181045", "weight": 0.0380 },
+      { "name": "Amazon", "isin": "US0231351067", "weight": 0.0268 },
+      { "name": "Alphabet · Class A", "isin": "US02079K3059", "weight": 0.0212 },
+      { "name": "Broadcom", "isin": "US11135F1012", "weight": 0.0180 },
+      { "name": "Alphabet · Class C", "isin": "US02079K1079", "weight": 0.0168 },
+      { "name": "Meta · Class A", "isin": "US30303M1027", "weight": 0.0157 },
+      { "name": "Micron Technology", "isin": "US5951121038", "weight": 0.0127 },
+      { "name": "Tesla", "isin": "US88160R1014", "weight": 0.0115 }
+    ]
+  },
+  {
+    "isin": "IE00B5BMR087",
+    "name": "iShares Core S&P 500 ETF",
+    "asOf": "2026-08-31",
+    "retrievedAt": "2026-09-18",
+    "sourceName": "BlackRock / iShares · August 2026 factsheet",
+    "sourceUrl": "https://www.ishares.com/uk/professional/en/literature/fact-sheet/cspx-ishares-core-s-p-500-ucits-etf-fund-fact-sheet-en-gb.pdf?siteEntryPassthrough=true&switchLocale=y",
+    "coverage": "top-holdings",
+    "holdings": [
+      { "name": "Nvidia", "weight": 0.0793 },
+      { "name": "Apple", "weight": 0.0706 },
+      { "name": "Microsoft", "weight": 0.0574 },
+      { "name": "Amazon", "weight": 0.0392 },
+      { "name": "Alphabet · Class A", "weight": 0.0306 },
+      { "name": "Broadcom", "weight": 0.0263 },
+      { "name": "Alphabet · Class C", "weight": 0.0244 },
+      { "name": "Meta · Class A", "weight": 0.0191 },
+      { "name": "Micron Technology", "weight": 0.0158 },
+      { "name": "Tesla", "weight": 0.0148 }
+    ]
+  },
+  {
+    "isin": "IE00BYTRRB94",
+    "name": "SPDR MSCI World Health Care ETF",
+    "asOf": "2026-09-17",
+    "retrievedAt": "2026-09-18",
+    "sourceName": "State Street · published fund holdings",
+    "sourceUrl": "https://www.ssga.com/nl/en_gb/institutional/etfs/state-street-spdr-msci-world-health-care-ucits-etf-whea-na",
+    "coverage": "top-holdings",
+    "holdings": [
+      { "name": "Eli Lilly", "weight": 0.1102 },
+      { "name": "Johnson & Johnson", "weight": 0.0777 },
+      { "name": "AbbVie", "weight": 0.0557 },
+      { "name": "Merck & Co.", "weight": 0.0434 },
+      { "name": "UnitedHealth", "weight": 0.0407 },
+      { "name": "Roche", "weight": 0.0368 },
+      { "name": "Novartis", "weight": 0.0308 },
+      { "name": "AstraZeneca", "weight": 0.0300 },
+      { "name": "Thermo Fisher Scientific", "weight": 0.0293 },
+      { "name": "Amgen", "weight": 0.0245 }
+    ]
+  }
+]
