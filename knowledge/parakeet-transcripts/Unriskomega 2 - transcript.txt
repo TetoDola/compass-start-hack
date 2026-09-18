@@ -1,0 +1,657 @@
+So you can connect related to something that's later on the other day it was outside and then they made it.
+
+So it's kind of like a it's easy for me to get kind of CCC that's why it has the trick because they're always saying like you'll make the same information right in CTS.
+
+It's more like a customer.
+
+I don't think customers call you any especially if the market shows up.
+
+I see this guy says your customers.
+
+It's really possible it's not fraud to say that you call the customers right.
+
+But you will never have the time to call all your customers so you will have probably the majority calling you because in the end you by yourself will just have 20 from the customer's rights.
+
+So it's a customer's point.
+
+Quickly, exactly.
+
+But it's definitely possible to say, hey, not all the seconds, I need to kind of like take a second or two scouts to look at situations.
+
+That's definitely possible.
+
+But that's why I say half an hour is too long.
+
+So it needs to be something within seconds.
+
+Do you guys have some questions?
+
+I think we're good.
+
+We can test the bottom right here.
+
+So there are these tools who basically are like live co-pilots on a call.
+
+That's the idea.
+
+So we do live text to speech-to-text transcription, get feedback.
+
+And then it detects, okay, from this number, that number is probably already stored somewhere in the CRM.
+
+So the system can watch, when the call is already there, it's not even answered, can spin up, okay, it's this person, it's this portfolio, connected to that, invested to that.
+
+Okay, this person is invested into Taiwan Semiconductor chip.
+
+Why is this stock going down?
+
+New speech, China just invested.
+
+That's one element.
+
+But the idea, so in this challenge, you actually state that the flow is the following, right?
+
+Trigger the briefing.
+
+The device starts the briefing from a clear entry point in the mocked device control interface.
+
+Our idea would be to start one level earlier, right?
+
+There is a call incoming.
+
+The system spins this already up, and we have live coaching in the call.
+
+Because there's some kind of customer support agents who already do that.
+
+So the customer asks, okay, how do I change this?
+
+The customer support agent doesn't know, but the system tells him already from the documentation, click here, here, here.
+
+So basically, that is the idea where we are right now.
+
+The question you would have is, is it okay if we cheat the system with this and go one stage further so it doesn't have to be tweaked by the person?
+
+Second question is, what is the call format?
+
+Is it always, say I'll give you my private phone number, ring me up.
+
+Or is it scheduled meetings or what is the format?
+
+I think format could be both.
+
+Like private mobile, phone number, normal landline call.
+
+Or it could be a scheduled meeting.
+
+I could imagine that you could use this feature.
+
+Okay, yeah, I have used this to be tomorrow and we have a meeting together.
+
+Even a physical meeting, like kind of like at the bank, for example.
+
+It would be possible to use this feature.
+
+So I think, or why is it relevant for you?
+
+Just because the recording.
+
+Because if you're going to do a live agent on the phone, it's a bit of a different use case, right?
+
+Because you need to be able on the phone to have access to all the data.
+
+What do you mean the advisor?
+
+If he's on a mobile phone, or if he's...
+
+No, like, imagine the setting, he is at his computer and he has his phone.
+
+Yeah, he has his computer.
+
+That's the setting.
+
+Not his mobile phone.
+
+But would it be possible, like, because there are technologies that would allow us basically to basically get the audio recording?
+
+Because most of this is recorded in any case, if I'm not mistaken, most calls are not.
+
+I don't like customer support calls are recorded, because that's what they say all the time.
+
+So I'm wondering, because then you can directly update it live.
+
+So while talking to the person, based on new information that they say, you can update the information that's shown to the advisor.
+
+So customer gifts, keywords, Taiwan.
+
+Okay, this is what's happening in Taiwan.
+
+Yeah, I know what you mean.
+
+It's a cool idea.
+
+I think what I would also still focus on is kind of like the trigger with the refresh, like that you still have somewhere a button where the advisor itself could both input phones.
+
+I would say both because that's kind of like the core case.
+
+And what you're talking about is more for me, it's more like kind of like moving into like creativity and kind of like out of the box thinking one step earlier already in the journey, which totally makes sense.
+
+Maybe for some banks, it doesn't make sense because they're very restricted with voice recording.
+
+There are banks that they just don't have it, they don't want it because of their clients, because they're client data protection, etc.
+
+So that's something that you need to keep in mind.
+
+But it doesn't mean that you shouldn't look at this solution of a life coach.
+
+It's quite interesting.
+
+So how would it work?
+
+So let's say I'm the advisor, someone calls me and gives me information.
+
+So do I look up information on this user or how does it work?
+
+Yeah, exactly.
+
+So usually you would basically type in the name or the account number, then you look at the trends and everything.
+
+Then you look at the portfolio.
+
+In our software, you look at the portfolio, the client portfolio positions.
+
+And then you would move into a different interface, different software, go to your Blueberg terminal, go to your favorite newspaper or whatever, your internal research.
+
+That's also part of it.
+
+Quick question also on top of that, because I do have a friend who works in wealth management and he said the process is quite different based on different levels of wealth.
+
+Because he works specifically with ultra-high network and he's like for these people it's quite complex everything compared to like so which type of people should we focus on I wouldn't like I wouldn't focus too much on the ultra high network because that's that's then yeah a different service that they provide also they said for regular people just people who invest a few hundred thousand it's it's uh I think it starts like it always depends how you would terminology right I would say it starts with affluent clients already so starting maybe I don't know three four hundred thousand Swiss francs invested but going up to probably a couple of millions okay the ultra high network would be above fifty million yeah so and there it's basically technology doesn't play a big role because there it's the person right and there in in in this client segment usually you have maybe a couple of clients and you don't have like 200 clients right to manage each of them have like max a few dozen exactly that's that's a different thing right you mentioned internal research that you have i mean how is that so the type of research yeah that's so so typically it's a it's yeah it's it's pdfs it's also very very decentralized and depending on the banks excels um internet pages company internet pages um yeah that's it but i think for this case you can really assume that you have pdfs yeah or you can also just get from ubs website for example you can go there you see invest the investment outlook they're quarterly monthly updates yeah so those kind of reports are they like custom because i know also like most of the time each advisor has to write a whole report after each meeting with the advisor so those i'm guessing pdfs also yeah and yeah well basically it's uh we basically have an input field in the user interface where you input the documentation and then it uh generates a pdf afterwards okay that's already in our software so what what does an advisor need to know to create the trust that the information is distributing to the client is reliable yeah it's um often i would say it's uh one thing is the bank decides which which kind of like news sources they're using should actually and provide an access usually paid access right and we don't have this in scope for the challenge today obviously so in real life we would probably connect to anyway to different news sources and research sources right which are paid and we don't just kind of like look up on you who finance what's going on right so you need some credible sources and that's basically one thing but you definitely also have advisors they just read answered it and the financial times and then think they know it's financials like state like documents in there like i mean financials like uh i know because for i'm not sure how it exactly works but for for example like hey this is how much stuff they own and everything because some might some people might have like 500 different stuff like how much data is there actually that's my main question how much data how much data per client is it like uh is it like maybe like a few dozen pdfs or is it like actually for long-term clients it might be like a few thousands um you mean historical reports or yes because i'm guessing historical report or does historical report even matter in the first place while advising the client and so on because then information reports basically notes in a system because i i had made a system basically for information retrieval specifically where you would ask basically like a question very simply and it basically like for example this one is financial documents from the u.sury and it can answer multiple complex questions and where it's like hey this is a 70 page document and this is the exact line where i reference to get the answer and it can do multiple of this so i was thinking maybe some kind of retrieval systems for if they have actual historical there is historical data in terms of like there are probably historical investment proposals that would be of interest for you guys okay so you have like on a client level or portfolio level you see what kind of investment proposals were done in the past okay and what kind of investments were proposed okay and but in the data set I don't think we have like actual actual proposals but I think we have just like a record of open proposals if I'm not mistaken.
+
+Okay and are we like so during the live demo or during the live demo itself so you give us like a random portfolio number which would have different instruments than the portfolios that you already have.
+
+But it's the same attributes basically.
+
+Okay so it's basically we basically just redo it.
+
+Okay got it yeah.
+
+What does a really good answer look like?
+
+If you get called okay hey what the fuck's happening to my portfolio?
+
+What is a very good answer to that basically?
+
+What's the story?
+
+I think it's something that is really relevant for this portfolio.
+
+I think that's important.
+
+That's not a generic brief that is basically put for every portfolio because every portfolio is different in the end.
+
+Every client is different.
+
+So that it feels kind of tailor-made, that it is tailor-made for this client portfolio.
+
+And I think also kind of like we put I think three perspectives.
+
+One is kind of a bit looking backwards, what were the main performance drivers.
+
+One is kind of like how is my portfolio today, like portfolio health check.
+
+And then kind of like looking ahead, what could we do next or what should we do, kind of like next best actions.
+
+And it can be a bullet format.
+
+It can be like maybe next best actions.
+
+Usually it's kind of like people can always remember three points, right?
+
+Three points easy to remember.
+
+So don't put too much information inside because in the end you need to assume that the advice are easily overwhelmed with they get a lot of emails, a lot of results.
+
+What would need to happen from the system during the call that you were like, oh my god, this is really cool.
+
+What's happening?
+
+Yeah, I think what would be really cool is, first of all, for sure, if I can somehow trigger it by clicking a button and it pops up and it feels like, wow, it actually looked at the situation of this specific client and connected the dots with what's happening in the markets and what's our bank's view.
+
+And I can just use this within like, or generate this within like 10 seconds, for example.
+
+No, that's me, sorry.
+
+And use it and use it to follow the client because basically the way the client perceives you is a totally different way if you compare it to a situation where you need to gather your information and connect it somehow by going into five different data sources.
+
+So it's a time benefit, it's a reputation benefit.
+
+And I mean the data sources we are looking at now is mainly use feeds, PDFs, this kind of stuff, but in real life like what is APIs?
+
+I mean Gluebeck for sure has a very expensive one.
+
+Yeah, APIs call.
+
+We have mainly like our data provider is mainly Monic Star.
+
+You have fact centers, data provider, they have APIs.
+
+Is there like a free one we can use for the market, do you know?
+
+FinTech is expensive.
+
+Why are you talking about that?
+
+What are we looking for?
+
+And an API works like Bloomberg Monica.
+
+I used to.
+
+I'm not sure if they have financial questions again.
+
+Because if I'm not mistaken, the data set is only talking about client data.
+
+Baja information company.
+
+Sorry.
+
+And it's a news.
+
+It's kind of like Bloomberg style.
+
+I used to have it on my mobile, but it's for free.
+
+And it has very short news briefings, like headlines and then a short text.
+
+Maybe that's something that you can do.
+
+We can also hump into a brave contact.
+
+I think it's for free at a certain point.
+
+Yeah, it's this company, but it's an actual news page.
+
+I'm not sure if this is just presenting the company in detail.
+
+Yeah, I am, but we'll find something.
+
+Okay, cool.
+
+Question, because there's like, so for the live demo itself, the idea is like, hey, you have a conversation with the AI for like the actual call and see what happens, basically.
+
+Is that it?
+
+Because if I'm not mistaken, there's like no conversation transcripts in the data, but client records, client notes, and everything.
+
+Is it?
+
+Yeah, exactly.
+
+So it's like...
+
+I think in the end it's up to you or we left this open.
+
+I mean the one major case is definitely if a client calls you.
+
+But you can also use it if you call a client to prepare yourself for the talk, right?
+
+And can we do like a live demo where we are a little like if you give us a case, we just you can also use the case that is on the slide that you mentioned to the Taiwan semiconductor.
+
+You're going to give us a random case that we don't have yet.
+
+In the end it's a portfolio that we will input and I think that's again the thing why I said make sure that you have a button somewhere where you can trigger this briefing.
+
+So it's a portfolio that we can look into but then the actual context and everything would come from the conversation?
+
+It would come from all the data sources.
+
+So what you're thinking of what you pitched in the beginning is for me it's kind of like a creative polar solution because you're thinking already a step ahead.
+
+Actually the journey starts already when you're talking and you could also include all this information that's going on in the client call into your briefing, right?
+
+But for us it's second level because it's much simpler, right?
+
+We just need a briefing first of all.
+
+And that's the core case.
+
+Everything that you build on top of it, for me it's bonus points.
+
+What I'm envisioning now is for that you give us a case, we mock, okay, we call live, we call in, and then what happens?
+
+Okay, the system registers, it's this number attached in the CRM to Benjamin.
+
+Okay, Benjamin is invested in XYZ and it gives directly this briefing.
+
+The news, again, Taiwan, okay, this is because of news happening.
+
+We have also, this is your view on what is happening currently with the portfolio.
+
+We also have a backwards view of, okay, that has been happening with the portfolio.
+
+And then also some suggested steps that pop up.
+
+One is, I don't know, maybe increase equity sell, something like that, but also maybe, I know, suggest a meeting or something, something like that.
+
+In the end, it's pretty simple, yeah.
+
+I will think.
+
+I'm not sure how hard it is to solve from a technical perspective because I'm not a tech person.
+
+I got told it's already challenging enough, that's why we got told to focus on this case primarily.
+
+But I still wanted to have these bonus cases in there, the feature, but also the creativity part, I think, with listening to the conversation and definitely explore it if you have time.
+
+Question: Would a graph-like thing be way too overwhelming?
+
+No, no.
+
+So I'm just going to show it once again.
+
+Let me just see if I can blow that up.
+
+I can show my obsidian world.
+
+Yeah, yeah, I can exactly.
+
+Basically, we're exactly the same, right?
+
+So that's my obsidian segment brain.
+
+That popped up, but it's influenced by Dera News, Dera News, Dera News, Sumtime Xamada Investment Report.
+
+Can you show me?
+
+Yeah, I can show you.
+
+Basically, my know-how to disconnect it to the phone.
+
+And all the transactions I have everywhere are basically stored here.
+
+And then it just guide friends connection.
+
+For me, I mean, it's very similar, but not too close to what you're trying to build.
+
+Oh, yeah, yeah, network.
+
+We have something similar in the software, which is a very basic network chart, where you can see basically you have this client A and he's connected to client B, C, D, he has a power of attorney at client Z, he has a corporate client connection to this.
+
+And we have kind of like this spider net.
+
+Yeah, our idea, I mean, this one is, my idea was initially with the graphs, we can already, because everything works on connections at the end of the day, all the data.
+
+So you, I mean, this is personal relation management, but that's different.
+
+But instead, you can put up companies, not companies, but people, the investment, you can link it, put weights on it depending on, hey, everything that's, for example, tech sector would be grouped into one cluster.
+
+Everything that is like heavy metal would be grouped into another cluster.
+
+So it's like for someone looking at it generally, they know everything in one cluster.
+
+Hey, this is probably a specific industry, these are tight.
+
+Maybe based from this we can illustrate, hey, it's red, it's green based on like the drops.
+
+I think it's that's a again it's already taking a step ahead further.
+
+I think it's a very creative and nice solution to present everything.
+
+I think the core thing is really to have like a text but we will have that on top of it I think.
+
+We will have it behind or you can switch or you can switch the view basically you can say hey I want to see the text text you always need.
+
+You always need to have a text because some users will be overwhelmed.
+
+Oh my god, overwhelmed.
+
+My idea was initially like you might either have like just basic text or either another idea I had was just like a pop-up like a sidebar chat where you can also like you can see the brief, you can see the live call.
+
+Basically like a huge terminal at the end of the day.
+
+And then you can zoom in, zoom out.
+
+Or just do a switch talk or switch talk.
+
+Or that, yeah, very simple.
+
+Probably it's the simplest thing to do and the one that users can have.
+
+And also banks would like it because banks can say hey we want to deactivate a certain view.
+
+Okay.
+
+We only want to display text.
+
+Okay yeah okay that works.
+
+I would do that.
+
+But it's a cool I like I personally like it.
+
+That's me and there are other users who don't like it.
+
+And maybe we can just put toggle based then and we can plus we can use Jeff to do the like industry calcul like yeah industry sorting really quickly.
+
+Do we have an example of a breathing on here?
+
+Do you know?
+
+An example for the breathing.
+
+We don't actually probably don't.
+
+That's a good point.
+
+Maybe it would help.
+
+Maybe it would help because it's giving you like a very clear direction and everyone tries to achieve this.
+
+So it's always a program.
+
+Yeah, even if you go to Judge Picky or the texture, you would generate easily a text for it.
+
+Well, it's a manager briefing?
+
+Yeah, portfolio, portfolio advisor, briefing, talking about voice positions, marketing, performance, contributors, etc.
+
+Switch pages.
+
+Okay.
+
+I think we can put something fun.
+
+Yeah.
+
+I think we should be able to.
+
+What's your background?
+
+You guys are in computer science.
+
+No, business, but technically business.
+
+Technically?
+
+So the tech business guy.
+
+No, okay.
+
+Technically, I am a business student, but I am more technical than exactly.
+
+I'm more technical than I am a business student.
+
+Yeah, I also have a business background, but I work successfully from different in tech.
+
+Okay, okay, nice.
+
+Are you a wealth manager now?
+
+No, no, no, no.
+
+I am an almost only based in the NEC Wealth Tech.
+
+And we have more tech people than business people.
+
+I'm one of the business guys.
+
+And my background is banking, really banking.
+
+So I did originally my apprenticeship here in Switzerland about years ago.
+
+And then I always worked in the investment advisory space for many years.
+
+And then I worked also in structured products, trading floor.
+
+And then I changed it to the physics side because I was fed up and I wanted to learn something new.
+
+That was around five years ago.
+
+And now I mean products, which are a huge amount of product major.
+
+TPO, TPO records.
+
+So I just wanted to make sure one thing I understood.
+
+The core idea, get call, get information on the user's portfolio, and then overview it.
+
+That's the core core that must be there.
+
+Yeah.
+
+Okay.
+
+Yeah, we do that and then we start with our friends.
+
+Then you can see if you're tired of moving.
+
+And by the way, could you share the presentation?
+
+Yeah, I think they didn't share it.
+
+They didn't share it.
+
+I already complained over.
+
+I need to talk to Nicholas quickly.
+
+Or can you send it to the Discord?
+
+I already did the work like two hours ago.
+
+You mean the slide or the quad channel?
+
+No, the slides.
+
+If you can send me the slides away.
+
+Ah, if you send it to me, I can send it to you.
+
+Then you can send it because I'm not in Discord.
+
+I mean, I don't want to give away my competitive edge.
+
+I already sent it to someone, so okay.
+
+Just make a broker.
+
+I studied high skate.
+
+I studied at high school.
+
+You graduated already.
+
+And where do you work now?
+
+I quit the tool for my own company.
+
+I'm trying to build an AI agent-based trading company.
+
+So industrial tools trading, screws and balls.
+
+Oh, wow, okay.
+
+Because there's a lot of...
+
+Before I 25, I worked at one of those companies and I family in that business area.
+
+There's like 20, 340 companies in Switzerland, 20 to 100 employees who work on that.
+
+And in the end, it is, okay, we buy this screw, we sell this screw.
+
+And there's a little bit of knowledge added.
+
+So, okay, can I use this screw for concrete?
+
+Can I use it for wood?
+
+And then that's it.
+
+It's called relationship building.
+
+My hypothesis is I can fully rebuild this with all the agents.
+
+So I take supply chain agent, I take near PCs and tobacco, ontology layer, agent rooting, and sales agents, basically.
+
+And rebuild that.
+
+Yeah, nice.
+
+Very cool.
+
+And before which Vinte, how did you work?
+
+No, Frontify.
+
+A Frontify, okay.
+
+E2B SaaS brand management.
+
+Oh, okay.
+
+One of the Swinstein tops.
+
+Yeah, I know the name somehow, but it's their neighbors.
+
+I saw it when I passed by, yeah.
+
+Yeah, I know neighbors.
+
+Are there any brand new company?
+
+Yeah, it's a cool, cool company.
+
+But I was there, like I think we were 17 when I started, and I was like 315.
+
+So I thought, okay, I need to.
+
+Do you own things that will change?
+
+Me, I study at high school.
+
+I've been building a lot of stuff, just a lot of products, to be honest, and software.
+
+Building software and selling them since I was like 13.
+
+Oh, wow.
+
+Yeah, like just build apps, scale them up, just sell them.
+
+That was like half my thing that I did.
+
+Right now, I'm working.
+
+I'm not sure how to sell this, but working, it was a fascinating problem because AI and memory doesn't go really well together.
+
+Especially, like, how do you give AI context if you have literally thousands upon thousands of documents?
+
+For example, if you very simply enterprise data, you will have emails and so on.
+
+And some of the questions that you might need to ask, might need to reference multiple of these stuff to actually come to a concrete answer.
+
+Very simply in financial auditing.
+
+Like, hey, what are the, is this person compliant with X, Y, Z?
+
+If you ask that question, there might be like a hundred different things you have to go through to figure out the answer.
+
+And the idea is to build an information.

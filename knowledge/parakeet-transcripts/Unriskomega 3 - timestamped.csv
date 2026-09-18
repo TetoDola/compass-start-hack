@@ -1,0 +1,82 @@
+Start (s),End (s),Segment
+0.40,5.52,"The back is that many clients have bank accounts with several banks, right?"
+5.84,8.64,And we don't have an open API standard.
+9.76,18.72,So the banks are facing actually a lot of manual work because many clients would like to have a full picture over all the assets.
+20.96,21.44,But what?
+23.44,28.88,"What do we need to do that you actually say, okay, let's take this and incorporate it into our system?"
+30.56,34.24,I think it needs to be something which is end-to-end working.
+35.52,50.24,"To be honest, like at least this scope that we were talking about, having a button, being able to trigger this, having this breathing, and that's something that we could really present to our customers and then start with this basic integration and take it from there."
+50.48,53.28,"But scale, like you would need to host this in Switzerland or something like that."
+53.52,61.84,"Yeah, well, in the end, it's something that our software is hosted and run by application management companies, so it's like Swiss Common Mathematics in those companies."
+62.00,66.48,So we don't offer it as a service from the product house side.
+66.56,69.84,So it's always kind of like the bank's infrastructure.
+70.88,72.80,And we don't own any client data.
+73.04,73.76,So that's all.
+75.28,77.36,So it's not even owned by the bank.
+78.00,79.28,Like the client data.
+80.08,82.96,"Our data is with the bank, but we don't have the client data."
+83.12,84.64,We don't have to have it.
+84.88,86.48,So the servers are not owned by...
+86.88,87.60,"No, no, no."
+87.76,91.44,"Basically, we ship the software and they deploy it."
+91.92,92.24,Swiss code.
+92.32,96.32,"The application manager, Swiss common code, and they run it for the banks, right?"
+96.64,97.84,"Interesting, I didn't know that."
+98.24,113.84,"Because I was talking to, I mean, a bit unrelated, but because I was looking into health tech, and I was talking to a guy who was working in the innovation center, who was the lead of the innovation center at the University Hospital in Baden."
+114.40,120.00,"And he was like, one of the main issues, because they scout startups and everything to see how they can integrate."
+120.56,131.76,The main issue that we have is 95% or more are just not compliant with because they're not hosted in Swiss soil and they're not Swiss companies.
+132.96,140.56,"And there are a lot of good companies, even if it's Azure, for example, which has servers in Switzerland, they are not allowed to."
+141.12,144.80,"As we Swiss companies, Swiss soil, and fully Swiss-owned."
+145.12,147.12,It can't be any foreign entity cannot have that.
+150.24,151.60,Can you call it?
+153.04,154.16,"Yeah, for today, yes."
+154.40,156.64,"I mean, someday we need to solve it afterwards, how we would."
+156.80,157.84,"I mean, that you can host it."
+158.32,160.40,"Yeah, but you would need a local model."
+162.16,169.60,"Local model, but for banks, you just get 50k out, you buy a plus 8 A6000s."
+175.84,177.28,What kind of model are they using already?
+177.60,178.48,Because they have other use cases.
+178.64,181.04,"Yeah, so they will use this one."
+181.12,185.52,"And a lot of banks, from what I hear, they use just a Microsoft Cro-Pilot."
+185.60,188.72,"That's kind of like the max thing that they're using at the moment, right?"
+189.04,192.24,But I think I wouldn't be too concerned at the moment.
+192.96,193.28,Interesting.
+195.76,197.12,Do all banks use it?
+198.24,203.68,"Because I remember one of my friends saying, they're not allowed to use any co-pilot or anything."
+204.16,205.04,They are so disabled.
+207.04,212.56,"Yeah, they can use AI, but they have their own private thing."
+212.72,217.36,But they do not use Microsoft in any case Copilot or ChatGPT.
+217.76,219.20,Did you look at the Swiss government?
+219.36,225.68,The news one week ago that they will switch away from MS Office to open source.
+226.00,226.88,"Yeah, I saw that."
+227.04,229.28,"I mean, that's it, it's pretty cool."
+232.08,232.48,In theory.
+232.72,234.32,"Yeah, you should apply for that project."
+235.20,238.64,Probably they will do an RFP or so called Swiss.
+240.16,241.28,Looking into it already.
+242.16,247.12,We had a guy presenting from the Bundesamtv Informatics or something.
+247.36,256.56,"You know the uni, and he was proud saying, hi, you know, we are the biggest, we are the biggest IT company in Switzerland because we build cases for just one client."
+257.76,258.32,Very cool.
+259.12,268.16,"I mean, actually, people neglect all these smaller models because with one A6000, you can probably host Quentin 3."
+268.96,275.20,And this model is just capable of 90% of most use cases that people use.
+275.28,281.68,"Because unless you're coding or unless you're doing heavy research, you do not need OpenAI models."
+283.36,284.24,That's my opinion.
+285.44,288.64,These models are 90% already there.
+288.96,293.60,It's just only very heavy reasoning tasks that you need way higher end models.
+294.56,307.04,"So most companies can even just, instead of relying on, like there's a friend of mine, I mean, the guy who, the startup foundation president, was like, he's raising some money for his startup."
+307.36,314.32,They're doing basically LiDAR-based home scanning for renovations.
+314.96,318.48,"And basically the idea was, hey, we'll keep the team small."
+318.80,331.28,"And what we are going to do, we're just going to buy GPUs, like A6000s, and just run them in parallel, like multiple agents, because they are capable of doing 90% of what everyone already uses."
+332.00,337.36,"But most of the use case, searching, researching, basic stuff, it's already sold."
+338.00,338.96,That's crazy.
+339.60,340.64,It's really insane.
+341.92,343.60,So I'll let you guys.
+344.88,345.76,I don't want to hold you.
+346.40,346.56,Thank you.
+346.88,348.00,Thank you so much for the introduction.
+351.92,352.56,Have a good night.
+352.64,352.88,Bye-bye.
+353.20,353.60,Have a good night.
+353.84,354.56,"Bye, have a good night."
+354.64,355.36,Bye-bye.
+356.00,359.52,"Okay, I asked you to build the core engine only for now."

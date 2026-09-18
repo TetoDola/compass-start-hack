@@ -1,0 +1,253 @@
+Otherwise we just give a very shout out.
+
+Thank you for the next uh slide.
+
+The next one.
+
+And the next one.
+
+Um so I'll spend a couple of minutes on uh introducing our company because we're not as famous as we that probably none of you guys have heard of us so far.
+
+Um this coming up we're Welttech based in Switzerland founded around ten years ago, first client got live about eight years ago.
+
+We're a joint venture of four companies basically combined company from companies from Zurich and from Austria.
+
+The reason behind it is basically the Austrian guys are called guys so they are kind of like a spinoff from the University of Linz and found together with the more business oriented guys from Zurich a well-tech focusing on digitally investment out there.
+
+So what we do is basically we offer a B2B software solution for banks predominantly and we cross three locations.
+
+So our headquarter is close to the airport in Columbia.
+
+We have some development sites in Perg, that's next to Linsk, and also in Romania, the recent site that we opened roughly 12 months ago.
+
+And we are more or less around 25 people.
+
+So you can see here 18, that's actually the FTE full-time equivalent number that we are working on the product as we speak.
+
+And yeah, we have more than 25 years of experience in initial investment advisory in the areas of physics and mathematics, finance and IT.
+
+Maybe some key indicators also regarding our platform.
+
+I mentioned our first plan got live eight years ago.
+
+Meanwhile, we have like 25 clients, banks on our software platform.
+
+Trend is increasing recently, which is good for us.
+
+We have around 1,000 active advisors on it, predominantly investment advisors or wealth managers.
+
+And I'll come to that later on to explain to you guys what it exactly is, because for some of you it might be a good abstract to imagine what a wealth manager actually does.
+
+We have around 500,000 portfolios that we manage on the platform, or that they manage on the platform, we calculate every night with all the use figures, etc., that are needed to advise clients appropriately.
+
+And last but not least, the instrument universe, talking about instruments, it's funds, ETFs, stocks, structured products, etc.
+
+So quite a broad range of products that we model actually in our software.
+
+Can you move on to the next slide?
+
+I won't go too deep into this one.
+
+It's basically, I think, the middle part here.
+
+Our solutions, that's the most relevant one.
+
+And the highlighted one in orange, which is the one that we're working on today and tomorrow.
+
+Just to give you some context, what else we actually offer, our flagship product is the orange highlighted one, the Oliga Advisor Pro software solution, which is a B2B software which is used by a lot of managers and the investment advisors.
+
+But we also offer self-investment platform and self-tension platforms.
+
+This is probably much more tangible for you guys because I would assume some of you know TrueWealth, they know Biak, they know Frankly, etc.
+
+We do actually the same thing but for banks.
+
+So banks can basically buy our component, our software, to integrate it into their own digital channel without having a separate standard app.
+
+Basically doing the same thing as the AAC and Co.
+
+does.
+
+You can just invest there basically 100 bucks for example a month and invest into an ETF savings button.
+
+We can go with slides.
+
+But today we're focusing on the B2B software solution and I really don't want to bother you too much with technicals about the software itself but we stay trying to do it on a very high level.
+
+So it's a digital investment advisory software and you have to imagine maybe once in your life after you graduate, you got your first job, maybe you work at one of the companies here, you've got your first big salary, your first big savings and then what's next.
+
+Somewhere probably you will encounter banks that try to teach to you investment solutions, discussion, mandates, funds, they manage, etc.
+
+So that's basically where we come in as a technology provider.
+
+The investment advisor from the bank or from the wealth management company will use our software basically that supports him or her to advise you on how to invest your money.
+
+So it's for larger amounts.
+
+It's not for the small savings, it's really for larger cases.
+
+So it's much more going towards a prior bank.
+
+And what we do today, we address this challenge today, the 60-second problem.
+
+So what advisors basically face is in today's world that usually they are responsible for many different clients at the same time.
+
+Maybe have a pilot book of like 500 clients.
+
+And so it's almost impossible to stay on top of all the portfolios that you're managing for your clients.
+
+And that's one thing.
+
+The other thing is the data sits in silos.
+
+So you have legacy softwares, like pro-bank softwares, you have softwares like us, but we also have other channels like Newsflow, Bloomberg, Market News, chief investment officer whose own banks use telling you where to invest, what to do, what not to do.
+
+So you can already imagine you have so much decentralized data flowing into a client conversation where you as an advisor should be able to synthesize everything and basically perform when the client calls or when the client comes to your meeting.
+
+What actually happens quite often is the client calls and you're not prepared for it.
+
+And you don't have time to prepare because the market moves, maybe the client is scared because of a large number of these investments.
+
+And you need to be able to kind of like feel the security that you're on top of things and that you know what to do next.
+
+And that's what we're addressing basically with the hack challenge that we are doing today and tomorrow.
+
+Maybe more to the next slide.
+
+So the idea is really to have kind of like, we call it a news briefing.
+
+You can imagine it as a button or a window in the UI of our software solution.
+
+And investment advice on the web model you can press and it generates you a text space, basically rationale or like estimation of how your portfolio performing in a couple of months, years, how your performance is currently, and how it would look like in the future.
+
+And what would be the next best actions to do by combining all the different data sources that I mentioned?
+
+What were my main performance drivers?
+
+What's the balance outlook for the next couple of months?
+
+Maybe what recent news flow just came in, etc.
+
+And that's really where we want to go, that we have like this one button that combines these three worlds of data into one CC second to read the 340 client requires.
+
+That's kind of like the baseline requirement that we have for this case today.
+
+We'll come later also to the bonus cases that we would love to see.
+
+Obviously, you can imagine text is one thing, but there are other use cases as well where you could be a bit more creative.
+
+Exactly.
+
+Maybe just to kind of like follow up on this in regards to bonus use case since we just talked about it.
+
+So really try to focus on a text-based briefing, but if after 12 hours you feel like, hey, I'm bored, I have another 12 hours to hack, then focus on the bonus cases.
+
+And what I mentioned before is that creativity and chatbot style interaction possibilities with this news briefing would be really much appreciated, obviously, but it's not a hard requirement for us in the judgment criteria.
+
+You will see it later on.
+
+You will just get bonus points.
+
+Another thing, the top one, the first bullet, is something that might bring a bit more of a business complexity into it.
+
+So I would really suggest not to deep dive now in this presentation, this forum, into this bonus case.
+
+But just to mention, tomorrow we will be here on site, me and my colleague.
+
+And if you want to type in the first case, just reach out to us and then we will give you some deep dive about what it is.
+
+In a nutshell, it's a PDF.
+
+We imported from a PDF into our push-mole system.
+
+Yes.
+
+What you get from us basically on the REPP, on the web app, where you have access, you will have access to our files containing the FOIA data, securities data, and also some screenshots of the UI itself.
+
+So you can basically kind of like a prototype or more or less our advisory solution or software.
+
+Just have a free, it doesn't need to be functional.
+
+And put basically this news briefing into it.
+
+Additionally, we mentioned also other sources where I need to tap into.
+
+It's basically news sources, so financial market data.
+
+We know this is usually expensive, you need to have subscriptions, but there are also web pages out there where you can draw some information at least for free, like a newfinscash.ch, etc.
+
+But there you're really free to kind of like connect to these different market news sources.
+
+And last but not least, also what I mentioned, CIO house use.
+
+So basically, most of the banks, the bigger banks like UPS, they publish on their web pages, investment use and outlooks.
+
+So you can also take this into account to give a proper output on the portfolio itself.
+
+And how we will judge it?
+
+I think the most important thing is probably the top one.
+
+And after yesterday's meeting we had actually with our client committee, I should have actually put much more weight on this one because now we're under pressure, we have to deliver.
+
+We presented some AI feature ideas yesterday and this one that we're hacking this week is like the top rated one.
+
+So we've got like 21 banks participating and 20 banks vote for this one to see a solution next time.
+
+So in two months time I need to present something.
+
+So please help me.
+
+No disk.
+
+But this is really important that it's something that works, that covers the business value and that is presentable to a client from the T.
+
+That would be really cool.
+
+Obviously also from the implementation quality side it should work, should be stable.
+
+We will provide you some protectors which we don't hand to you beforehand in the presentation tomorrow so this should really work and you can put whatever control in and that is news written well and doesn't break.
+
+AI quality I think this is really important because banks are really focused on fact-based rationales and not on hallucinating stuff.
+
+So really try to make sure that your AI model, whatever you use, doesn't hallucinate too much.
+
+So it's really fact-based based on the data that is synthesized.
+
+User experience, obviously important, but in the end, I said we provide you three screenshots of our environment.
+
+In the end, that's anyway something that we would need to take a look at afterwards, how to kind of like change colours, etc.
+
+So that's important, but not the top.
+
+Last but not least, the bonus points I mentioned, the three bullets that you saw on the slide before, 15% overall, so take into account if you have time, work on them.
+
+You see also what would be taken into account in the judgment.
+
+Yeah, and one more thing.
+
+Nicholas had a lot of previous a bit.
+
+So basically, just so you guys know, we're looking for summer intern next year as well.
+
+We had a summer intern, very successful summer intern this year.
+
+Nicholas?
+
+Thanks a lot.
+
+And basically, in case you're interested, of course, we basically think, hey, it's a cool company, cool product.
+
+Just send through your C V.
+
+We have diff, as I mentioned already initially, we have different areas for product management, disk analysis, project management, and also the tech track.
+
+So in case you're interested, just send the C V to me.
+
+You can move on to the next slide.
+
+I'm Eritmo Michael and Chief Product Officer of Olives Company, so just feel free to reach out in case you're interested.
+
+And also Frederick Alphoffer, he will join me tomorrow also from the tech side to give you some support in case you have any questions.
+
+Yeah, that's all from my side.

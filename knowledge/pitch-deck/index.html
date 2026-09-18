@@ -1,0 +1,505 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Portfolio Intelligence — Pitch Storyline v1</title>
+  <style>
+    :root {
+      --ink: #f5f7f8;
+      --muted: #9da8b2;
+      --bg: #081014;
+      --surface: #101b21;
+      --line: rgba(255,255,255,.12);
+      --cyan: #73e0ce;
+      --amber: #ffbd69;
+      --red: #ff6b6b;
+      --green: #5ed5a8;
+      --shadow: 0 30px 80px rgba(0,0,0,.42);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+    body {
+      color: var(--ink);
+      background: #030708;
+      font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    button { font: inherit; }
+
+    .deck { position: relative; width: 100%; height: 100%; }
+    .slide {
+      position: absolute;
+      inset: 0;
+      display: none;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 78% 18%, rgba(44,102,106,.22), transparent 32%),
+        linear-gradient(135deg, #0c161b 0%, #071014 100%);
+    }
+    .slide.active { display: block; animation: enter .35s ease-out both; }
+    @keyframes enter { from { opacity: 0; transform: scale(.992); } to { opacity: 1; transform: scale(1); } }
+
+    .frame {
+      position: absolute;
+      inset: 0;
+      width: min(100vw, calc(100vh * 16 / 9));
+      height: min(100vh, calc(100vw * 9 / 16));
+      margin: auto;
+      padding: clamp(36px, 5vw, 76px) clamp(44px, 6vw, 92px);
+    }
+
+    .eyebrow {
+      margin: 0 0 18px;
+      color: var(--cyan);
+      font-size: clamp(13px, 1.15vw, 18px);
+      font-weight: 720;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+    h1, h2, p { margin-top: 0; }
+    h1 {
+      max-width: 980px;
+      margin-bottom: 24px;
+      font-size: clamp(50px, 7vw, 108px);
+      font-weight: 760;
+      letter-spacing: -.055em;
+      line-height: .96;
+    }
+    h2 {
+      margin-bottom: 22px;
+      font-size: clamp(34px, 4.4vw, 68px);
+      font-weight: 720;
+      letter-spacing: -.042em;
+      line-height: 1.02;
+    }
+    .lead {
+      max-width: 800px;
+      color: #c6ced4;
+      font-size: clamp(19px, 2vw, 30px);
+      line-height: 1.38;
+    }
+    .dim { color: var(--muted); }
+    .accent { color: var(--cyan); }
+    .danger { color: var(--red); }
+    .warm { color: var(--amber); }
+
+    .folio {
+      position: absolute;
+      right: clamp(44px, 6vw, 92px);
+      bottom: clamp(24px, 3.5vw, 48px);
+      color: rgba(255,255,255,.42);
+      font-size: 13px;
+      letter-spacing: .14em;
+    }
+    .draft {
+      position: absolute;
+      left: clamp(44px, 6vw, 92px);
+      bottom: clamp(24px, 3.5vw, 48px);
+      color: rgba(255,255,255,.34);
+      font-size: 12px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .hero-photo {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .photo-shade {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, rgba(3,8,10,.96) 0%, rgba(3,8,10,.74) 36%, rgba(3,8,10,.1) 72%);
+    }
+    .photo-shade.right {
+      background: linear-gradient(90deg, rgba(3,8,10,.1) 26%, rgba(3,8,10,.78) 65%, rgba(3,8,10,.96) 100%);
+    }
+    .hero-copy {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      height: 100%;
+      max-width: 56%;
+    }
+    .hero-copy.right { margin-left: auto; max-width: 50%; }
+    .hero-copy.right h2 { color: #fff; }
+    .hero-copy.right .answer span { color: #eef2f4; }
+    .hero-copy.right .lead { color: #d9e0e4; }
+    .quote {
+      max-width: 770px;
+      font-size: clamp(32px, 4.6vw, 72px);
+      font-weight: 690;
+      letter-spacing: -.045em;
+      line-height: 1.05;
+    }
+    .quote-mark { color: var(--red); }
+
+    .cover::after {
+      content: "";
+      position: absolute;
+      right: -10%;
+      bottom: -45%;
+      width: 72%;
+      aspect-ratio: 1;
+      border: 1px solid rgba(115,224,206,.16);
+      border-radius: 50%;
+      box-shadow: 0 0 0 72px rgba(115,224,206,.025), 0 0 0 144px rgba(115,224,206,.018);
+    }
+    .cover .frame { display: flex; flex-direction: column; justify-content: center; }
+    .cover-note { margin-top: 44px; color: #8fa0aa; font-size: clamp(15px, 1.4vw, 21px); }
+
+    .pressure-layout {
+      display: grid;
+      grid-template-columns: .78fr 1.22fr;
+      align-items: center;
+      height: 100%;
+      gap: 7vw;
+    }
+    .timer {
+      font-variant-numeric: tabular-nums;
+      font-size: clamp(102px, 15vw, 230px);
+      font-weight: 760;
+      line-height: .82;
+      letter-spacing: -.08em;
+      color: var(--amber);
+      text-shadow: 0 0 60px rgba(255,189,105,.12);
+    }
+    .timer-label { margin: 28px 0 0 10px; color: #c3cbd0; font-size: clamp(18px, 1.65vw, 26px); }
+    .questions { border-left: 1px solid var(--line); padding-left: clamp(34px, 5vw, 78px); }
+    .question {
+      padding: 20px 0;
+      border-bottom: 1px solid var(--line);
+      font-size: clamp(24px, 2.5vw, 39px);
+      letter-spacing: -.025em;
+    }
+    .question:last-child { border-bottom: 0; }
+    .question span { display: inline-block; width: 48px; color: var(--cyan); font-size: .48em; vertical-align: middle; letter-spacing: .1em; }
+
+    .fragment-layout { display: grid; grid-template-columns: .88fr 1.12fr; gap: 7vw; align-items: center; height: 100%; }
+    .fragment-stack { display: grid; grid-template-rows: repeat(4, 1fr); gap: 12px; height: 72%; min-height: 410px; }
+    .fragment {
+      position: relative;
+      width: 86%;
+      padding: 20px 28px;
+      background: rgba(15,26,31,.88);
+      border: 1px solid rgba(255,255,255,.12);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+    .fragment b { display: block; margin-bottom: 8px; font-size: clamp(20px, 2vw, 30px); }
+    .fragment small { color: var(--muted); font-size: clamp(14px, 1.2vw, 18px); line-height: 1.4; }
+    .fragment:nth-child(odd) { margin-right: auto; }
+    .fragment:nth-child(even) { margin-left: auto; }
+    .problem-line { margin-top: 38px; color: #d7dde0; font-size: clamp(20px, 2.1vw, 32px); line-height: 1.35; }
+
+    .product-slide .frame { padding-top: clamp(28px, 3.4vw, 50px); }
+    .product-intro { display: flex; justify-content: space-between; align-items: end; gap: 40px; margin-bottom: 28px; }
+    .product-intro h2 { margin-bottom: 0; }
+    .product-intro p { max-width: 520px; margin: 0 0 4px; color: var(--muted); font-size: clamp(16px, 1.35vw, 20px); line-height: 1.4; }
+    .screen {
+      height: 70%;
+      min-height: 430px;
+      display: grid;
+      grid-template-columns: 220px 1.04fr .96fr;
+      background: #0b151a;
+      border: 1px solid rgba(255,255,255,.14);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .screen-nav { padding: 28px 24px; background: #0f1c22; border-right: 1px solid var(--line); }
+    .brand-dot { width: 28px; height: 28px; margin-bottom: 44px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 26px rgba(115,224,206,.35); }
+    .nav-item { padding: 11px 0; color: #73828b; font-size: 14px; }
+    .nav-item.on { color: var(--ink); }
+    .screen-main, .screen-side { padding: 28px 30px; }
+    .screen-side { border-left: 1px solid var(--line); background: #0d181d; }
+    .screen-kicker { color: var(--muted); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; }
+    .portfolio-head { display: flex; justify-content: space-between; align-items: end; margin: 10px 0 30px; }
+    .portfolio-value { font-size: clamp(30px, 3vw, 46px); font-weight: 700; letter-spacing: -.04em; }
+    .loss { color: var(--red); font-size: clamp(18px, 1.6vw, 24px); font-weight: 650; }
+    .impact-bars { display: grid; gap: 16px; }
+    .impact-row { display: grid; grid-template-columns: 148px 1fr 54px; gap: 16px; align-items: center; font-size: 13px; }
+    .bar { height: 8px; background: rgba(255,255,255,.07); overflow: hidden; }
+    .bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--red), var(--amber)); }
+    .position-list { margin-top: 30px; border-top: 1px solid var(--line); }
+    .position { display: grid; grid-template-columns: 1fr 86px 70px; gap: 12px; padding: 15px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+    .position .down { color: var(--red); text-align: right; }
+    .exposure-title { margin: 13px 0 22px; font-size: 24px; font-weight: 650; }
+    .exposure { padding: 14px 0; border-bottom: 1px solid var(--line); }
+    .exposure strong { display: flex; justify-content: space-between; font-size: 14px; }
+    .exposure p { margin: 8px 0 0; color: var(--muted); font-size: 12px; line-height: 1.4; }
+    .illustrative { color: #64727a; font-size: 11px; }
+
+    .impact-layout { display: grid; grid-template-columns: .82fr 1.18fr; gap: 7vw; align-items: center; height: 100%; }
+    .impact-chain { position: relative; padding-left: 34px; }
+    .impact-chain::before { content: ""; position: absolute; left: 8px; top: 18px; bottom: 18px; width: 2px; background: linear-gradient(var(--amber), var(--red)); }
+    .impact-step { position: relative; padding: 16px 0 24px 24px; }
+    .impact-step::before { content: ""; position: absolute; left: -33px; top: 22px; width: 14px; height: 14px; border-radius: 50%; background: var(--bg); border: 3px solid var(--amber); }
+    .impact-step:last-child::before { border-color: var(--red); }
+    .impact-step small { color: var(--muted); font-size: 13px; letter-spacing: .1em; text-transform: uppercase; }
+    .impact-step h3 { margin: 8px 0 8px; font-size: clamp(23px, 2.3vw, 36px); letter-spacing: -.025em; }
+    .impact-step p { margin: 0; color: #aeb8be; font-size: clamp(15px, 1.3vw, 19px); line-height: 1.4; }
+    .impact-number { margin-top: 30px; font-size: clamp(72px, 10vw, 154px); font-weight: 760; line-height: .86; letter-spacing: -.075em; color: var(--red); }
+    .impact-caption { margin: 24px 0 0 10px; color: #b5c0c6; font-size: clamp(18px, 1.5vw, 23px); }
+
+    .answer-list { margin-top: 28px; display: grid; gap: 18px; }
+    .answer { display: flex; gap: 16px; align-items: baseline; font-size: clamp(19px, 1.8vw, 27px); line-height: 1.35; }
+    .answer b { color: var(--green); font-size: .62em; letter-spacing: .12em; }
+
+    .closing .frame { display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
+    .closing h2 { max-width: 1040px; font-size: clamp(48px, 7vw, 108px); }
+    .closing .lead { max-width: 760px; }
+    .closing-line { width: 180px; height: 2px; margin: 44px auto 0; background: linear-gradient(90deg, transparent, var(--cyan), transparent); }
+
+    .controls {
+      position: fixed;
+      left: 50%;
+      bottom: 18px;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px;
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 999px;
+      background: rgba(4,9,11,.76);
+      backdrop-filter: blur(14px);
+      transform: translateX(-50%);
+      opacity: .22;
+      transition: opacity .2s;
+    }
+    .controls:hover, .controls:focus-within { opacity: 1; }
+    .controls button {
+      width: 34px;
+      height: 34px;
+      border: 0;
+      border-radius: 50%;
+      color: white;
+      background: rgba(255,255,255,.08);
+      cursor: pointer;
+    }
+    .controls button:hover { background: rgba(255,255,255,.16); }
+    .counter { min-width: 54px; text-align: center; color: #b2bcc1; font-size: 12px; font-variant-numeric: tabular-nums; }
+
+    @media (max-width: 800px) {
+      .frame { padding: 32px; }
+      .hero-copy, .hero-copy.right { max-width: 76%; }
+      .pressure-layout, .fragment-layout, .impact-layout { gap: 32px; }
+      .screen { grid-template-columns: 150px 1fr; }
+      .screen-side { display: none; }
+      .impact-row { grid-template-columns: 105px 1fr 40px; }
+    }
+
+    @media print {
+      @page { size: 13.333in 7.5in; margin: 0; }
+      html, body { overflow: visible; background: white; }
+      .deck { height: auto; }
+      .slide, .slide.active {
+        position: relative;
+        display: block;
+        width: 13.333in;
+        height: 7.5in;
+        break-after: page;
+        animation: none;
+      }
+      .frame { width: 100%; height: 100%; }
+      .controls { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="deck" aria-label="Portfolio intelligence pitch deck">
+    <section class="slide cover active" data-title="Cover">
+      <div class="frame">
+        <p class="eyebrow">Portfolio intelligence</p>
+        <h1>When the client calls</h1>
+        <p class="lead">A live explanation of what moved, why it matters, and what the portfolio manager can do next.</p>
+        <p class="cover-note">Pitch storyline · first draft</p>
+        <span class="draft">Illustrative concept</span><span class="folio">01</span>
+      </div>
+    </section>
+
+    <section class="slide" data-title="The call">
+      <img class="hero-photo" src="assets/portfolio-manager-crisis.png" alt="Portfolio manager receiving an urgent client call" />
+      <div class="photo-shade"></div>
+      <div class="frame">
+        <div class="hero-copy">
+          <p class="eyebrow">The call</p>
+          <div class="quote"><span class="quote-mark">“</span>My portfolio is down 12%. What the fuck is happening?”</div>
+          <p class="lead" style="margin-top:28px">The client wants an answer now.</p>
+        </div>
+        <span class="draft">Illustrative scenario</span><span class="folio">02</span>
+      </div>
+    </section>
+
+    <section class="slide" data-title="Time pressure">
+      <div class="frame">
+        <div class="pressure-layout">
+          <div>
+            <p class="eyebrow">The pressure</p>
+            <div class="timer">05</div>
+            <p class="timer-label">minutes to sound informed</p>
+          </div>
+          <div class="questions">
+            <h2>The manager needs four answers</h2>
+            <div class="question"><span>01</span>What moved?</div>
+            <div class="question"><span>02</span>Why did it move?</div>
+            <div class="question"><span>03</span>What remains exposed?</div>
+            <div class="question"><span>04</span>What should we do?</div>
+          </div>
+        </div>
+        <span class="draft">Illustrative scenario</span><span class="folio">03</span>
+      </div>
+    </section>
+
+    <section class="slide" data-title="Fragmented context">
+      <div class="frame">
+        <div class="fragment-layout">
+          <div>
+            <p class="eyebrow">The problem</p>
+            <h2>The answer is scattered across systems</h2>
+            <p class="problem-line">The manager must reconstruct the story while the client is waiting.</p>
+          </div>
+          <div class="fragment-stack" aria-label="Disconnected sources">
+            <div class="fragment"><b>Portfolio holdings</b><small>Positions, weights, cost basis, performance</small></div>
+            <div class="fragment"><b>Underlying exposures</b><small>Companies, industries, countries, currencies</small></div>
+            <div class="fragment"><b>News and market events</b><small>Headlines without portfolio context</small></div>
+            <div class="fragment"><b>Risk analysis</b><small>Models that still need interpretation</small></div>
+          </div>
+        </div>
+        <span class="draft">Current workflow</span><span class="folio">04</span>
+      </div>
+    </section>
+
+    <section class="slide product-slide" data-title="Live portfolio view">
+      <div class="frame">
+        <div class="product-intro">
+          <div><p class="eyebrow">The product</p><h2>A live X-ray of the portfolio</h2></div>
+          <p>Every position connected to the companies, industries, countries, and events underneath it.</p>
+        </div>
+        <div class="screen" role="img" aria-label="Illustrative product screen showing portfolio positions and exposures">
+          <aside class="screen-nav">
+            <div class="brand-dot"></div>
+            <div class="nav-item on">Portfolio overview</div>
+            <div class="nav-item">Positions</div>
+            <div class="nav-item">Exposures</div>
+            <div class="nav-item">Events</div>
+            <div class="nav-item">Scenarios</div>
+          </aside>
+          <div class="screen-main">
+            <div class="screen-kicker">Client portfolio · today</div>
+            <div class="portfolio-head">
+              <div><div class="portfolio-value">CHF 10.84m</div><div class="illustrative">Illustrative data</div></div>
+              <div class="loss">−11.8%</div>
+            </div>
+            <div class="impact-bars">
+              <div class="impact-row"><span>Technology</span><div class="bar"><i style="width:86%"></i></div><b>−5.2%</b></div>
+              <div class="impact-row"><span>Industrials</span><div class="bar"><i style="width:53%"></i></div><b>−3.1%</b></div>
+              <div class="impact-row"><span>Financials</span><div class="bar"><i style="width:32%"></i></div><b>−1.9%</b></div>
+              <div class="impact-row"><span>Other</span><div class="bar"><i style="width:26%"></i></div><b>−1.6%</b></div>
+            </div>
+            <div class="position-list">
+              <div class="position"><b>Global Equity Fund</b><span>31.2%</span><span class="down">−6.4%</span></div>
+              <div class="position"><b>European Industrials</b><span>18.7%</span><span class="down">−3.0%</span></div>
+              <div class="position"><b>EM Debt</b><span>12.4%</span><span class="down">−1.1%</span></div>
+            </div>
+          </div>
+          <aside class="screen-side">
+            <div class="screen-kicker">Primary exposures</div>
+            <div class="exposure-title">What sits underneath</div>
+            <div class="exposure"><strong><span>Semiconductors</span><span class="danger">High</span></strong><p>US, Taiwan · export controls and demand revision</p></div>
+            <div class="exposure"><strong><span>European exporters</span><span class="warm">Medium</span></strong><p>Germany, France · currency and growth sensitivity</p></div>
+            <div class="exposure"><strong><span>Long-duration debt</span><span class="warm">Medium</span></strong><p>Rate guidance changed duration expectations</p></div>
+          </aside>
+        </div>
+        <span class="draft">Illustrative interface</span><span class="folio">05</span>
+      </div>
+    </section>
+
+    <section class="slide" data-title="Event to impact">
+      <div class="frame">
+        <div class="impact-layout">
+          <div>
+            <p class="eyebrow">The explanation</p>
+            <h2>The chain behind the loss</h2>
+            <div class="impact-number">−7.1%</div>
+            <p class="impact-caption">of the decline explained by one event cluster</p>
+          </div>
+          <div class="impact-chain">
+            <div class="impact-step"><small>Market event</small><h3>Export restrictions tighten</h3><p>New measures change the outlook for advanced semiconductor supply.</p></div>
+            <div class="impact-step"><small>Affected exposure</small><h3>Technology holdings and Asian suppliers</h3><p>Direct holdings and funds share the same underlying risk.</p></div>
+            <div class="impact-step"><small>Portfolio effect</small><h3>Loss concentrated in three positions</h3><p>The manager can see the contribution, confidence, and remaining exposure.</p></div>
+          </div>
+        </div>
+        <span class="draft">Illustrative analysis</span><span class="folio">06</span>
+      </div>
+    </section>
+
+    <section class="slide" data-title="Client answer">
+      <img class="hero-photo" src="assets/portfolio-manager-resolution.png" alt="Portfolio manager confidently explaining the situation" />
+      <div class="photo-shade right"></div>
+      <div class="frame">
+        <div class="hero-copy right">
+          <p class="eyebrow">The outcome</p>
+          <h2>A clear answer while it still matters</h2>
+          <div class="answer-list">
+            <div class="answer"><b>01</b><span>What changed and why</span></div>
+            <div class="answer"><b>02</b><span>Where the portfolio remains exposed</span></div>
+            <div class="answer"><b>03</b><span>Which actions deserve consideration</span></div>
+          </div>
+          <p class="lead" style="margin-top:34px">The manager replaces panic with a defensible conversation.</p>
+        </div>
+        <span class="draft">Illustrative scenario</span><span class="folio">07</span>
+      </div>
+    </section>
+
+    <section class="slide closing" data-title="Live demo">
+      <div class="frame">
+        <p class="eyebrow">Live demo</p>
+        <h2>The client is still waiting</h2>
+        <p class="lead">Let’s answer the call.</p>
+        <div class="closing-line"></div>
+        <span class="draft">Transition to product</span><span class="folio">08</span>
+      </div>
+    </section>
+  </main>
+
+  <nav class="controls" aria-label="Slide controls">
+    <button id="prev" aria-label="Previous slide">←</button>
+    <span class="counter" id="counter">1 / 8</span>
+    <button id="next" aria-label="Next slide">→</button>
+  </nav>
+
+  <script>
+    const slides = [...document.querySelectorAll('.slide')];
+    const counter = document.getElementById('counter');
+    let current = Math.max(0, Math.min(slides.length - 1, Number(location.hash.slice(1)) - 1 || 0));
+
+    function show(index, updateHash = true) {
+      current = (index + slides.length) % slides.length;
+      slides.forEach((slide, i) => slide.classList.toggle('active', i === current));
+      counter.textContent = `${current + 1} / ${slides.length}`;
+      document.title = `${slides[current].dataset.title} — Portfolio Intelligence`;
+      if (updateHash) history.replaceState(null, '', `#${current + 1}`);
+    }
+
+    document.getElementById('prev').addEventListener('click', () => show(current - 1));
+    document.getElementById('next').addEventListener('click', () => show(current + 1));
+    addEventListener('keydown', (event) => {
+      if (['ArrowRight', 'PageDown', ' '].includes(event.key)) { event.preventDefault(); show(current + 1); }
+      if (['ArrowLeft', 'PageUp'].includes(event.key)) { event.preventDefault(); show(current - 1); }
+      if (event.key === 'Home') show(0);
+      if (event.key === 'End') show(slides.length - 1);
+      if (event.key.toLowerCase() === 'f') document.documentElement.requestFullscreen?.();
+    });
+    addEventListener('hashchange', () => show(Number(location.hash.slice(1)) - 1 || 0, false));
+    show(current, false);
+  </script>
+</body>
+</html>

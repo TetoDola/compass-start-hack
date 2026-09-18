@@ -2,6 +2,8 @@
 
 A local UNRISKOMEGA prototype: import a customer, read a short four-part brief, then follow the evidence through an Obsidian-style financial network. Realtime transcription remains deferred.
 
+The supporting challenge presentation, consolidated case knowledge base, source transcripts, pitch-deck materials and document render history are preserved in [`knowledge/`](knowledge/README.md).
+
 ## Run
 
 Node.js 22.12+ and npm are required (tested with Node 26).

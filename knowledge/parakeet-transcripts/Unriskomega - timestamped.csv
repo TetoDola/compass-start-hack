@@ -1,0 +1,128 @@
+Start (s),End (s),Segment
+0.16,2.08,Otherwise we just give a very shout out.
+2.80,4.64,Thank you for the next uh slide.
+5.20,6.08,The next one.
+6.64,7.60,And the next one.
+9.68,19.84,Um so I'll spend a couple of minutes on uh introducing our company because we're not as famous as we that probably none of you guys have heard of us so far.
+20.16,28.80,"Um this coming up we're Welttech based in Switzerland founded around ten years ago, first client got live about eight years ago."
+29.28,37.92,We're a joint venture of four companies basically combined company from companies from Zurich and from Austria.
+38.56,53.04,The reason behind it is basically the Austrian guys are called guys so they are kind of like a spinoff from the University of Linz and found together with the more business oriented guys from Zurich a well-tech focusing on digitally investment out there.
+53.12,64.64,So what we do is basically we offer a B2B software solution for banks predominantly and we cross three locations.
+64.96,69.44,So our headquarter is close to the airport in Columbia.
+70.08,78.16,"We have some development sites in Perg, that's next to Linsk, and also in Romania, the recent site that we opened roughly 12 months ago."
+78.32,81.44,And we are more or less around 25 people.
+81.68,89.60,"So you can see here 18, that's actually the FTE full-time equivalent number that we are working on the product as we speak."
+89.92,99.20,"And yeah, we have more than 25 years of experience in initial investment advisory in the areas of physics and mathematics, finance and IT."
+100.48,103.92,Maybe some key indicators also regarding our platform.
+104.08,107.52,I mentioned our first plan got live eight years ago.
+107.68,113.20,"Meanwhile, we have like 25 clients, banks on our software platform."
+114.40,117.68,"Trend is increasing recently, which is good for us."
+118.00,123.84,"We have around 1,000 active advisors on it, predominantly investment advisors or wealth managers."
+124.16,132.56,"And I'll come to that later on to explain to you guys what it exactly is, because for some of you it might be a good abstract to imagine what a wealth manager actually does."
+133.84,146.32,"We have around 500,000 portfolios that we manage on the platform, or that they manage on the platform, we calculate every night with all the use figures, etc., that are needed to advise clients appropriately."
+146.64,154.48,"And last but not least, the instrument universe, talking about instruments, it's funds, ETFs, stocks, structured products, etc."
+154.96,160.96,So quite a broad range of products that we model actually in our software.
+161.36,163.20,Can you move on to the next slide?
+163.52,166.16,I won't go too deep into this one.
+166.48,169.20,"It's basically, I think, the middle part here."
+169.84,171.84,"Our solutions, that's the most relevant one."
+172.16,176.88,"And the highlighted one in orange, which is the one that we're working on today and tomorrow."
+177.68,191.12,"Just to give you some context, what else we actually offer, our flagship product is the orange highlighted one, the Oliga Advisor Pro software solution, which is a B2B software which is used by a lot of managers and the investment advisors."
+191.44,196.40,But we also offer self-investment platform and self-tension platforms.
+196.72,205.44,"This is probably much more tangible for you guys because I would assume some of you know TrueWealth, they know Biak, they know Frankly, etc."
+206.08,208.24,We do actually the same thing but for banks.
+208.48,215.04,"So banks can basically buy our component, our software, to integrate it into their own digital channel without having a separate standard app."
+216.24,219.28,Basically doing the same thing as the AAC and Co.
+219.44,219.52,does.
+219.92,227.04,You can just invest there basically 100 bucks for example a month and invest into an ETF savings button.
+228.88,229.92,We can go with slides.
+230.96,241.68,But today we're focusing on the B2B software solution and I really don't want to bother you too much with technicals about the software itself but we stay trying to do it on a very high level.
+241.76,257.04,"So it's a digital investment advisory software and you have to imagine maybe once in your life after you graduate, you got your first job, maybe you work at one of the companies here, you've got your first big salary, your first big savings and then what's next."
+257.68,267.44,"Somewhere probably you will encounter banks that try to teach to you investment solutions, discussion, mandates, funds, they manage, etc."
+267.76,270.88,So that's basically where we come in as a technology provider.
+271.20,281.28,The investment advisor from the bank or from the wealth management company will use our software basically that supports him or her to advise you on how to invest your money.
+282.24,283.60,So it's for larger amounts.
+283.76,286.88,"It's not for the small savings, it's really for larger cases."
+286.96,289.68,So it's much more going towards a prior bank.
+291.76,300.96,"And what we do today, we address this challenge today, the 60-second problem."
+301.52,309.36,So what advisors basically face is in today's world that usually they are responsible for many different clients at the same time.
+309.60,312.32,Maybe have a pilot book of like 500 clients.
+312.64,318.00,And so it's almost impossible to stay on top of all the portfolios that you're managing for your clients.
+318.32,319.92,And that's one thing.
+320.24,323.28,The other thing is the data sits in silos.
+323.60,342.00,"So you have legacy softwares, like pro-bank softwares, you have softwares like us, but we also have other channels like Newsflow, Bloomberg, Market News, chief investment officer whose own banks use telling you where to invest, what to do, what not to do."
+342.32,358.72,So you can already imagine you have so much decentralized data flowing into a client conversation where you as an advisor should be able to synthesize everything and basically perform when the client calls or when the client comes to your meeting.
+359.12,363.20,What actually happens quite often is the client calls and you're not prepared for it.
+363.36,371.12,"And you don't have time to prepare because the market moves, maybe the client is scared because of a large number of these investments."
+371.44,377.20,And you need to be able to kind of like feel the security that you're on top of things and that you know what to do next.
+377.52,382.80,And that's what we're addressing basically with the hack challenge that we are doing today and tomorrow.
+383.36,384.72,Maybe more to the next slide.
+385.36,390.48,"So the idea is really to have kind of like, we call it a news briefing."
+390.72,396.24,You can imagine it as a button or a window in the UI of our software solution.
+396.64,416.08,"And investment advice on the web model you can press and it generates you a text space, basically rationale or like estimation of how your portfolio performing in a couple of months, years, how your performance is currently, and how it would look like in the future."
+416.24,421.36,And what would be the next best actions to do by combining all the different data sources that I mentioned?
+421.52,423.20,What were my main performance drivers?
+423.44,426.08,What's the balance outlook for the next couple of months?
+426.40,429.76,"Maybe what recent news flow just came in, etc."
+431.04,441.52,"And that's really where we want to go, that we have like this one button that combines these three worlds of data into one CC second to read the 340 client requires."
+441.76,445.36,That's kind of like the baseline requirement that we have for this case today.
+445.60,451.20,We'll come later also to the bonus cases that we would love to see.
+451.44,458.40,"Obviously, you can imagine text is one thing, but there are other use cases as well where you could be a bit more creative."
+463.12,464.24,Exactly.
+465.12,470.56,Maybe just to kind of like follow up on this in regards to bonus use case since we just talked about it.
+470.88,484.16,"So really try to focus on a text-based briefing, but if after 12 hours you feel like, hey, I'm bored, I have another 12 hours to hack, then focus on the bonus cases."
+484.48,498.72,"And what I mentioned before is that creativity and chatbot style interaction possibilities with this news briefing would be really much appreciated, obviously, but it's not a hard requirement for us in the judgment criteria."
+498.88,499.68,You will see it later on.
+499.84,501.36,You will just get bonus points.
+502.24,510.40,"Another thing, the top one, the first bullet, is something that might bring a bit more of a business complexity into it."
+510.72,516.16,"So I would really suggest not to deep dive now in this presentation, this forum, into this bonus case."
+516.48,520.16,"But just to mention, tomorrow we will be here on site, me and my colleague."
+520.48,526.56,"And if you want to type in the first case, just reach out to us and then we will give you some deep dive about what it is."
+526.88,529.44,"In a nutshell, it's a PDF."
+529.68,533.44,We imported from a PDF into our push-mole system.
+536.88,537.44,Yes.
+538.32,554.32,"What you get from us basically on the REPP, on the web app, where you have access, you will have access to our files containing the FOIA data, securities data, and also some screenshots of the UI itself."
+554.40,560.24,So you can basically kind of like a prototype or more or less our advisory solution or software.
+560.48,563.20,"Just have a free, it doesn't need to be functional."
+563.52,566.72,And put basically this news briefing into it.
+567.52,572.72,"Additionally, we mentioned also other sources where I need to tap into."
+572.88,575.84,"It's basically news sources, so financial market data."
+576.00,586.72,"We know this is usually expensive, you need to have subscriptions, but there are also web pages out there where you can draw some information at least for free, like a newfinscash.ch, etc."
+587.20,591.28,But there you're really free to kind of like connect to these different market news sources.
+591.60,596.24,"And last but not least, also what I mentioned, CIO house use."
+596.48,603.92,"So basically, most of the banks, the bigger banks like UPS, they publish on their web pages, investment use and outlooks."
+604.08,609.68,So you can also take this into account to give a proper output on the portfolio itself.
+612.00,613.44,And how we will judge it?
+613.92,617.60,I think the most important thing is probably the top one.
+617.92,625.60,"And after yesterday's meeting we had actually with our client committee, I should have actually put much more weight on this one because now we're under pressure, we have to deliver."
+626.16,632.96,We presented some AI feature ideas yesterday and this one that we're hacking this week is like the top rated one.
+633.12,639.28,So we've got like 21 banks participating and 20 banks vote for this one to see a solution next time.
+639.60,641.92,So in two months time I need to present something.
+642.08,643.36,So please help me.
+645.36,645.92,No disk.
+646.32,655.04,"But this is really important that it's something that works, that covers the business value and that is presentable to a client from the T."
+655.12,657.12,That would be really cool.
+657.68,662.88,"Obviously also from the implementation quality side it should work, should be stable."
+663.36,677.28,We will provide you some protectors which we don't hand to you beforehand in the presentation tomorrow so this should really work and you can put whatever control in and that is news written well and doesn't break.
+677.60,687.84,AI quality I think this is really important because banks are really focused on fact-based rationales and not on hallucinating stuff.
+688.16,694.16,"So really try to make sure that your AI model, whatever you use, doesn't hallucinate too much."
+694.24,698.16,So it's really fact-based based on the data that is synthesized.
+698.48,704.80,"User experience, obviously important, but in the end, I said we provide you three screenshots of our environment."
+704.96,711.12,"In the end, that's anyway something that we would need to take a look at afterwards, how to kind of like change colours, etc."
+711.28,713.36,"So that's important, but not the top."
+714.56,724.00,"Last but not least, the bonus points I mentioned, the three bullets that you saw on the slide before, 15% overall, so take into account if you have time, work on them."
+724.24,727.92,You see also what would be taken into account in the judgment.
+730.80,732.16,"Yeah, and one more thing."
+733.12,738.64,Nicholas had a lot of previous a bit.
+739.28,743.68,"So basically, just so you guys know, we're looking for summer intern next year as well."
+743.84,747.20,"We had a summer intern, very successful summer intern this year."
+747.52,748.08,Nicholas?
+749.52,750.40,Thanks a lot.
+751.92,757.68,"And basically, in case you're interested, of course, we basically think, hey, it's a cool company, cool product."
+758.24,759.68,Just send through your C V.
+760.00,768.56,"We have diff, as I mentioned already initially, we have different areas for product management, disk analysis, project management, and also the tech track."
+768.72,771.12,"So in case you're interested, just send the C V to me."
+771.28,772.80,You can move on to the next slide.
+773.28,780.40,"I'm Eritmo Michael and Chief Product Officer of Olives Company, so just feel free to reach out in case you're interested."
+780.72,788.96,"And also Frederick Alphoffer, he will join me tomorrow also from the tech side to give you some support in case you have any questions."
+789.60,790.96,"Yeah, that's all from my side."

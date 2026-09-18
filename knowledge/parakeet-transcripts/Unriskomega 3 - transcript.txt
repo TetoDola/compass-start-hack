@@ -1,0 +1,161 @@
+The back is that many clients have bank accounts with several banks, right?
+
+And we don't have an open API standard.
+
+So the banks are facing actually a lot of manual work because many clients would like to have a full picture over all the assets.
+
+But what?
+
+What do we need to do that you actually say, okay, let's take this and incorporate it into our system?
+
+I think it needs to be something which is end-to-end working.
+
+To be honest, like at least this scope that we were talking about, having a button, being able to trigger this, having this breathing, and that's something that we could really present to our customers and then start with this basic integration and take it from there.
+
+But scale, like you would need to host this in Switzerland or something like that.
+
+Yeah, well, in the end, it's something that our software is hosted and run by application management companies, so it's like Swiss Common Mathematics in those companies.
+
+So we don't offer it as a service from the product house side.
+
+So it's always kind of like the bank's infrastructure.
+
+And we don't own any client data.
+
+So that's all.
+
+So it's not even owned by the bank.
+
+Like the client data.
+
+Our data is with the bank, but we don't have the client data.
+
+We don't have to have it.
+
+So the servers are not owned by...
+
+No, no, no.
+
+Basically, we ship the software and they deploy it.
+
+Swiss code.
+
+The application manager, Swiss common code, and they run it for the banks, right?
+
+Interesting, I didn't know that.
+
+Because I was talking to, I mean, a bit unrelated, but because I was looking into health tech, and I was talking to a guy who was working in the innovation center, who was the lead of the innovation center at the University Hospital in Baden.
+
+And he was like, one of the main issues, because they scout startups and everything to see how they can integrate.
+
+The main issue that we have is 95% or more are just not compliant with because they're not hosted in Swiss soil and they're not Swiss companies.
+
+And there are a lot of good companies, even if it's Azure, for example, which has servers in Switzerland, they are not allowed to.
+
+As we Swiss companies, Swiss soil, and fully Swiss-owned.
+
+It can't be any foreign entity cannot have that.
+
+Can you call it?
+
+Yeah, for today, yes.
+
+I mean, someday we need to solve it afterwards, how we would.
+
+I mean, that you can host it.
+
+Yeah, but you would need a local model.
+
+Local model, but for banks, you just get 50k out, you buy a plus 8 A6000s.
+
+What kind of model are they using already?
+
+Because they have other use cases.
+
+Yeah, so they will use this one.
+
+And a lot of banks, from what I hear, they use just a Microsoft Cro-Pilot.
+
+That's kind of like the max thing that they're using at the moment, right?
+
+But I think I wouldn't be too concerned at the moment.
+
+Interesting.
+
+Do all banks use it?
+
+Because I remember one of my friends saying, they're not allowed to use any co-pilot or anything.
+
+They are so disabled.
+
+Yeah, they can use AI, but they have their own private thing.
+
+But they do not use Microsoft in any case Copilot or ChatGPT.
+
+Did you look at the Swiss government?
+
+The news one week ago that they will switch away from MS Office to open source.
+
+Yeah, I saw that.
+
+I mean, that's it, it's pretty cool.
+
+In theory.
+
+Yeah, you should apply for that project.
+
+Probably they will do an RFP or so called Swiss.
+
+Looking into it already.
+
+We had a guy presenting from the Bundesamtv Informatics or something.
+
+You know the uni, and he was proud saying, hi, you know, we are the biggest, we are the biggest IT company in Switzerland because we build cases for just one client.
+
+Very cool.
+
+I mean, actually, people neglect all these smaller models because with one A6000, you can probably host Quentin 3.
+
+And this model is just capable of 90% of most use cases that people use.
+
+Because unless you're coding or unless you're doing heavy research, you do not need OpenAI models.
+
+That's my opinion.
+
+These models are 90% already there.
+
+It's just only very heavy reasoning tasks that you need way higher end models.
+
+So most companies can even just, instead of relying on, like there's a friend of mine, I mean, the guy who, the startup foundation president, was like, he's raising some money for his startup.
+
+They're doing basically LiDAR-based home scanning for renovations.
+
+And basically the idea was, hey, we'll keep the team small.
+
+And what we are going to do, we're just going to buy GPUs, like A6000s, and just run them in parallel, like multiple agents, because they are capable of doing 90% of what everyone already uses.
+
+But most of the use case, searching, researching, basic stuff, it's already sold.
+
+That's crazy.
+
+It's really insane.
+
+So I'll let you guys.
+
+I don't want to hold you.
+
+Thank you.
+
+Thank you so much for the introduction.
+
+Have a good night.
+
+Bye-bye.
+
+Have a good night.
+
+Bye, have a good night.
+
+Bye-bye.
+
+Okay, I asked you to build the core engine only for now.

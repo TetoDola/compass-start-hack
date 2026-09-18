@@ -1,0 +1,330 @@
+Start (s),End (s),Segment
+0.48,11.60,So you can connect related to something that's later on the other day it was outside and then they made it.
+14.40,28.24,So it's kind of like a it's easy for me to get kind of CCC that's why it has the trick because they're always saying like you'll make the same information right in CTS.
+33.52,36.32,It's more like a customer.
+36.96,48.72,I don't think customers call you any especially if the market shows up.
+49.28,52.88,I see this guy says your customers.
+64.08,68.08,It's really possible it's not fraud to say that you call the customers right.
+68.72,80.88,But you will never have the time to call all your customers so you will have probably the majority calling you because in the end you by yourself will just have 20 from the customer's rights.
+81.04,82.08,So it's a customer's point.
+87.12,88.96,"Quickly, exactly."
+89.20,97.92,"But it's definitely possible to say, hey, not all the seconds, I need to kind of like take a second or two scouts to look at situations."
+98.80,99.76,That's definitely possible.
+99.84,102.24,But that's why I say half an hour is too long.
+102.80,105.28,So it needs to be something within seconds.
+112.80,113.92,Do you guys have some questions?
+117.44,119.20,I think we're good.
+170.00,171.76,We can test the bottom right here.
+187.36,193.28,So there are these tools who basically are like live co-pilots on a call.
+193.60,194.24,That's the idea.
+194.64,200.00,"So we do live text to speech-to-text transcription, get feedback."
+201.76,206.48,"And then it detects, okay, from this number, that number is probably already stored somewhere in the CRM."
+206.80,214.72,"So the system can watch, when the call is already there, it's not even answered, can spin up, okay, it's this person, it's this portfolio, connected to that, invested to that."
+215.52,218.88,"Okay, this person is invested into Taiwan Semiconductor chip."
+219.44,220.64,Why is this stock going down?
+220.88,222.96,"New speech, China just invested."
+224.72,226.64,That's one element.
+227.20,232.16,"But the idea, so in this challenge, you actually state that the flow is the following, right?"
+232.40,233.52,Trigger the briefing.
+234.00,238.00,The device starts the briefing from a clear entry point in the mocked device control interface.
+238.32,241.12,"Our idea would be to start one level earlier, right?"
+241.76,242.96,There is a call incoming.
+243.12,248.00,"The system spins this already up, and we have live coaching in the call."
+248.16,251.12,Because there's some kind of customer support agents who already do that.
+252.32,255.44,"So the customer asks, okay, how do I change this?"
+256.00,261.60,"The customer support agent doesn't know, but the system tells him already from the documentation, click here, here, here."
+262.08,266.24,"So basically, that is the idea where we are right now."
+266.56,275.36,"The question you would have is, is it okay if we cheat the system with this and go one stage further so it doesn't have to be tweaked by the person?"
+276.00,280.24,"Second question is, what is the call format?"
+280.32,284.80,"Is it always, say I'll give you my private phone number, ring me up."
+285.12,289.28,Or is it scheduled meetings or what is the format?
+289.84,291.20,I think format could be both.
+292.24,296.88,"Like private mobile, phone number, normal landline call."
+298.32,301.20,Or it could be a scheduled meeting.
+301.84,303.44,I could imagine that you could use this feature.
+304.40,307.92,"Okay, yeah, I have used this to be tomorrow and we have a meeting together."
+308.16,310.80,"Even a physical meeting, like kind of like at the bank, for example."
+311.60,314.64,It would be possible to use this feature.
+314.96,319.20,"So I think, or why is it relevant for you?"
+319.44,320.48,Just because the recording.
+320.88,324.72,"Because if you're going to do a live agent on the phone, it's a bit of a different use case, right?"
+324.80,328.32,Because you need to be able on the phone to have access to all the data.
+328.64,330.16,What do you mean the advisor?
+330.24,331.84,"If he's on a mobile phone, or if he's..."
+332.08,336.32,"No, like, imagine the setting, he is at his computer and he has his phone."
+336.40,337.20,"Yeah, he has his computer."
+337.28,337.92,That's the setting.
+338.40,339.04,Not his mobile phone.
+339.60,348.88,"But would it be possible, like, because there are technologies that would allow us basically to basically get the audio recording?"
+349.04,353.76,"Because most of this is recorded in any case, if I'm not mistaken, most calls are not."
+354.08,357.36,"I don't like customer support calls are recorded, because that's what they say all the time."
+357.92,362.16,"So I'm wondering, because then you can directly update it live."
+362.80,371.20,"So while talking to the person, based on new information that they say, you can update the information that's shown to the advisor."
+371.52,374.32,"So customer gifts, keywords, Taiwan."
+374.96,376.64,"Okay, this is what's happening in Taiwan."
+376.96,377.92,"Yeah, I know what you mean."
+378.32,379.12,It's a cool idea.
+379.44,390.00,"I think what I would also still focus on is kind of like the trigger with the refresh, like that you still have somewhere a button where the advisor itself could both input phones."
+390.32,393.04,I would say both because that's kind of like the core case.
+393.12,405.12,"And what you're talking about is more for me, it's more like kind of like moving into like creativity and kind of like out of the box thinking one step earlier already in the journey, which totally makes sense."
+406.00,410.32,"Maybe for some banks, it doesn't make sense because they're very restricted with voice recording."
+410.80,418.16,"There are banks that they just don't have it, they don't want it because of their clients, because they're client data protection, etc."
+418.40,420.24,So that's something that you need to keep in mind.
+420.56,424.96,But it doesn't mean that you shouldn't look at this solution of a life coach.
+425.12,425.60,It's quite interesting.
+426.00,427.12,So how would it work?
+427.28,432.48,"So let's say I'm the advisor, someone calls me and gives me information."
+432.80,435.76,So do I look up information on this user or how does it work?
+436.16,436.72,"Yeah, exactly."
+436.88,442.80,"So usually you would basically type in the name or the account number, then you look at the trends and everything."
+443.20,444.40,Then you look at the portfolio.
+444.80,448.56,"In our software, you look at the portfolio, the client portfolio positions."
+448.88,458.96,"And then you would move into a different interface, different software, go to your Blueberg terminal, go to your favorite newspaper or whatever, your internal research."
+459.36,460.48,That's also part of it.
+460.88,473.20,"Quick question also on top of that, because I do have a friend who works in wealth management and he said the process is quite different based on different levels of wealth."
+474.40,773.76,Because he works specifically with ultra-high network and he's like for these people it's quite complex everything compared to like so which type of people should we focus on I wouldn't like I wouldn't focus too much on the ultra high network because that's that's then yeah a different service that they provide also they said for regular people just people who invest a few hundred thousand it's it's uh I think it starts like it always depends how you would terminology right I would say it starts with affluent clients already so starting maybe I don't know three four hundred thousand Swiss francs invested but going up to probably a couple of millions okay the ultra high network would be above fifty million yeah so and there it's basically technology doesn't play a big role because there it's the person right and there in in in this client segment usually you have maybe a couple of clients and you don't have like 200 clients right to manage each of them have like max a few dozen exactly that's that's a different thing right you mentioned internal research that you have i mean how is that so the type of research yeah that's so so typically it's a it's yeah it's it's pdfs it's also very very decentralized and depending on the banks excels um internet pages company internet pages um yeah that's it but i think for this case you can really assume that you have pdfs yeah or you can also just get from ubs website for example you can go there you see invest the investment outlook they're quarterly monthly updates yeah so those kind of reports are they like custom because i know also like most of the time each advisor has to write a whole report after each meeting with the advisor so those i'm guessing pdfs also yeah and yeah well basically it's uh we basically have an input field in the user interface where you input the documentation and then it uh generates a pdf afterwards okay that's already in our software so what what does an advisor need to know to create the trust that the information is distributing to the client is reliable yeah it's um often i would say it's uh one thing is the bank decides which which kind of like news sources they're using should actually and provide an access usually paid access right and we don't have this in scope for the challenge today obviously so in real life we would probably connect to anyway to different news sources and research sources right which are paid and we don't just kind of like look up on you who finance what's going on right so you need some credible sources and that's basically one thing but you definitely also have advisors they just read answered it and the financial times and then think they know it's financials like state like documents in there like i mean financials like uh i know because for i'm not sure how it exactly works but for for example like hey this is how much stuff they own and everything because some might some people might have like 500 different stuff like how much data is there actually that's my main question how much data how much data per client is it like uh is it like maybe like a few dozen pdfs or is it like actually for long-term clients it might be like a few thousands um you mean historical reports or yes because i'm guessing historical report or does historical report even matter in the first place while advising the client and so on because then information reports basically notes in a system because i i had made a system basically for information retrieval specifically where you would ask basically like a question very simply and it basically like for example this one is financial documents from the u.sury and it can answer multiple complex questions and where it's like hey this is a 70 page document and this is the exact line where i reference to get the answer and it can do multiple of this so i was thinking maybe some kind of retrieval systems for if they have actual historical there is historical data in terms of like there are probably historical investment proposals that would be of interest for you guys okay so you have like on a client level or portfolio level you see what kind of investment proposals were done in the past okay and what kind of investments were proposed okay and but in the data set I don't think we have like actual actual proposals but I think we have just like a record of open proposals if I'm not mistaken.
+774.24,787.84,Okay and are we like so during the live demo or during the live demo itself so you give us like a random portfolio number which would have different instruments than the portfolios that you already have.
+788.56,790.48,But it's the same attributes basically.
+790.96,794.32,Okay so it's basically we basically just redo it.
+794.40,794.96,Okay got it yeah.
+795.68,798.48,What does a really good answer look like?
+798.56,802.88,If you get called okay hey what the fuck's happening to my portfolio?
+803.52,805.28,What is a very good answer to that basically?
+805.44,806.00,What's the story?
+806.32,810.48,I think it's something that is really relevant for this portfolio.
+810.72,811.36,I think that's important.
+811.60,819.12,That's not a generic brief that is basically put for every portfolio because every portfolio is different in the end.
+819.44,820.64,Every client is different.
+820.96,826.40,"So that it feels kind of tailor-made, that it is tailor-made for this client portfolio."
+826.72,831.44,And I think also kind of like we put I think three perspectives.
+831.60,835.36,"One is kind of a bit looking backwards, what were the main performance drivers."
+835.68,839.60,"One is kind of like how is my portfolio today, like portfolio health check."
+839.84,846.88,"And then kind of like looking ahead, what could we do next or what should we do, kind of like next best actions."
+849.20,851.36,And it can be a bullet format.
+851.52,853.92,It can be like maybe next best actions.
+854.08,858.48,"Usually it's kind of like people can always remember three points, right?"
+858.64,860.56,Three points easy to remember.
+861.12,871.28,"So don't put too much information inside because in the end you need to assume that the advice are easily overwhelmed with they get a lot of emails, a lot of results."
+871.76,877.36,"What would need to happen from the system during the call that you were like, oh my god, this is really cool."
+878.08,878.56,What's happening?
+878.88,896.72,"Yeah, I think what would be really cool is, first of all, for sure, if I can somehow trigger it by clicking a button and it pops up and it feels like, wow, it actually looked at the situation of this specific client and connected the dots with what's happening in the markets and what's our bank's view."
+897.12,903.20,"And I can just use this within like, or generate this within like 10 seconds, for example."
+904.16,905.20,"No, that's me, sorry."
+906.24,926.00,And use it and use it to follow the client because basically the way the client perceives you is a totally different way if you compare it to a situation where you need to gather your information and connect it somehow by going into five different data sources.
+929.44,932.88,"So it's a time benefit, it's a reputation benefit."
+934.00,941.92,"And I mean the data sources we are looking at now is mainly use feeds, PDFs, this kind of stuff, but in real life like what is APIs?"
+942.00,944.08,I mean Gluebeck for sure has a very expensive one.
+944.48,945.52,"Yeah, APIs call."
+946.24,949.92,We have mainly like our data provider is mainly Monic Star.
+951.12,954.24,"You have fact centers, data provider, they have APIs."
+954.72,957.12,"Is there like a free one we can use for the market, do you know?"
+958.08,959.20,FinTech is expensive.
+961.60,962.96,Why are you talking about that?
+964.08,964.88,What are we looking for?
+965.36,968.40,And an API works like Bloomberg Monica.
+968.88,969.28,I used to.
+975.76,981.84,I'm not sure if they have financial questions again.
+982.64,987.60,"Because if I'm not mistaken, the data set is only talking about client data."
+987.92,989.12,Baja information company.
+990.00,990.32,Sorry.
+990.64,993.12,And it's a news.
+994.96,997.68,It's kind of like Bloomberg style.
+998.00,1000.24,"I used to have it on my mobile, but it's for free."
+1000.56,1005.92,"And it has very short news briefings, like headlines and then a short text."
+1006.64,1007.76,Maybe that's something that you can do.
+1008.00,1011.04,We can also hump into a brave contact.
+1011.44,1012.88,I think it's for free at a certain point.
+1013.68,1016.80,"Yeah, it's this company, but it's an actual news page."
+1019.68,1022.80,I'm not sure if this is just presenting the company in detail.
+1023.28,1024.48,"Yeah, I am, but we'll find something."
+1025.12,1025.76,"Okay, cool."
+1027.12,1038.16,"Question, because there's like, so for the live demo itself, the idea is like, hey, you have a conversation with the AI for like the actual call and see what happens, basically."
+1038.40,1038.88,Is that it?
+1038.96,1044.16,"Because if I'm not mistaken, there's like no conversation transcripts in the data, but client records, client notes, and everything."
+1044.24,1044.40,Is it?
+1044.72,1045.36,"Yeah, exactly."
+1045.68,1046.08,So it's like...
+1046.56,1050.24,I think in the end it's up to you or we left this open.
+1050.56,1053.68,I mean the one major case is definitely if a client calls you.
+1054.00,1058.64,"But you can also use it if you call a client to prepare yourself for the talk, right?"
+1058.96,1069.68,"And can we do like a live demo where we are a little like if you give us a case, we just you can also use the case that is on the slide that you mentioned to the Taiwan semiconductor."
+1070.16,1073.44,You're going to give us a random case that we don't have yet.
+1074.32,1084.64,In the end it's a portfolio that we will input and I think that's again the thing why I said make sure that you have a button somewhere where you can trigger this briefing.
+1086.88,1092.32,So it's a portfolio that we can look into but then the actual context and everything would come from the conversation?
+1092.64,1096.16,It would come from all the data sources.
+1096.40,1105.28,So what you're thinking of what you pitched in the beginning is for me it's kind of like a creative polar solution because you're thinking already a step ahead.
+1105.60,1113.20,"Actually the journey starts already when you're talking and you could also include all this information that's going on in the client call into your briefing, right?"
+1113.44,1116.64,"But for us it's second level because it's much simpler, right?"
+1116.72,1118.40,We just need a briefing first of all.
+1119.04,1120.00,And that's the core case.
+1120.48,1123.04,"Everything that you build on top of it, for me it's bonus points."
+1124.16,1133.12,"What I'm envisioning now is for that you give us a case, we mock, okay, we call live, we call in, and then what happens?"
+1133.28,1138.32,"Okay, the system registers, it's this number attached in the CRM to Benjamin."
+1138.88,1144.00,"Okay, Benjamin is invested in XYZ and it gives directly this briefing."
+1144.08,1148.40,"The news, again, Taiwan, okay, this is because of news happening."
+1148.72,1154.16,"We have also, this is your view on what is happening currently with the portfolio."
+1154.48,1158.48,"We also have a backwards view of, okay, that has been happening with the portfolio."
+1158.80,1162.08,And then also some suggested steps that pop up.
+1162.40,1171.76,"One is, I don't know, maybe increase equity sell, something like that, but also maybe, I know, suggest a meeting or something, something like that."
+1173.04,1174.72,"In the end, it's pretty simple, yeah."
+1176.00,1176.48,I will think.
+1177.68,1182.24,I'm not sure how hard it is to solve from a technical perspective because I'm not a tech person.
+1183.12,1188.40,"I got told it's already challenging enough, that's why we got told to focus on this case primarily."
+1188.72,1198.56,"But I still wanted to have these bonus cases in there, the feature, but also the creativity part, I think, with listening to the conversation and definitely explore it if you have time."
+1200.64,1205.04,Question: Would a graph-like thing be way too overwhelming?
+1205.60,1206.08,"No, no."
+1206.56,1208.40,So I'm just going to show it once again.
+1210.48,1212.16,Let me just see if I can blow that up.
+1212.96,1214.32,I can show my obsidian world.
+1214.72,1215.36,"Yeah, yeah, I can exactly."
+1215.60,1216.88,"Basically, we're exactly the same, right?"
+1217.52,1219.52,So that's my obsidian segment brain.
+1225.76,1235.12,"That popped up, but it's influenced by Dera News, Dera News, Dera News, Sumtime Xamada Investment Report."
+1242.72,1243.04,Can you show me?
+1243.28,1244.00,"Yeah, I can show you."
+1247.52,1250.32,"Basically, my know-how to disconnect it to the phone."
+1252.96,1255.60,And all the transactions I have everywhere are basically stored here.
+1257.20,1258.88,And then it just guide friends connection.
+1260.08,1265.20,"For me, I mean, it's very similar, but not too close to what you're trying to build."
+1266.24,1267.44,"Oh, yeah, yeah, network."
+1267.60,1281.28,"We have something similar in the software, which is a very basic network chart, where you can see basically you have this client A and he's connected to client B, C, D, he has a power of attorney at client Z, he has a corporate client connection to this."
+1281.92,1283.68,And we have kind of like this spider net.
+1284.16,1293.28,"Yeah, our idea, I mean, this one is, my idea was initially with the graphs, we can already, because everything works on connections at the end of the day, all the data."
+1293.44,1296.48,"So you, I mean, this is personal relation management, but that's different."
+1296.64,1310.88,"But instead, you can put up companies, not companies, but people, the investment, you can link it, put weights on it depending on, hey, everything that's, for example, tech sector would be grouped into one cluster."
+1311.12,1315.44,Everything that is like heavy metal would be grouped into another cluster.
+1315.60,1320.40,"So it's like for someone looking at it generally, they know everything in one cluster."
+1320.64,1323.76,"Hey, this is probably a specific industry, these are tight."
+1324.08,1330.88,"Maybe based from this we can illustrate, hey, it's red, it's green based on like the drops."
+1331.84,1336.40,I think it's that's a again it's already taking a step ahead further.
+1336.64,1341.20,I think it's a very creative and nice solution to present everything.
+1341.92,1347.92,I think the core thing is really to have like a text but we will have that on top of it I think.
+1348.00,1353.52,We will have it behind or you can switch or you can switch the view basically you can say hey I want to see the text text you always need.
+1353.68,1356.88,You always need to have a text because some users will be overwhelmed.
+1357.04,1357.92,"Oh my god, overwhelmed."
+1358.32,1371.04,"My idea was initially like you might either have like just basic text or either another idea I had was just like a pop-up like a sidebar chat where you can also like you can see the brief, you can see the live call."
+1371.44,1373.60,Basically like a huge terminal at the end of the day.
+1374.16,1375.44,"And then you can zoom in, zoom out."
+1375.68,1377.52,Or just do a switch talk or switch talk.
+1377.76,1378.64,"Or that, yeah, very simple."
+1378.96,1382.80,Probably it's the simplest thing to do and the one that users can have.
+1383.28,1387.12,And also banks would like it because banks can say hey we want to deactivate a certain view.
+1387.44,1387.60,Okay.
+1387.76,1388.88,We only want to display text.
+1389.28,1390.40,Okay yeah okay that works.
+1390.72,1391.20,I would do that.
+1391.68,1393.52,But it's a cool I like I personally like it.
+1393.92,1396.32,That's me and there are other users who don't like it.
+1397.76,1407.92,And maybe we can just put toggle based then and we can plus we can use Jeff to do the like industry calcul like yeah industry sorting really quickly.
+1409.28,1411.36,Do we have an example of a breathing on here?
+1411.68,1412.16,Do you know?
+1412.40,1413.52,An example for the breathing.
+1416.08,1418.40,We don't actually probably don't.
+1418.96,1420.00,That's a good point.
+1420.32,1421.04,Maybe it would help.
+1421.52,1427.12,Maybe it would help because it's giving you like a very clear direction and everyone tries to achieve this.
+1428.00,1429.28,So it's always a program.
+1430.56,1437.52,"Yeah, even if you go to Judge Picky or the texture, you would generate easily a text for it."
+1438.40,1440.40,"Well, it's a manager briefing?"
+1440.80,1452.16,"Yeah, portfolio, portfolio advisor, briefing, talking about voice positions, marketing, performance, contributors, etc."
+1454.16,1455.44,Switch pages.
+1457.76,1457.92,Okay.
+1459.76,1461.60,I think we can put something fun.
+1462.08,1462.24,Yeah.
+1463.12,1463.76,I think we should be able to.
+1464.16,1464.80,What's your background?
+1464.88,1466.24,You guys are in computer science.
+1467.44,1470.80,"No, business, but technically business."
+1471.04,1471.36,Technically?
+1471.60,1472.72,So the tech business guy.
+1473.12,1473.44,"No, okay."
+1474.40,1480.64,"Technically, I am a business student, but I am more technical than exactly."
+1480.72,1482.64,I'm more technical than I am a business student.
+1486.24,1490.00,"Yeah, I also have a business background, but I work successfully from different in tech."
+1490.48,1491.52,"Okay, okay, nice."
+1494.00,1495.36,Are you a wealth manager now?
+1495.60,1496.56,"No, no, no, no."
+1496.72,1499.60,I am an almost only based in the NEC Wealth Tech.
+1500.32,1502.48,And we have more tech people than business people.
+1503.04,1505.60,I'm one of the business guys.
+1505.76,1508.64,"And my background is banking, really banking."
+1508.80,1513.44,So I did originally my apprenticeship here in Switzerland about years ago.
+1513.60,1518.64,And then I always worked in the investment advisory space for many years.
+1518.88,1521.68,"And then I worked also in structured products, trading floor."
+1521.76,1527.12,And then I changed it to the physics side because I was fed up and I wanted to learn something new.
+1528.24,1529.76,That was around five years ago.
+1530.48,1535.20,"And now I mean products, which are a huge amount of product major."
+1535.60,1536.72,"TPO, TPO records."
+1537.04,1539.44,So I just wanted to make sure one thing I understood.
+1539.52,1545.84,"The core idea, get call, get information on the user's portfolio, and then overview it."
+1546.64,1548.48,That's the core core that must be there.
+1548.72,1548.88,Yeah.
+1549.04,1549.20,Okay.
+1550.48,1552.32,"Yeah, we do that and then we start with our friends."
+1554.72,1556.24,Then you can see if you're tired of moving.
+1556.56,1558.96,"And by the way, could you share the presentation?"
+1559.52,1561.12,"Yeah, I think they didn't share it."
+1561.52,1562.32,They didn't share it.
+1562.56,1563.68,I already complained over.
+1564.08,1565.76,I need to talk to Nicholas quickly.
+1566.88,1568.80,Or can you send it to the Discord?
+1569.36,1571.68,I already did the work like two hours ago.
+1572.80,1574.08,You mean the slide or the quad channel?
+1574.16,1574.64,"No, the slides."
+1575.76,1577.28,If you can send me the slides away.
+1577.84,1580.00,"Ah, if you send it to me, I can send it to you."
+1580.24,1582.00,Then you can send it because I'm not in Discord.
+1582.16,1584.08,"I mean, I don't want to give away my competitive edge."
+1586.32,1588.88,"I already sent it to someone, so okay."
+1593.04,1593.92,Just make a broker.
+1605.68,1606.48,I studied high skate.
+1607.20,1608.80,I studied at high school.
+1609.28,1610.00,You graduated already.
+1611.44,1612.24,And where do you work now?
+1613.60,1615.60,I quit the tool for my own company.
+1619.44,1623.76,I'm trying to build an AI agent-based trading company.
+1624.00,1626.88,"So industrial tools trading, screws and balls."
+1627.84,1628.40,"Oh, wow, okay."
+1628.64,1629.44,Because there's a lot of...
+1630.80,1636.96,"Before I 25, I worked at one of those companies and I family in that business area."
+1638.00,1643.52,"There's like 20, 340 companies in Switzerland, 20 to 100 employees who work on that."
+1643.60,1648.08,"And in the end, it is, okay, we buy this screw, we sell this screw."
+1648.40,1650.24,And there's a little bit of knowledge added.
+1650.40,1652.72,"So, okay, can I use this screw for concrete?"
+1652.80,1653.76,Can I use it for wood?
+1655.04,1655.92,And then that's it.
+1656.08,1657.60,It's called relationship building.
+1659.04,1662.48,My hypothesis is I can fully rebuild this with all the agents.
+1662.56,1669.92,"So I take supply chain agent, I take near PCs and tobacco, ontology layer, agent rooting, and sales agents, basically."
+1670.80,1671.68,And rebuild that.
+1672.00,1672.72,"Yeah, nice."
+1673.52,1673.92,Very cool.
+1674.80,1677.44,"And before which Vinte, how did you work?"
+1677.76,1678.72,"No, Frontify."
+1678.88,1679.76,"A Frontify, okay."
+1681.04,1682.80,E2B SaaS brand management.
+1683.44,1683.76,"Oh, okay."
+1684.00,1685.20,One of the Swinstein tops.
+1685.52,1688.48,"Yeah, I know the name somehow, but it's their neighbors."
+1689.04,1690.96,"I saw it when I passed by, yeah."
+1691.20,1692.40,"Yeah, I know neighbors."
+1692.80,1694.08,Are there any brand new company?
+1694.32,1696.24,"Yeah, it's a cool, cool company."
+1696.40,1700.96,"But I was there, like I think we were 17 when I started, and I was like 315."
+1702.48,1703.76,"So I thought, okay, I need to."
+1704.24,1705.36,Do you own things that will change?
+1706.72,1708.64,"Me, I study at high school."
+1708.88,1714.32,"I've been building a lot of stuff, just a lot of products, to be honest, and software."
+1715.28,1717.52,Building software and selling them since I was like 13.
+1718.08,1718.48,"Oh, wow."
+1719.68,1723.20,"Yeah, like just build apps, scale them up, just sell them."
+1723.44,1725.44,That was like half my thing that I did.
+1726.48,1728.72,"Right now, I'm working."
+1729.36,1737.84,"I'm not sure how to sell this, but working, it was a fascinating problem because AI and memory doesn't go really well together."
+1738.40,1746.48,"Especially, like, how do you give AI context if you have literally thousands upon thousands of documents?"
+1746.80,1752.00,"For example, if you very simply enterprise data, you will have emails and so on."
+1752.32,1761.12,"And some of the questions that you might need to ask, might need to reference multiple of these stuff to actually come to a concrete answer."
+1761.44,1764.64,Very simply in financial auditing.
+1764.96,1770.80,"Like, hey, what are the, is this person compliant with X, Y, Z?"
+1771.28,1776.80,"If you ask that question, there might be like a hundred different things you have to go through to figure out the answer."
+1777.12,1779.20,And the idea is to build an information.
