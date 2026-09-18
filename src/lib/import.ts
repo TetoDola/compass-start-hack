@@ -1,7 +1,7 @@
 import type { Row, Dataset, FundBreakdown } from './types';
 import { list, redact } from './format';
 
-const numericKeys = new Set(['ClientId','PortfolioId','ProposalId','SecurityId','Id','AssetsUnderManagementInDefaultCurrency','LiquidityInDefaultCurrency','Quantity','PricePerUnit','TotalAmountInPortfolioCurrency','PortfolioValuePercentage','Volatility','ExpectedReturn','ValueAtRisk','Value']);
+const numericKeys = new Set(['ClientId','PortfolioId','ProposalId','SecurityId','Id','AssetsUnderManagementInDefaultCurrency','LiquidityInDefaultCurrency','Quantity','PricePerUnit','TotalAmountInPortfolioCurrency','PortfolioValuePercentage','Volatility','ExpectedReturn','ValueAtRisk','Value','TargetPercentage','MinPercentage','MaxPercentage','MaxVola','MaxPRC','EquityQuoteInPercent']);
 function check(value: unknown, path: string) {
   if (Array.isArray(value)) { value.forEach((v, i) => check(v, `${path}[${i}]`)); return; }
   if (!value || typeof value !== 'object') return;
@@ -57,7 +57,7 @@ export function parseDatasetUpload(text: string, reference: Dataset['reference']
   }
   return { clients: parseCustomerUpload(JSON.stringify(data.clients)), suppliedReference: true, reference: {
     Securities: securities, FundBreakdowns: [...funds.values()],
-    RiskProfiles: records(raw, 'RiskProfiles').map(r => pick(r, ['Id', 'Name'])),
+    RiskProfiles: records(raw, 'RiskProfiles').map(r => pick(r, ['Id', 'Name', 'RiskLevel', 'MaxVola', 'MaxPRC', 'EquityQuoteInPercent'])),
     StrategicAssetAllocations: records(raw, 'StrategicAssetAllocations').map(r => ({ ...pick(r, ['Id', 'Name']), Mappings: records(r, 'Mappings').map(m => pick(m, ['Dimension', 'Category', 'TargetPercentage', 'MinPercentage', 'MaxPercentage'])) })),
     // Constituent snapshots are obtained through the verified server resolver, independently of security IDs.
     FundHoldings: reference.FundHoldings,

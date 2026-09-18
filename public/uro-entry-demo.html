@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Compass · Client-context entry demo</title>
+<style>body{font:16px/1.6 system-ui;background:#f5f7f4;color:#213f32;max-width:780px;margin:10vh auto;padding:24px}small{color:#66796e}h1{font-size:38px;line-height:1.15;letter-spacing:-1px}section{padding:30px;background:white;border:1px solid #d9e3dc;border-radius:12px;margin:26px 0}label{display:block}select,a{font:inherit;padding:12px;border-radius:6px}select{margin:12px 0 20px;width:100%;border:1px solid #bccfc2}a{display:inline-block;background:#285e4a;color:white;text-decoration:none}a[aria-disabled=true]{pointer-events:none;opacity:.4}.tag{background:#e7eee8;padding:5px 9px;border-radius:4px;font-size:12px}</style>
+<span class="tag">SIMULATED INTEGRATION · NOT CONNECTED TO URO</span>
+<h1>Open the client.<br>Prepare the conversation.</h1><p>This page demonstrates the intended hand-off from a selected client in an advisory system to Compass. It uses the local case dataset and a client identifier in the URL.</p>
+<section><label for="client">Selected client context</label><select id="client" disabled><option>Loading local cases…</option></select><a id="open" aria-disabled="true">Prepare client briefing →</a><p id="status" role="status"></p></section>
+<small>A real URO integration would require an authenticated client-context hand-off and access to the approved portfolio and research data. No URO connection or approval is claimed here.</small>
+<script type="module">
+const select=document.querySelector('#client'),link=document.querySelector('#open'),status=document.querySelector('#status');
+try{const response=await fetch('/data/case-data.json');if(!response.ok)throw Error('Case data unavailable');const data=await response.json();select.replaceChildren(...data.clients.map(c=>{const o=document.createElement('option');o.value=String(c.ClientId);o.textContent=c.ClientRef;return o;}));select.disabled=false;const update=()=>{link.href='/?'+new URLSearchParams({customer:select.value,view:'overview'});link.removeAttribute('aria-disabled');};select.addEventListener('change',update);update();}catch{status.textContent='Start the Compass server and prepare the case dataset to use this demo.';}
+</script></html>

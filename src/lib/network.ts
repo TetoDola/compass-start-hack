@@ -1,3 +1,4 @@
+import { aggregateProducts, productEvidence, lookThrough } from './advisory';
 import type { Analysis, Evidence, FundHoldingSnapshot } from './types';
 import { contextEvidence, instrumentId, type MarketContext } from './briefing';
 import { portfolioExposures } from './portfolio';
@@ -19,7 +20,7 @@ export function buildNetwork(a: Analysis, expanded: Set<string>, context?: Marke
   }
   for (const h of a.holdings) {
     const id = instrumentId(h.isin, h.id), fund = h.instrumentType === 'Investment fund';
-    put({ id, name: h.displayName, type: fund ? 'fund' : ['Shares', 'Dividend right certificates', 'Participation certificate'].includes(h.instrumentType) ? 'company' : 'instrument', evidence: [h.evidence], description: `${h.instrumentType} · ${h.isin || 'No verified ISIN'}. ${fund ? 'Expand to inspect dated top-ten constituents.' : 'Direct holding; inspect each position source for value and portfolio scope.'}`, isin: h.isin, snapshot: h.fundHoldings, expanded: expanded.has(id) });
+    put({ id, name: h.displayName, type: fund ? 'fund' : ['Shares', 'Dividend right certificates', 'Participation certificate'].includes(h.instrumentType) ? 'company' : 'instrument', evidence: [h.evidence], description: `${h.instrumentType} · ${h.isin || 'No verified ISIN'}. ${fund ? (lookThrough(h).status==='not-applicable'?'Inspect the product’s asset-specific risks.':'Expand to inspect dated top-ten constituents when available.') : 'Direct holding; inspect each position source for value and portfolio scope.'}`, isin: h.isin, snapshot: h.fundHoldings, expanded: expanded.has(id) });
     edge(`p-${h.portfolioId}`, id, 'holds directly', [h.evidence], `${h.portfolio}: ${money(h.value, h.currency)}${a.weightsAvailable ? ` · ${percent(h.weight)} of selected scope` : ' · combined scope weight unavailable'}. Position ${h.id}.`);
     if (!fund && h.sector !== 'Not classified') {
       const sectorId = `sector:${h.sector}`;
@@ -37,7 +38,7 @@ export function buildNetwork(a: Analysis, expanded: Set<string>, context?: Marke
       snap.holdings.slice(0, 10).forEach((company, i) => {
         const cid = instrumentId(company.isin, `underlying:${h.isin || h.id}:${i}`);
         const source: Evidence = { id: `constituent:${h.id}:${i}`, title: `${company.name} through ${h.displayName}`, type: 'record', date: snap.asOf, location: snap.sourceUrl, fields: [{ label: 'Source', value: snap.sourceName }, { label: 'Published fund weight', value: percent(company.weight, 2) }, { label: 'Approximate scope exposure', value: a.weightsAvailable ? percent(h.weight * company.weight, 2) : 'Unavailable for this scope' }, { label: 'Holding ISIN', value: company.isin || 'Not supplied; name not merged with other securities' }], note: 'Top-ten coverage only. Fund and client position dates may differ. Indirect exposure is an estimate, not direct ownership.' };
-        put({ id: cid, name: company.name, type: 'company', evidence: [source], description: 'Underlying security from a dated fund snapshot. Identical verified ISINs share a node; names alone are never merged.', isin: company.isin });
+        put({ id: cid, name: company.name, type: ['partial','complete'].includes(lookThrough(h).status)?'company':'instrument', evidence: [source], description: 'Underlying security from a dated fund snapshot. Identical verified ISINs share a node; names alone are never merged.', isin: company.isin });
         edge(id, cid, `${percent(company.weight, 2)} in fund`, [source], `Indirect holding · ${snap.sourceName} · ${dateLabel(snap.asOf, true)}. ${a.weightsAvailable ? `Approx. ${percent(h.weight * company.weight, 2)} of selected scope via this position.` : 'Combined scope exposure unavailable.'}`);
       });
     }
@@ -76,11 +77,12 @@ export function buildNetwork(a: Analysis, expanded: Set<string>, context?: Marke
     for (const id of linked) { if (materialEvent(item.title) && nodes.get(id)?.type === 'company') nodes.get(id)!.materialEvent = true; }
     for (const id of linked) edge(id, item.id, item.kind === 'news' ? 'possibly relevant news' : 'research context', [contextEvidence(item)], item.relevance, true);
   }
+  for(const p of aggregateProducts(a)){const node=nodes.get(p.id);if(node){node.evidence.unshift(productEvidence(a,p));node.description=`${a.weightsAvailable?percent(p.weight,2)+' combined exposure':'Combined weight unavailable'} across ${p.positions.length} positions. ${p.positions[0].instrumentType==='Investment fund'?lookThrough(p.positions[0]).reason:''} ${node.description}`;}}
   for (const node of nodes.values()) if (node.type === 'company') {
     const ownership = edges.filter(e => e.target === node.id && !e.inferred);
     const direct = ownership.some(e => nodes.get(e.source)?.type === 'portfolio');
     const fundCount = new Set(ownership.filter(e => nodes.get(e.source)?.type === 'fund').map(e => e.source)).size;
-    node.description = direct && fundCount ? `Held directly and through ${fundCount} expanded fund${fundCount === 1 ? '' : 's'}. The same verified ISIN connects these positions. Inspect the dated sources before combining exposure.` : direct ? 'Direct holding. Inspect each position source for its portfolio, value and weight.' : 'Underlying security from a dated fund snapshot. Indirect exposure is estimated; partial holdings are not normalized to 100%.';
+    node.description = `${a.weightsAvailable && direct?percent(aggregateProducts(a).find(p=>p.id===node.id)?.weight || 0,2)+' direct position exposure. ':''}` + (direct && fundCount ? `Held directly and through ${fundCount} expanded fund${fundCount === 1 ? '' : 's'}. The same verified ISIN connects these positions. Inspect the dated sources before combining exposure.` : direct ? 'Direct holding. Inspect each position source for its portfolio, value and weight.' : 'Underlying security from a dated fund snapshot. Indirect exposure is estimated; partial holdings are not normalized to 100%.');
   }
   return { nodes: [...nodes.values()], edges };
 }

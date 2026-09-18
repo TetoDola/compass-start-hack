@@ -1,0 +1,11 @@
+[
+  {
+    "title": "REPLACE: research title",
+    "source": "REPLACE: publishing institution",
+    "url": "https://example.com/replace-with-original-research",
+    "publishedAt": "2026-09-19",
+    "summary": "REPLACE with the sourced research view. This file is a format example, not research.",
+    "provenance": "public-research",
+    "topics": [{"kind": "industry", "value": "Information Technology"}]
+  }
+]

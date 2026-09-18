@@ -32,4 +32,5 @@ export interface Analysis {
   fundCoverage: number; fundSectors: { label: string; weight: number }[];
   notes: Row[]; proposals: Row[]; violations: Row[]; unresolved: number;
   warnings: string[]; summary: string; strategy: string;
+  riskProfile?: Row; policyTargets?: { portfolioId: number; name: string; mappings: Row[] }[];
 }

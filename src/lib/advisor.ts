@@ -1,3 +1,4 @@
+import { mandate, clientContextEvidence, aggregateProducts, productEvidence, allocationReview, allocationEvidence } from './advisory';
 import type { Analysis, Evidence } from './types';
 import { contextEvidence, newsTargets, type MarketContext } from './briefing';
 import { portfolioAttention, portfolioExposures, periodPerformance, ranges, type TimeRange } from './portfolio';
@@ -10,10 +11,13 @@ export function advisorFacts(a: Analysis, context?: MarketContext): AnswerBlock[
   const note = a.findings.find(f => f.id === 'customer-context');
   const attention = portfolioAttention(a);
   const blocks: AnswerBlock[] = [
+    {id:'mandate',title:'Mandate and decision prerequisites',text:[mandate(a).label,mandate(a).instruction,`Liquidity: ${mandate(a).cashLabel}. Last profile: ${dateLabel(a.customer.ProfilingDateUtc,true)}. Current objectives, horizon and loss capacity require confirmation.`],evidence:[clientContextEvidence(a)]},
+    {id:'actions',title:'Conditional next steps',text:attention.slice(0,3).map(i=>`${i.title}: ${i.action}`),evidence:attention.slice(0,3).flatMap(i=>i.evidence)},
+    {id:'policy',title:'Allocation versus supplied policy',text:allocationReview(a).map(r=>`${r.name}: ${r.reason} ${r.rows.map(x=>`${x.name} ${percent(x.actual)} actual / ${percent(x.target)} target`).join('; ')}`),evidence:allocationReview(a).map(r=>allocationEvidence(a,r))},
     { id: 'customer', title: 'Who is this customer?', text: [`${a.customer.ClientRef} is ${a.customer.IsClientACompany === true ? 'a company' : a.customer.IsClientACompany === false ? 'a private client' : 'a customer'}. Strategy: ${a.strategy}. Risk profile: ${a.customer.RiskProfileName || 'not supplied'}.`, `Reported assets: ${money(a.aum,a.currency)}. Reported liquidity: ${money(a.liquidity,a.currency)}.`, ...(note ? [note.body] : ['No substantive customer notes supplied.'])], evidence: [...(note?.evidence || []), ...a.evidence.filter(e=>e.id.startsWith('p-'))] },
     { id: 'attention', title: 'What needs attention?', text: attention.length ? attention.slice(0,4).map(i => `${i.title}${i.metric ? ` — ${i.metric}` : ''}. ${i.detail} Next: ${i.action}`) : ['No issue flagged by the available checks. This does not establish suitability or the absence of risk.'], evidence: attention.slice(0,4).flatMap(i=>i.evidence) },
-    { id: 'cash', title: 'Liquidity and customer needs', text: [`Reported liquidity is ${money(a.liquidity,a.currency)}${a.aum && a.liquidity != null ? ` (${percent(a.liquidity/a.aum)} of reported assets)` : ''}.`, ...(note ? [note.body] : ['No customer cash requirement supplied.']), 'Reconfirm the amount and deadline before deciding how to fund a withdrawal.'], evidence: [...a.evidence.filter(e=>e.id.startsWith('p-')), ...(note?.evidence || [])] },
-    { id: 'positions', title: 'Largest positions by weight', text: [a.weightsAvailable ? 'Sorted by supplied portfolio weight. Cash is separate.' : 'Weights are unavailable for this scope; select one non-overlapping portfolio.'], rows: a.holdings.slice(0,10).map(h => ({name:h.displayName,value:a.weightsAvailable ? percent(h.weight,1) : 'Unavailable'})), evidence: a.holdings.slice(0,10).map(h=>h.evidence) },
+    { id: 'cash', title: 'Liquidity and customer needs', text: [`Reported liquidity is ${money(a.liquidity,a.currency)}${a.aum && a.liquidity != null ? ` (${percent(a.liquidity/a.aum)} of reported assets)` : ''}.`, ...(note ? [note.body] : ['No customer cash requirement supplied.']), `Reconfirm the amount and deadline. ${mandate(a).instruction} ${mandate(a).cashLabel}.`], evidence: [...a.evidence.filter(e=>e.id.startsWith('p-')), ...(note?.evidence || [])] },
+    { id: 'positions', title: 'Largest positions by weight', text: [a.weightsAvailable ? 'Sorted by supplied portfolio weight. Cash is separate.' : 'Weights are unavailable for this scope; select one non-overlapping portfolio.'], rows: aggregateProducts(a).slice(0,10).map(p => ({name:`${p.name} (${p.positions.length} positions)`,value:a.weightsAvailable ? percent(p.weight,1) : 'Unavailable'})), evidence:aggregateProducts(a).slice(0,10).map(p=>productEvidence(a,p)) },
     { id: 'limits', title: 'What the records cannot establish', text: ['No cash-flow-adjusted return, daily price history, position-level performance attribution or complete company look-through was supplied. Current news cannot explain the shifted historical portfolio values.', 'I can show recorded issues, exposures and sourced headlines. I cannot establish that the portfolio is safe, forecast a return or execute a trade.'], evidence: [] },
   ];
   for (const range of ranges) {
@@ -42,6 +46,9 @@ export function routeQuestion(question: string, facts: AnswerBlock[], previousQu
   const add = (id: string) => { if (facts.some(f=>f.id===id) && !ids.includes(id)) ids.push(id); };
   if (/brief|overview|summari[sz]e|summary/.test(q)) return [...(facts.find(f=>f.id==='events')?.articles?.length ? ['events'] : []),'attention','performance:1M','customer'];
   if (/wrong|attention|problem|breach|risk|issue|safe|concentrat/.test(q)) {add('attention');add('events');}
+  if (/next|action|proposal|recommend|rebalance|should|options/.test(q)) {add('actions');add('mandate');}
+  if (/policy|target|allocation|drift/.test(q))add('policy');
+  if (/mandate|pension|execution.only/.test(q))add('mandate');
   if (/who|customer|client|profile|preference/.test(q)) add('customer');
   if (/cash|liquid|withdraw|tax|funding/.test(q)) add('cash');
   const range: TimeRange = /\b1d\b|one day|1 day|daily|today/.test(q) ? '1D' : /\b7d\b|7 days|week/.test(q) ? '7D' : /\b1y\b|1 year|one year|year|12 months/.test(q) ? '1Y' : '1M';

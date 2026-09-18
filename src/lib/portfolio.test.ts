@@ -33,7 +33,7 @@ test('every scope has finite non-duplicated exposures; ambiguous scopes withhold
 });
 test('attention groups actual rule names and preserves supplied thresholds and evidence',()=>{
   const items=portfolioAttention(a);assert.equal(items[0].level,'critical');
-  const usd=items.find(i=>i.title==='Foreign currency cluster risk USD')!;assert.ok(usd);assert.match(usd.metric!,/75.3%.*35.5%/);
+  const usd=items.find(i=>i.title==='Currency concentration')!;assert.ok(usd);assert.match(usd.metric!,/75.3%.*35.5%/);
   assert.equal(violationMeasurement({ViolationPath:'not-json'}),'');assert.ok(usd.evidence.every(e=>e.location.includes('SuitabilityViolations')));
 });
 test('distress triage prioritizes affirmative reports without labeling denials, questions or recovery as bankruptcy',()=>{

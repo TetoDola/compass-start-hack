@@ -30,6 +30,7 @@ export default forwardRef(function Graph({ nodes, edges, layoutKey = '', selecte
     const { data, simulation, neighbors } = createGraphLayout(nodes, edges, width / height);
     const byId = new Map(data.map(n => [n.id, n]));
     const previous = previousLayout.current?.key === layoutKey ? previousLayout.current : null;
+    let viewportReady = previous?.viewportReady || false;
     // Opening a profile reveals its affiliations without moving the existing map.
     if (previous) {
       for (const node of data) {
@@ -239,23 +240,46 @@ export default forwardRef(function Graph({ nodes, edges, layoutKey = '', selecte
       const y0 = Math.min(...data.map(n => n.y - n.r)), y1 = Math.max(...data.map(n => n.y + n.r));
       const scale = Math.max(.12, Math.min((w - 100) / Math.max(1, x1 - x0), (h - 100) / Math.max(1, y1 - y0), 1.6));
       svg.call(behavior.transform, zoomIdentity.translate(w / 2 - scale * (x0 + x1) / 2, (h - 25) / 2 - scale * (y0 + y1) / 2).scale(scale));
+      viewportReady = true;
     };
     scene.current = { svg, behavior, fit, highlight };
     positions();
-    if (previous) svg.call(behavior.transform, previous.transform); else fit();
+    if (previous && viewportReady) svg.call(behavior.transform, previous.transform); else fit();
     highlight();
     if (focusedNode && byId.has(focusedNode)) {
       node.attr('tabindex', d => d.id === focusedNode ? 0 : -1);
       node.filter(d => d.id === focusedNode).node().focus({ preventScroll: true });
     }
-    let observedWidth = width, observedHeight = height, resizeFrame = 0;
+    // Layout fallback dimensions are not a visible viewport. A mounted graph can
+    // start inside a closed dialog, so always fit after its first real reveal.
+    let observedWidth = container.current.clientWidth, observedHeight = container.current.clientHeight, resizeFrame = 0;
+    let wasVisible = observedWidth > 0 && observedHeight > 0;
+    let needsRevealFit = !wasVisible;
     const observer = new ResizeObserver(() => {
       const { clientWidth: w, clientHeight: h } = container.current;
-      if (w !== observedWidth || h !== observedHeight) { observedWidth = w; observedHeight = h; cancelAnimationFrame(resizeFrame); resizeFrame = requestAnimationFrame(fit); }
+      const visible = w > 0 && h > 0;
+      const revealed = visible && !wasVisible;
+      const resized = w !== observedWidth || h !== observedHeight;
+      wasVisible = visible; observedWidth = w; observedHeight = h;
+      if (!visible) { needsRevealFit = true; cancelAnimationFrame(resizeFrame); return; }
+      if (revealed) needsRevealFit = true;
+      if (revealed || resized) {
+        cancelAnimationFrame(resizeFrame);
+        resizeFrame = requestAnimationFrame(() => {
+          const { clientWidth: nextWidth, clientHeight: nextHeight } = container.current;
+          if (!nextWidth || !nextHeight) { needsRevealFit = true; return; }
+          if (needsRevealFit) { textWidths.clear(); fit(); needsRevealFit = false; }
+          else {
+            // A visible resize changes the viewport, not the adviser's zoom.
+            svg.attr('viewBox', `0 0 ${nextWidth} ${nextHeight}`);
+            renderLabels();
+          }
+        });
+      }
     });
     observer.observe(container.current);
     return () => {
-      previousLayout.current = { key: layoutKey, positions: new Map(data.map(n => [n.id, { x: n.x, y: n.y }])), transform };
+      previousLayout.current = { key: layoutKey, positions: new Map(data.map(n => [n.id, { x: n.x, y: n.y }])), transform, viewportReady: viewportReady && wasVisible };
       observer.disconnect(); cancelAnimationFrame(resizeFrame); simulation.stop(); svg.on('.zoom', null).on('.clear', null); scene.current = null;
     };
   }, [nodes, edges, layoutKey]);
