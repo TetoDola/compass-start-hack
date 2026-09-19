@@ -111,7 +111,7 @@ export default function App() {
         setImportError(false);
         setImportMessage(`Added ${result.added} client${result.added===1?'':'s'} from ${files.length} JSON file${files.length===1?'':'s'}. ${result.skipped?`${result.skipped} already in the workspace. `:''}${result.referenceAdded?'Reference data merged.':'Existing reference data reused.'}`);
       }
-    }catch(e){setImportError(true);setImportMessage(e instanceof Error?e.message:'Unable to import this file.');}finally{setImporting(false);setImportProgress('');if(uploadRef.current)uploadRef.current.value='';}
+    }catch(e){setImportError(true);setImportMessage(e instanceof Error?e.message:'Unable to import this file.');window.scrollTo({top:0,behavior:'smooth'});}finally{setImporting(false);setImportProgress('');if(uploadRef.current)uploadRef.current.value='';}
   }
   async function confirmPdfImport(target:number|'new'){
     if(!pdfPreview||!dataset)return;setImporting(true);setPdfError('');

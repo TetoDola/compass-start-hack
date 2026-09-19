@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ArrowUpRight, ChevronDown, ChevronRight, FileText, Network, Rss, AlertCircle, UserRound } from 'lucide-react';
 import { NewsThumbnail } from './NewsThumbnail';
 import { CurrentPricesPanel } from './CurrentPricesPanel';
+import { useInstrumentQuotes } from './useInstrumentQuotes';
 import { ClientBrief } from './ClientBrief';
 import { aggregateProducts, productEvidence, lookThrough } from './lib/advisory';
 import type { Analysis, Evidence } from './lib/types';
@@ -14,6 +15,7 @@ import { contextEvidence, newsTargets } from './lib/briefing';
 import { rankedNews } from './MarketNewsPanel';
 
 export function ClientWorkspace({ analysis, briefing, range, onRange, onEvidence, onGraph, onFinding, onNewsGraph, onNews, onRecords }: { analysis: Analysis; briefing: ReturnType<typeof useBriefing>; range: TimeRange; onRange: (r: TimeRange) => void; onEvidence: (e: Evidence) => void; onGraph: (node?: string) => void; onFinding: (id: string) => void; onNewsGraph: (id: string) => void; onNews: (id?: string, name?: string) => void; onRecords: () => void }) {
+  const market = useInstrumentQuotes(analysis);
   const [allIssues, setAllIssues] = useState(false), [issueId, setIssueId] = useState<string | null>(null), [allPositions, setAllPositions] = useState(false);
   const products = aggregateProducts(analysis), items = getAttentionItems(analysis, briefing.context);
   const news = rankedNews((briefing.context?.items || []).filter(i => i.kind === 'news')).slice(0, 6);
@@ -55,7 +57,7 @@ export function ClientWorkspace({ analysis, briefing, range, onRange, onEvidence
       </section>
       <ExposurePanel analysis={analysis} context={briefing.context} onEvidence={onEvidence} onNews={onNews}/>
     </div>
-    <CurrentPricesPanel analysis={analysis}/>
+    <CurrentPricesPanel analysis={analysis} market={market}/>
     <PerformancePanel analysis={analysis} range={range} onRange={onRange}/>
   </div>
   <aside className="ws-right-column">

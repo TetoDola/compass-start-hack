@@ -1,3 +1,4 @@
+import type { MarketMove, MarketPeriod } from './marketPerformance';
 export interface QuoteInstrument { isin: string; name: string; type: string }
 export interface InstrumentQuote {
   isin: string;
@@ -14,5 +15,6 @@ export interface InstrumentQuote {
   exchange?: string;
   resolution?: string;
   message: string;
+  movements?: Partial<Record<MarketPeriod, MarketMove>>;
 }
 export interface QuoteResponse { quotes: InstrumentQuote[]; fetchedAt: string }

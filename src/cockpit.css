@@ -185,3 +185,15 @@
   .cockpit-chart-wrap{margin-bottom:4px}
   .cockpit-performance{padding-top:10px;padding-bottom:8px}
 }
+.cockpit-price-period{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 16px 2px;font-size:10px;color:var(--quiet)}
+.cockpit-price-period>div{display:flex;gap:3px;align-items:center}
+.cockpit-price-period button{border:0;border-radius:3px;background:transparent;color:var(--quiet);font:10px var(--heading);padding:5px 7px;cursor:pointer}
+.cockpit-price-period button[aria-pressed=true]{background:var(--hover);color:var(--ink);font-weight:650}
+.cockpit-price-period button:hover{color:var(--ink)}
+.cockpit-price-note{padding:0 16px 12px;margin:0;font:10px/1.45 var(--heading);color:var(--quiet)}
+.cockpit-move{font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums}
+.cockpit-asset-table .cockpit-table-head,.cockpit-asset-table .cockpit-table-row{grid-template-columns:minmax(0,1.4fr) minmax(55px,.8fr) 53px 57px;gap:8px}
+.cockpit-position-table .cockpit-table-head,.cockpit-position-table .cockpit-table-row{grid-template-columns:minmax(0,1fr) 100px 49px 58px 25px;gap:7px}
+.cockpit-breakdown-table .cockpit-table-head,.cockpit-breakdown-table .cockpit-table-row{grid-template-columns:minmax(0,1fr) 52px 58px 67px 27px;gap:7px}
+@media(max-width:1280px){.cockpit-position-table .cockpit-table-head,.cockpit-position-table .cockpit-table-row{grid-template-columns:minmax(0,1fr) 80px 43px 54px 23px;gap:5px}.cockpit-breakdown-table .cockpit-table-head,.cockpit-breakdown-table .cockpit-table-row{grid-template-columns:minmax(0,1fr) 46px 54px 60px 25px;gap:5px}}
+@media(max-width:520px){.cockpit-price-period{padding-inline:13px}.cockpit-price-note{padding-inline:13px}.cockpit-position-table .cockpit-table-head,.cockpit-position-table .cockpit-table-row{grid-template-columns:minmax(0,1fr) 43px 54px 23px;gap:5px}.cockpit-position-table .cockpit-table-head>:nth-child(2),.cockpit-position-table .cockpit-table-row>:nth-child(2){display:none}.cockpit-breakdown-table .cockpit-table-head,.cockpit-breakdown-table .cockpit-table-row{grid-template-columns:minmax(0,1fr) 43px 54px 25px;gap:5px}.cockpit-breakdown-table .cockpit-table-head>:nth-child(4),.cockpit-breakdown-table .cockpit-table-row>:nth-child(4){display:none}.cockpit-asset-table .cockpit-table-head,.cockpit-asset-table .cockpit-table-row{grid-template-columns:minmax(0,1.4fr) minmax(35px,.65fr) 45px 54px;gap:5px}}

@@ -38,6 +38,20 @@ test('mutual fund NAV is distinct from exchange price and old observations are s
   assert.equal(parseInstrumentQuote(chart('AAPL','EQUITY',{regularMarketTime:now/1000-5*86400}),stock,exchange,now).state,'stale');
 });
 
+test('verified chart closes provide dated price movements without changing the latest quote',()=>{
+  const listing=parseIsinListing({quotes:[row]},stock);
+  const raw=chart();
+  const result=raw.chart.result[0] as typeof raw.chart.result[0] & {timestamp:number[];indicators:{quote:{close:number[]}[]}};
+  result.timestamp=[Date.parse('2026-08-18T16:00:00Z')/1000,Date.parse('2026-09-18T16:00:00Z')/1000];
+  result.indicators={quote:[{close:[100,110]}]};
+  const quote=parseInstrumentQuote(raw,stock,listing,now);
+  assert.equal(quote.price,123.45);
+  assert.equal(quote.movements?.['1M']?.change,10.000000000000009);
+  assert.equal(quote.movements?.['1M']?.start,'2026-08-18');
+  assert.equal(quote.movements?.['1M']?.end,'2026-09-18');
+  assert.equal(quote.movements?.['1Y'],undefined);
+});
+
 test('live lookup uses only exact ISIN and resolved symbol; shares cache and force-refreshes',async()=>{
   const calls:URL[]=[];
   const request:typeof fetch=async input=>{const u=new URL(String(input));calls.push(u);return new Response(JSON.stringify(u.pathname.includes('/search')?{quotes:[row]}:chart()));};
@@ -45,7 +59,7 @@ test('live lookup uses only exact ISIN and resolved symbol; shares cache and for
   const results=await Promise.all([resolve(stock),resolve({...stock,name:'Different portfolio label'})]);
   assert.equal(results[0].state,'available');assert.equal(calls.length,2);
   assert.equal(calls[0].searchParams.get('q'),stock.isin);assert.equal(calls[0].searchParams.get('enableFuzzyQuery'),'false');
-  assert.match(calls[1].pathname,/\/AAPL$/);assert.ok(calls.every(u=>!u.href.includes('portfolio')));
+  assert.match(calls[1].pathname,/\/AAPL$/);assert.equal(calls[1].searchParams.get('range'),'2y');assert.ok(calls.every(u=>!u.href.includes('portfolio')));
   await resolve(stock);assert.equal(calls.length,2);
   await resolve(stock,true);assert.equal(calls.length,4);
 });

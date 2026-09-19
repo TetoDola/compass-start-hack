@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { isValidIsin } from '../src/lib/securityIdentity';
 import type { InstrumentQuote, QuoteInstrument, QuoteResponse } from '../src/lib/quotes';
+import { marketChange, marketPeriods, type MarketObservation } from '../src/lib/marketPerformance.ts';
 
 const SEARCH = 'https://query1.finance.yahoo.com/v1/finance/search';
 const CHART = 'https://query1.finance.yahoo.com/v8/finance/chart/';
@@ -33,13 +34,22 @@ export function parseFigiListing(raw: any, instrument: QuoteInstrument): Listing
 }
 
 export function parseInstrumentQuote(raw: any, instrument: QuoteInstrument, listing: Listing, now = Date.now()): InstrumentQuote {
-  const meta = raw?.chart?.result?.[0]?.meta;
+  const chart = raw?.chart?.result?.[0], meta = chart?.meta;
   if (raw?.chart?.error || meta?.symbol !== listing.symbol || !compatible(instrument.type, meta.instrumentType) || meta.instrumentType !== listing.type) throw new Error('The quote did not match the resolved listing and instrument type.');
   const price = meta.regularMarketPrice, timestamp = meta.regularMarketTime * 1000;
   if (typeof price !== 'number' || !Number.isFinite(price) || price <= 0 || typeof meta.regularMarketTime !== 'number' || !Number.isFinite(timestamp) || timestamp <= 0 || timestamp > now || typeof meta.currency !== 'string' || !/^[A-Za-z]{3}$/.test(meta.currency)) throw new Error('The provider did not supply a valid positive price, currency and observation time.');
   const kind = listing.type === 'MUTUALFUND' ? 'nav' : 'exchange';
   const stale = now - timestamp > (kind === 'nav' ? 7 : 4) * 86400000;
-  return {isin:instrument.isin, state:stale?'stale':'available', symbol:listing.symbol, name:listing.name, price, currency:meta.currency, asOf:new Date(timestamp).toISOString(), retrievedAt:new Date(now).toISOString(), source:'Yahoo Finance', url:`https://finance.yahoo.com/quote/${encodeURIComponent(listing.symbol)}/`, kind, exchange:listing.exchange, resolution:listing.resolution||'Single compatible listing returned by an exact-ISIN Yahoo search; no name-derived ticker.', message:`${kind==='nav'?'Latest published fund NAV':'Latest exchange observation'}; ${stale?'older than the freshness threshold. ':''}may be delayed or reflect the last market close. ${meta.currency==='GBp'?'GBp means British pence, not pounds. ':meta.currency==='ZAc'?'ZAc means South African cents. ':''}Provider-selected listing and currency may differ from the portfolio record. Imported valuations are unchanged.`};
+  const observations: MarketObservation[] = Array.isArray(chart?.timestamp) && Array.isArray(chart?.indicators?.quote?.[0]?.close)
+    ? chart.timestamp.flatMap((seconds: unknown, index: number) => {
+      const close = chart.indicators.quote[0].close[index], time = typeof seconds === 'number' ? seconds * 1000 : NaN;
+      return Number.isFinite(time) && time <= now && typeof close === 'number' && Number.isFinite(close) && close > 0 ? [{ date: new Date(time).toISOString().slice(0, 10), value: close }] : [];
+    }).sort((a: MarketObservation, b: MarketObservation) => a.date.localeCompare(b.date)) : [];
+  const movements = Object.fromEntries(marketPeriods.flatMap(period => {
+    const result = marketChange(observations, period);
+    return result ? [[period, { change: result.change, start: result.start.date, end: result.end.date }]] : [];
+  }));
+  return {isin:instrument.isin, state:stale?'stale':'available', symbol:listing.symbol, name:listing.name, price, currency:meta.currency, asOf:new Date(timestamp).toISOString(), retrievedAt:new Date(now).toISOString(), source:'Yahoo Finance', url:`https://finance.yahoo.com/quote/${encodeURIComponent(listing.symbol)}/`, kind, exchange:listing.exchange, movements, resolution:listing.resolution||'Single compatible listing returned by an exact-ISIN Yahoo search; no name-derived ticker.', message:`${kind==='nav'?'Latest published fund NAV':'Latest exchange observation'}; ${stale?'older than the freshness threshold. ':''}may be delayed or reflect the last market close. ${meta.currency==='GBp'?'GBp means British pence, not pounds. ':meta.currency==='ZAc'?'ZAc means South African cents. ':''}Provider-selected listing and currency may differ from the portfolio record. Imported valuations are unchanged.`};
 }
 
 export function createQuoteResolver(request: typeof fetch = fetch, clock = Date.now) {
@@ -81,7 +91,7 @@ export function createQuoteResolver(request: typeof fetch = fetch, clock = Date.
           listings.set(key,{listing,at:clock()});
         }
         const url=new URL(`${CHART}${encodeURIComponent(listing.symbol)}`);
-        url.search=new URLSearchParams({interval:'1d',range:'5d'}).toString();
+        url.search=new URLSearchParams({interval:'1d',range:'2y'}).toString();
         return parseInstrumentQuote(await get(url),instrument,listing,clock());
       }catch(error){
         // Do not relabel a cached/reference price as a successful fresh observation.
