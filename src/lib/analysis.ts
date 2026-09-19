@@ -1,6 +1,6 @@
 import { pdfEvidence, reportedFinding } from './reported';
 import { fundDenominator } from './types';
-import type { Analysis, Connection, Dataset, Entity, Evidence, Finding, Holding, Row } from './types';
+import type { Analysis, Connection, Dataset, Entity, Evidence, Finding, FundHoldingSnapshot, Holding, Row } from './types';
 import { clientName, dateLabel, list, money, number, percent, redact, statusLabel } from './format';
 
 import { displayInstrumentName } from './instruments';
@@ -10,6 +10,28 @@ const sumKnown = (values: unknown[]) => values.length && values.every(v => numbe
 const validDate = (v: unknown): v is string => typeof v === 'string' && Number.isFinite(Date.parse(v));
 const sortRecent = (key: string) => (a: Row, b: Row) => (Date.parse(b[key]) || 0) - (Date.parse(a[key]) || 0);
 const fields = (entries: Record<string, string>) => Object.entries(entries).map(([label, value]) => ({ label, value }));
+
+/** Exact ISIN classifications only. Conflicting supplied classifications remain unknown. */
+export function classifyFundSnapshot(snapshot: FundHoldingSnapshot, securities: Row[]): FundHoldingSnapshot {
+  const classified = (value: unknown): value is string => typeof value === 'string' && !!value.trim() && !/not classified|unclassified|unknown/i.test(value);
+  return { ...snapshot, holdings: snapshot.holdings.map(company => {
+    const matches = company.isin ? securities.filter(s => s.Isin === company.isin) : [];
+    const result = { ...company, classificationEvidence: [] as Evidence[] };
+    for (const [field, sourceField] of [['country', 'CountryName'], ['region', 'CountryGroupName'], ['industry', 'IndustryName'], ['saaRegion', 'SAA_CountryGroupName'], ['saaIndustry', 'SAA_IndustryName']] as const) {
+      const values = [...new Set([company[field], ...matches.map(s => s[sourceField])].filter(classified))];
+      result[field] = values.length === 1 ? values[0] : undefined;
+      if (values.length !== 1) continue;
+      const matched = matches.filter(s => s[sourceField] === values[0]);
+      result.classificationEvidence.push({ id: `classification:${company.isin || snapshot.isin + ':' + company.name}:${field}`, title: `${company.name} · ${sourceField}`, type: 'record', location: matched.length ? `reference.json / Securities / ${matched.map(s => `Id=${s.Id}`).join(', ')}` : snapshot.sourceUrl, ...(matched.length ? {} : { date: snapshot.asOf }), fields: [{ label: 'ISIN', value: company.isin || 'Not supplied' }, { label: sourceField, value: values[0] }], note: matched.length ? 'Exact constituent ISIN match to supplied security master. Reference geography is not revenue or operational exposure; classification date is not supplied.' : 'Classification supplied with the dated constituent snapshot.' });
+    }
+    return result;
+  }) };
+}
+
+export function fundSnapshotNeedsRefresh(snapshot: FundHoldingSnapshot, now = Date.now()): boolean {
+  const asOf = Date.parse(snapshot.asOf), retrieved = Date.parse(snapshot.retrievedAt);
+  return !Number.isFinite(asOf) || !Number.isFinite(retrieved) || new Date(asOf).toISOString().slice(0, 10) !== snapshot.asOf.slice(0, 10) || asOf > now || retrieved > now || now - asOf > 30 * 86400000 || now - retrieved > 86400000;
+}
 
 export function analyze(dataset: Dataset, customer: Row, scope = 'all'): Analysis {
   const allPortfolios = list(customer.Portfolios);
@@ -23,7 +45,7 @@ export function analyze(dataset: Dataset, customer: Row, scope = 'all'): Analysi
   const weightsAvailable = !missingWeights && !scopeAmbiguous && (portfolios.length === 1 || (aum != null && aum > 0));
   const securities = new Map(dataset.reference.Securities.map(s => [s.Id, s]));
   const funds = new Map(dataset.reference.FundBreakdowns.map(f => [f.id, f]));
-  const fundHoldings = new Map((dataset.reference.FundHoldings || []).map(f => [f.isin, f]));
+  const fundHoldings = new Map((dataset.reference.FundHoldings || []).map(f => [f.isin, classifyFundSnapshot(f, dataset.reference.Securities)]));
   const portfolioIds = new Set(portfolios.map(p => p.PortfolioId));
   const allIds = new Set(allPortfolios.map(p => p.PortfolioId));
   const violations = list(customer.SuitabilityViolations).filter(v => portfolioIds.has(v.PortfolioId));
@@ -65,7 +87,8 @@ export function analyze(dataset: Dataset, customer: Row, scope = 'all'): Analysi
       const id = `holding-${p.PortfolioId}-${i}`;
       const source: Evidence = { id, title: redact(s.SecurityName || master?.Name || 'Unresolved security'), type: 'record', location: `${basePath} / Portfolios[PortfolioId=${p.PortfolioId}] / SecurityPositions[${i}]`, fields: fields({ 'Security ID': String(s.SecurityId ?? 'Missing'), 'Position value': money(number(s.TotalAmountInPortfolioCurrency), p.PortfolioCurrency || currency), 'Portfolio weight': number(s.PortfolioValuePercentage) != null ? percent(s.PortfolioValuePercentage) : 'Not available', Quantity: String(s.Quantity ?? 'Not available'), 'Instrument type': instrumentType, 'ISIN': isin || 'Not recorded', 'Price date': dateLabel(priceDate), 'Security classification': master?.SAA_AssetClassName || 'Not classified', Industry: master?.IndustryName || 'Not classified', 'Reference country': master?.CountryName || 'Not classified' }), note: master ? 'Position joined to reference.json / Securities using SecurityId.' : 'This security is absent from the supplied reference file. Its position values are retained.' };
       if(p.ExternalSource){Object.assign(source,pdfEvidence(p,s.SourcePage||1,id,source.title,source.fields));source.fields.push({label:'Reported ISIN',value:s.ReportedIsin||'Not supplied'},{label:'Identity check',value:s.IdentityIssue||'Retained from statement'},{label:'Quote basis',value:s.QuoteBasis||'Not supplied'});}
-      const holding: Holding = { id, name: source.title, securityId: s.SecurityId, portfolioId: p.PortfolioId, portfolio: p.PortfolioNr || String(p.PortfolioId), currency: p.PortfolioCurrency || currency, value: number(s.TotalAmountInPortfolioCurrency), weight, asset: master?.SAA_AssetClassName || 'Not classified', sector: master?.IndustryName || 'Not classified', country: master?.CountryName, known: !!master, evidence: source, priceDate, priceStale: !validDate(priceDate) || !validDate(p.FactoryDateUtc) || Date.parse(p.FactoryDateUtc) - Date.parse(priceDate) > 30 * 86400000, instrumentType, displayName: fundHoldings.get(isin)?.name || displayInstrumentName(source.title, instrumentType), isin, fundBreakdown: funds.get(s.SecurityId), fundHoldings: instrumentType === 'Investment fund' ? fundHoldings.get(isin) : undefined, productRiskClass: number(master?.PRC) ?? undefined, sustainabilityScore: number(master?.SustainabilityScore) ?? undefined, riskContribution: number(s.ContributionVolatility) ?? undefined };
+      source.fields.push({ label: 'Reference region', value: master?.CountryGroupName || 'Not classified' }, { label: 'SAA country group', value: master?.SAA_CountryGroupName || 'Not classified' }, { label: 'SAA industry', value: master?.SAA_IndustryName || 'Not classified' });
+      const holding: Holding = { id, name: source.title, securityId: s.SecurityId, portfolioId: p.PortfolioId, portfolio: p.PortfolioNr || String(p.PortfolioId), currency: p.PortfolioCurrency || currency, value: number(s.TotalAmountInPortfolioCurrency), weight, asset: master?.SAA_AssetClassName || 'Not classified', sector: master?.IndustryName || 'Not classified', country: master?.CountryName, region: master?.CountryGroupName, saaRegion: master?.SAA_CountryGroupName, saaIndustry: master?.SAA_IndustryName, known: !!master, evidence: source, priceDate, priceStale: !validDate(priceDate) || !validDate(p.FactoryDateUtc) || Date.parse(p.FactoryDateUtc) - Date.parse(priceDate) > 30 * 86400000, instrumentType, displayName: fundHoldings.get(isin)?.name || displayInstrumentName(source.title, instrumentType), isin, fundBreakdown: funds.get(s.SecurityId), fundHoldings: instrumentType === 'Investment fund' ? fundHoldings.get(isin) : undefined, productRiskClass: number(master?.PRC) ?? undefined, sustainabilityScore: number(master?.SustainabilityScore) ?? undefined, riskContribution: number(s.ContributionVolatility) ?? undefined };
       holdings.push(holding); evidence.push(source); add(allocations, holding.asset, weight);
       const fund = funds.get(s.SecurityId);
       if (fund && fund.total > 0 && Number.isFinite(fundDenominator(fund.total))) {

@@ -25,6 +25,11 @@ export const isCompany = (h: Holding) => ['Shares', 'Dividend right certificates
 export const geography: Record<string, string> = { 'Equities Switzerland': 'Switzerland', 'Equities Euroland': 'Euro area', 'Aktien UK': 'United Kingdom', 'Equities EmMa': 'Emerging markets', 'Equities Japan': 'Japan', 'Equities Pacific': 'Pacific', 'Equities North America': 'North America' };
 const specificCountries = new Set(['Switzerland', 'United Kingdom', 'Japan']);
 const classified = (s?: string) => !!s && !/not classified|unknown|unclassified/i.test(s);
+export function referenceRegion(raw?: string, saa?: string): string | undefined {
+  const name = (raw && geography[raw]) || saa || raw;
+  if (!classified(name) || /^(?:Others|Structured products.*|Precious metals|Bonds? .*|Equities .*)$/i.test(name!)) return undefined;
+  return name === 'Great Britain' ? 'United Kingdom' : name;
+}
 // Keep original indexes for constituents without an ISIN so target and graph IDs remain stable.
 export function equityConstituents(h: Holding): [number, FundHoldingSnapshot['holdings'][number]][] {
   if (!['partial', 'complete'].includes(lookThrough(h).status)) return [];
@@ -51,20 +56,39 @@ export function portfolioExposures(a: Analysis, kind: ExposureKind): Exposure[] 
     if (!fund) {
       if (kind === 'industry') put(h.sector, h.weight, h, h.evidence);
       if (kind === 'country') put(h.country, h.weight, h, h.evidence);
+      const region = referenceRegion(h.region, h.saaRegion);
+      if (kind === 'region' && region && region !== h.country && !specificCountries.has(region)) put(region, h.weight, h, h.evidence);
       if (kind === 'company' && isCompany(h)) put(h.displayName, h.weight, h, h.evidence, companyId(h.isin, h.id), h.isin);
       continue;
     }
     if (kind === 'industry' && h.fundBreakdown?.total) {
       for (const [name, amount] of Object.entries(h.fundBreakdown.sectors)) put(name, h.weight * amount / fundDenominator(h.fundBreakdown.total), h, categoryEvidence(h, name, amount, 'IndustryName'));
+    } else if (kind === 'industry') {
+      for (const [i, c] of equityConstituents(h)) put(c.industry, h.weight * c.weight, h, constituentEvidence(h, c, i));
     }
+    const mappedCountries = new Set<string>();
+    let mappedCountryWeight = 0;
     if ((kind === 'country' || kind === 'region') && h.fundBreakdown?.total) {
       for (const [raw, amount] of Object.entries(h.fundBreakdown.regions)) {
         const name = geography[raw] || raw;
-        if (kind === 'region' || specificCountries.has(name)) put(name, h.weight * amount / fundDenominator(h.fundBreakdown.total), h, categoryEvidence(h, name, amount, 'CountryGroupName'));
+        const share = amount / fundDenominator(h.fundBreakdown.total);
+        if (specificCountries.has(name) && Number.isFinite(share) && share > 0) { mappedCountries.add(name); mappedCountryWeight += share; }
+        if ((kind === 'region' && !specificCountries.has(name)) || (kind === 'country' && specificCountries.has(name))) put(name, h.weight * share, h, categoryEvidence(h, name, amount, 'CountryGroupName'));
       }
-    } else if (kind === 'country') {
-      // Without a geographic breakdown, classify only constituents with an exact master-data match.
-      for (const [i, c] of equityConstituents(h)) if (c.country) put(c.country, h.weight*c.weight, h, constituentEvidence(h, c, i));
+    }
+    if (kind === 'country') {
+      // Known constituent countries supplement broad regions, never duplicate a whole-country allocation.
+      const partial = equityConstituents(h).filter(([, c]) => c.country && !mappedCountries.has(c.country));
+      // Different dated sources can disagree. Withhold the inconsistent supplement rather than rescale it.
+      if (partial.reduce((sum, [, c]) => sum + c.weight, 0) + mappedCountryWeight <= 1.00001) {
+        for (const [i, c] of partial) put(c.country, h.weight*c.weight, h, constituentEvidence(h, c, i));
+      }
+    }
+    if (kind === 'region' && !h.fundBreakdown?.total) {
+      for (const [i, c] of equityConstituents(h)) {
+        const region = referenceRegion(c.region, c.saaRegion);
+        if (region && region !== c.country && !specificCountries.has(region)) put(region, h.weight * c.weight, h, constituentEvidence(h, c, i));
+      }
     }
     if (kind === 'company') for (const [i, c] of equityConstituents(h)) {
       put(c.name, h.weight*c.weight, h, constituentEvidence(h, c, i), companyId(c.isin, `underlying:${h.isin || h.id}:${i}`), c.isin);
@@ -74,7 +98,7 @@ export function portfolioExposures(a: Analysis, kind: ExposureKind): Exposure[] 
 }
 function constituentEvidence(h: Holding, c: FundHoldingSnapshot['holdings'][number], index: number): Evidence {
   const snapshot = h.fundHoldings!;
-  return { id: `constituent:${h.id}:${index}`, title: `${c.name} through ${h.displayName}`, location: snapshot.sourceUrl, date: snapshot.asOf, type: 'calculation', fields: [{ label: 'Fund weight', value: percent(c.weight, 2) }, { label: 'Position weight', value: percent(h.weight, 2) }, { label: 'Approximate portfolio exposure', value: percent(h.weight*c.weight, 2) }, ...(c.country ? [{ label: 'Reference country', value: c.country }] : [])], note: 'Position weight × original published constituent weight. Published holdings are not rescaled. Position and fund dates may differ.' };
+  return { id: `constituent:${h.id}:${index}`, title: `${c.name} through ${h.displayName}`, location: snapshot.sourceUrl, date: snapshot.asOf, type: 'calculation', fields: [{ label: 'Fund weight', value: percent(c.weight, 2) }, { label: 'Position weight', value: percent(h.weight, 2) }, { label: 'Approximate portfolio exposure', value: percent(h.weight*c.weight, 2) }, ...(c.country ? [{ label: 'Reference country', value: c.country }] : []), ...(c.classificationEvidence || []).map(e => ({ label: 'Classification source', value: e.location }))], note: 'Position weight × original published constituent weight. Published holdings are not rescaled. Partial country coverage supplements broad regions and overlaps those regions; dimensions must not be added. Position and fund dates may differ.' };
 }
 function categoryEvidence(h: Holding, name: string, weight: number, field: string): Evidence {
   return { id: `category:${h.id}:${field}:${name}`, title: `${h.displayName} · ${name}`, type: 'calculation', location: `reference.json / FundUnbundlingMappings / FundSecurityId=${h.securityId}`, fields: [{ label: 'Dimension', value: field }, { label: 'Share of fund', value: percent(weight/fundDenominator(h.fundBreakdown!.total), 2) }, { label: 'Share of portfolio', value: percent(h.weight*weight/fundDenominator(h.fundBreakdown!.total), 2) }], note: 'Position weight × category percentage / 100. Only totals within 1 percentage point of 100 are normalized for rounding; missing allocation remains unknown. Country groups may be regions, not individual countries.' };

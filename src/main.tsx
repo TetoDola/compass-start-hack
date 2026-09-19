@@ -4,5 +4,6 @@ import App from './App';
 import './styles.css';
 import './network.css';
 import './cockpit.css';
+import './revamp.css';
 
 createRoot(document.getElementById('root')!).render(<React.StrictMode><App /></React.StrictMode>);

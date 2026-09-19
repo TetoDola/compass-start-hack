@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ArrowUpRight, ChevronDown, ChevronRight, FileText, Network, Rss, AlertCircle, UserRound } from 'lucide-react';
 import { NewsThumbnail } from './NewsThumbnail';
+import { CurrentPricesPanel } from './CurrentPricesPanel';
 import { ClientBrief } from './ClientBrief';
 import { aggregateProducts, productEvidence, lookThrough } from './lib/advisory';
 import type { Analysis, Evidence } from './lib/types';
@@ -54,6 +55,7 @@ export function ClientWorkspace({ analysis, briefing, range, onRange, onEvidence
       </section>
       <ExposurePanel analysis={analysis} context={briefing.context} onEvidence={onEvidence} onNews={onNews}/>
     </div>
+    <CurrentPricesPanel analysis={analysis}/>
     <PerformancePanel analysis={analysis} range={range} onRange={onRange}/>
   </div>
   <aside className="ws-right-column">

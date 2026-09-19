@@ -21,4 +21,5 @@ test('digest requests are shared, cached and carry only server-side credentials'
  return Response.json({categories:{news:{items:[{...row,publishedAt:Date.now()-1000}]}},coverage:{state:'complete'}});
  });
  const [a,b]=await Promise.all([resolver(),resolver()]);assert.equal(calls,1);assert.equal(a,b);await resolver();assert.equal(calls,1);
+ await resolver(true);assert.equal(calls,2,'an explicit refresh bypasses the Compass cache');
 });

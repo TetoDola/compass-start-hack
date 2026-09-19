@@ -1,7 +1,7 @@
 import type { WorldStatus } from './world';
 import { aggregateProducts, clientContextEvidence, mandate } from './advisory';
-import type { Analysis, Evidence } from './types.ts';
-import { equityConstituents, portfolioAttention, periodPerformance, portfolioExposures } from './portfolio';
+import type { Analysis, Evidence, SecurityClassification } from './types.ts';
+import { equityConstituents, referenceRegion, portfolioAttention, periodPerformance, portfolioExposures } from './portfolio';
 import { materialEvent, compareNews, type MaterialEvent } from './events';
 import { dateLabel, money, percent } from './format.ts';
 
@@ -12,7 +12,7 @@ export const sections: { id: SectionKey; title: string; subtitle: string }[] = [
   { id: 'outlook', title: 'What to watch', subtitle: 'News and a dated research perspective' },
   { id: 'actions', title: 'What to do next', subtitle: 'Prepare the next conversation' },
 ];
-export interface NewsTarget { kind?: 'company' | 'industry' | 'country' | 'region'; id: string; name: string; aliases?: string[]; isin?: string; symbol?: string; via: string; weight: number | null }
+export interface NewsTarget extends SecurityClassification { kind?: 'company' | 'industry' | 'country' | 'region'; id: string; name: string; aliases?: string[]; isin?: string; symbol?: string; via: string; weight: number | null }
 export interface ContextItem { id: string; kind: 'news' | 'house-view'; title: string; source: string; url: string; publishedAt: string; retrievedAt: string; entityIds: string[]; relevance: string; imageUrl?: string; summary?: string; sample?: boolean; provider: string; provenance?: 'public-research' | 'bank-approved'; exposureWeight?: number | null; matchKind?: 'company' | 'topic'; event?: MaterialEvent; layer?: 'news'|'shipping'|'disaster'; sourceRelevance?: string; geo?: {coordinates:[number,number];label:string;basis:'article-location'|'event-location'|'country-mention'} }
 export interface MarketContext { items: ContextItem[]; checked: number; requested: number; totalEligible?: number; warnings: string[]; elapsedMs: number; fetchedAt: string; providers: string[]; checkedIds?: string[]; windowDays?: number; world?: WorldStatus }
 export interface BriefCandidate { id: string; section: SectionKey; text: string; sourceIds: string[]; findingId?: string; contextId?: string; contextKind?: ContextItem['kind']; evidence?: Evidence[] }
@@ -22,7 +22,9 @@ export interface BriefResult { selection: BriefSelection; mode: 'structured' | '
 export const instrumentId = (isin: string | undefined, fallback: string) => isin ? `instrument:${isin}` : fallback;
 export function newsTargets(a: Analysis): NewsTarget[] {
   const result = new Map<string, NewsTarget>();
+  const classifications = new Map<string, NewsTarget[]>();
   const put = (target: NewsTarget) => {
+    classifications.set(target.id, [...(classifications.get(target.id) || []), { ...target }]);
     const old = result.get(target.id);
     if (!old) result.set(target.id, target);
     else {
@@ -34,8 +36,16 @@ export function newsTargets(a: Analysis): NewsTarget[] {
   };
   for (const h of a.holdings) {
     if (a.weightsAvailable && (!Number.isFinite(h.weight) || h.weight <= 0 || h.weight > 1)) continue;
-    if (['Shares', 'Dividend right certificates', 'Participation certificate'].includes(h.instrumentType)) put({ id: instrumentId(h.isin, h.id), name: h.displayName, isin: h.isin, via: 'Direct position', weight: a.weightsAvailable ? h.weight : null });
-    for (const [i, c] of equityConstituents(h)) put({ id: instrumentId(c.isin, `underlying:${h.isin || h.id}:${i}`), name: c.name, isin: c.isin, via: h.displayName, weight: a.weightsAvailable ? h.weight * c.weight : null });
+    if (['Shares', 'Dividend right certificates', 'Participation certificate'].includes(h.instrumentType)) put({ id: instrumentId(h.isin, h.id), name: h.displayName, isin: h.isin, via: 'Direct position', weight: a.weightsAvailable ? h.weight : null, country: h.country, region: referenceRegion(h.region, h.saaRegion), industry: h.sector, saaIndustry: h.saaIndustry, saaRegion: h.saaRegion, classificationEvidence: [h.evidence] });
+    for (const [i, c] of equityConstituents(h)) put({ id: instrumentId(c.isin, `underlying:${h.isin || h.id}:${i}`), name: c.name, isin: c.isin, via: h.displayName, weight: a.weightsAvailable ? h.weight * c.weight : null, country: c.country, region: referenceRegion(c.region, c.saaRegion), industry: c.industry, saaIndustry: c.saaIndustry, saaRegion: c.saaRegion, classificationEvidence: c.classificationEvidence });
+  }
+  for (const target of result.values()) {
+    const sources = classifications.get(target.id)!;
+    for (const field of ['country', 'region', 'industry', 'saaRegion', 'saaIndustry'] as const) {
+      const values = [...new Set(sources.map(s => s[field]).filter((v): v is string => !!v && !/not classified|unclassified|unknown/i.test(v)))];
+      target[field] = values.length === 1 ? values[0] : undefined;
+    }
+    target.classificationEvidence = [...new Map(sources.flatMap(s => s.classificationEvidence || []).map(e => [e.id, e])).values()];
   }
   const companies = [...result.values()].sort((a, b) => (b.weight || 0) - (a.weight || 0));
   const categories = (['industry', 'country', 'region'] as const).flatMap(kind => portfolioExposures(a, kind).map(e => ({ id: e.id, name: e.name, kind, via: `${kind} exposure`, weight: e.weight })));

@@ -12,7 +12,7 @@ export const countryAliases: Record<string, string[]> = {
   'United Kingdom': ['UK', 'U.K.', 'Britain', 'British'],
   Switzerland: ['Swiss'], China: ['Chinese'], Germany: ['German'], Japan: ['Japanese'],
   France: ['French'], Taiwan: ['Taiwanese'],
-  'South Korea': ['Korea, Republic of', 'Republic of Korea'],
+  'South Korea': ['Korea, Republic of', 'Republic of Korea', 'South Korean'],
   Russia: ['Russian Federation'], Czechia: ['Czech Republic'], Netherlands: ['The Netherlands'],
 };
 export function countryKey(name: string): string {
@@ -35,6 +35,19 @@ const industryAliases: Record<string, string[]> = {
   'Information Technology': ['technology sector', 'tech sector', 'semiconductors'],
   'Raw materials': ['raw materials', 'mining sector'],
 };
+const regionAliases: Record<string, string[]> = {
+  'Euro area': ['eurozone', 'euro zone'],
+  'Emerging markets': ['emerging economies'],
+  'North America': ['North American'],
+};
+// Aliases refer to the same classification, never its constituent countries.
+export function targetNames(target: NewsTarget): string[] {
+  if (!target.kind || target.kind === 'company') return [...new Set([target.name, ...target.aliases || []].map(companyName).filter(Boolean))];
+  const entry = Object.entries(countryAliases).find(([key]) => countryKey(key) === countryKey(target.name));
+  const names = target.kind === 'industry' ? [target.name, ...industryAliases[target.name] || []]
+    : entry ? [entry[0], ...entry[1]] : [target.name, ...regionAliases[target.name] || []];
+  return [...new Set(names)];
+}
 
 export interface MatchableNews { title: string; summary?: string; tickers?: string[]; layer?: string; portfolioMatch?: 'none' }
 export function matchesNewsTarget(article: MatchableNews, target: NewsTarget): boolean {
@@ -43,7 +56,8 @@ export function matchesNewsTarget(article: MatchableNews, target: NewsTarget): b
   if (!target.kind || target.kind === 'company') {
     // A quake location or vessel name cannot establish company ownership.
     if (article.layer && article.layer !== 'news') return false;
-    if (target.symbol && article.tickers?.includes(target.symbol.toUpperCase())) return true;
+    // World Monitor tags are dictionary-extracted from source text. A tag is
+    // not independent issuer verification and must never bypass text matching.
     if (target.aliases?.some(name => matchesNewsTarget(article, {...target, name, aliases: undefined}))) return true;
     const name = companyName(target.name), normalized = normalize(name);
     if (normalized.length < 2) return false;
@@ -73,12 +87,10 @@ export function matchesNewsTarget(article: MatchableNews, target: NewsTarget): b
     // Match geography and the economic topic in the headline itself. A
     // provider's boilerplate/related-story summary is not evidence of relevance.
     if (!macro.test(article.title)) return false;
-    const entry = target.kind === 'country' ? Object.entries(countryAliases).find(([key]) => countryKey(key) === countryKey(target.name)) : undefined;
-    const aliases = entry ? [entry[0], ...entry[1]] : [];
-    return [target.name, ...aliases].some(name => {
+    return targetNames(target).some(name => {
       if (/^[A-Z.]{2,5}$/.test(name)) return new RegExp(`(?:^|[^A-Za-z])${escape(name)}(?=$|[^A-Za-z])`).test(article.title);
       return phrase(article.title, name);
     });
   }
-  return [target.name, ...industryAliases[target.name] || []].some(name => phrase(article.title, name));
+  return targetNames(target).some(name => phrase(article.title, name));
 }

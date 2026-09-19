@@ -4,12 +4,27 @@ import { readFileSync } from 'node:fs';
 import { companyName, matchesNewsTarget, type MatchableNews } from './newsMatching';
 import { matchesWorldArticle } from './world';
 import { parseNewsRss } from '../../server/market-context';
+import { targetQuery } from '../../server/market-context';
 import { analyze } from './analysis';
 import { newsTargets, type NewsTarget } from './briefing';
 import type { Dataset } from './types';
 
 const company = (name: string, extra: Partial<NewsTarget> = {}): NewsTarget => ({
   id: `company:${name}`, name, via: 'Direct position', weight: .1, ...extra,
+});
+
+test('retrieval queries use canonical country labels and issuer aliases',()=>{
+  const us=targetQuery(company('United States of America',{kind:'country'}));
+  assert.ok(us.includes('"United States" OR'));assert.ok(us.includes('"U.S."'));
+  assert.ok(targetQuery(company('Korea, Republic of',{kind:'country'})).includes('"South Korea"'));
+  assert.equal(targetQuery(company('Alphabet, Inc. A',{aliases:['Alphabet · Class C']})), '"Alphabet"');
+  assert.ok(targetQuery(company('Example Holdings',{aliases:['Example Financial']})).includes('OR "Example Financial"'));
+});
+test('region aliases preserve geography without treating member countries as the region',()=>{
+  assert.equal(matchesNewsTarget({title:'Eurozone inflation falls'},company('Euro area',{kind:'region'})),true);
+  assert.equal(matchesNewsTarget({title:'Emerging economies face debt pressures'},company('Emerging markets',{kind:'region'})),true);
+  assert.equal(matchesNewsTarget({title:'Germany inflation falls'},company('Euro area',{kind:'region'})),false);
+  assert.equal(matchesNewsTarget({title:'U.S. stocks rise'},company('North America',{kind:'region'})),false);
 });
 
 test('issuer cleanup preserves ordinary final letters and meaningful multiword names', () => {
@@ -78,7 +93,7 @@ test('country relevance requires headline evidence and recognizes canonical alia
 
 test('ticker evidence cannot attach a vessel or disaster to an issuer', () => {
   const target = company('Apple', { symbol: 'AAPL' });
-  assert.equal(matchesNewsTarget({ title: 'Quarterly results released', tickers: ['AAPL'] }, target), true);
+  assert.equal(matchesNewsTarget({ title: 'Quarterly results released', tickers: ['AAPL'] }, target), false);
   assert.equal(matchesNewsTarget({ title: 'Quarterly results released', tickers: ['AAP'] }, target), false);
   assert.equal(matchesNewsTarget({ title: 'Apple tanker enters port', tickers: ['AAPL'], layer: 'shipping' }, target), false);
   assert.equal(matchesNewsTarget({ title: 'Apple shares plunge', tickers: ['AAPL'], portfolioMatch: 'none' }, target), false);

@@ -44,6 +44,8 @@ const instrumentType = (p: PdfPosition) => /^(Ant|Anteile|Fonds)\b|\b(ETF|UCITS|
 /** Heading-driven parser: any number of pages, including continuation pages. Never uses page indexes as section identities. */
 export function parseCustodyPages(pages: PdfPage[], fileName: string, hash: string): CustodyReport {
   const all=pages.map(p=>({...p,rows:pdfRows(p.items)}));
+  const declaredPages=all.flatMap(p=>p.rows.flatMap(r=>[...r.text.matchAll(/Seite \d+\/(\d+)/g)].map(m=>Number(m[1]))));
+  if(declaredPages.some(count=>count>pages.length))throw new Error('This PDF is incomplete: the printed page count exceeds the supplied pages. Nothing was imported.');
   const cover=all.find(p=>p.rows.some(r=>/^Stichtag Bewertung /.test(r.text)));
   if(!cover)throw new Error('No supported custody-statement cover found. Choose a text PDF in the supplied reporting format; scanned PDFs need OCR.');
   const text=cover.rows.map(r=>r.text).join('\n');
@@ -125,7 +127,7 @@ export function parseCustodyPages(pages: PdfPage[], fileName: string, hash: stri
   for(const p of report.positions.concat(report.cash))if(Math.abs(p.value/total-p.weight)>.00006+1/total)throw new Error(`The value and weight of ${p.name} disagree. Review required.`);
   const bad=new Set(report.positions.filter(p=>!validIsin(p.isin!)).map(p=>p.isin));
   if(bad.size)report.warnings.push(`${bad.size} security identifiers fail ISIN validation. Holdings are retained; automatic identifier matching is disabled for them.`);
-  if(!report.performance?.profit)report.warnings.push('Complete cash-flow and profit details were not available.');
+  if(report.performance?.profit==null)report.warnings.push('Complete cash-flow and profit details were not available.');
   report.warnings.push('Historical statement snapshot. Daily returns and fund constituents are not supplied. Selected transactions remain in the original PDF.');
   return report;
 }
@@ -153,7 +155,7 @@ export function attachCustodyReport(dataset:Dataset, report:CustodyReport, targe
   let securityId=nextId(dataset.reference.Securities.map(s=>s.Id));
   const masters:Row[]=[], positions=report.positions.map(p=>{
     const id=securityId++, issue=identityIssue(p,dataset), matching=issue?undefined:dataset.reference.Securities.find(s=>s.Isin===p.isin&&!s.ExternalSource);
-    masters.push({Id:id,Name:p.name,Isin:issue?undefined:p.isin,ReportedIsin:p.isin,SecurityTypeName:instrumentType(p),Currency:p.currency,SAA_AssetClassName:p.assetClass,IndustryName:matching?.IndustryName,CountryName:matching?.CountryName,ExternalSource:report.hash});
+    masters.push({Id:id,Name:p.name,Isin:issue?undefined:p.isin,ReportedIsin:p.isin,SecurityTypeName:instrumentType(p),Currency:p.currency,SAA_AssetClassName:p.assetClass,IndustryName:matching?.IndustryName,CountryName:matching?.CountryName,CountryGroupName:matching?.CountryGroupName,SAA_CountryGroupName:matching?.SAA_CountryGroupName,SAA_IndustryName:matching?.SAA_IndustryName,ExternalSource:report.hash});
     return {SecurityId:id,SecurityName:p.name,ReportedIsin:p.isin,IdentityIssue:issue,SourcePage:p.page,Quantity:p.quantity,PricePerUnit:p.price,CostPrice:p.cost,PriceDateUtc:p.priceDate,Currency:p.currency,TotalAmountInPortfolioCurrency:p.value,PortfolioValuePercentage:p.weight,QuoteBasis:p.assetClass==='Bonds'?'Percent of nominal':'Per unit'};
   });
   const portfolio:Row={PortfolioId:portfolioId,PortfolioNr:`External · ${report.bank} · ${report.account.slice(-4)}`,Name:`${report.bank} — ${report.strategy}`,PortfolioCurrency:report.currency,ReferenceCurrency:report.currency,StrategyName:report.strategy,InvestmentServiceName:'External custody',FactoryDateUtc:report.asOf,AssetsUnderManagementInDefaultCurrency:report.total,LiquidityInDefaultCurrency:report.cash.reduce((n,p)=>n+p.value,0),SecurityPositions:positions,AccountPositions:report.cash.map(p=>({Currency:p.currency,TotalAmountInPortfolioCurrency:p.value,PortfolioValuePercentage:p.weight,SourcePage:p.page})),PerformanceHistory:[],ReportedPerformance:report.performance,ReportedContributions:report.contributions,ReportedAllocations:report.allocations,ExternalSource:{hash:report.hash,fileName:report.fileName,owner:report.owner,bank:report.bank,account:report.account,asOf:report.asOf,pages:report.pages,importedAt:new Date().toISOString(),warnings:report.warnings,reconciliation:report.reconciliation},PreviousSnapshots:previous?[...list(previous.PreviousSnapshots),{...previous,PreviousSnapshots:undefined}]:[]};

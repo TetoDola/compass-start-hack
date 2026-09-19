@@ -1,6 +1,18 @@
 # Compass — customer brief and financial network
 
-A local UNRISKOMEGA prototype: import a customer, review priorities, performance, exposures and positions in one adviser workspace, then follow the evidence through an Obsidian-style financial network. Realtime transcription remains deferred.
+A local UNRISKOMEGA prototype: import a customer, review priorities, performance, exposures and positions in one adviser workspace, then follow the evidence through an Obsidian-style financial network. A separate Live Call demo adds streaming transcription and sourced adviser suggestions.
+
+## Live Call demo
+
+The **Live Call** button opens an adviser-only copilot page. It streams only the adviser microphone to Deepgram at 16 kHz. ElevenLabs sends the simulated client's voice as raw PCM chunks for local playback; the already-known client text becomes its conversation turn directly, without transcribing the generated audio. For loudspeaker use, the adviser microphone is muted while voice is generated and played, then restored after a short echo-clearance pause. M3 reconciles client and substantive transcribed adviser turns against the selected case facts and suggests a short adviser answer with record sources. The latest answer, previous answers under **Earlier answers**, key portfolio facts, and distinct evidence cues stay available throughout the call. M3 also roleplays the client from an editable scenario. It opens the call, then waits for a substantive transcribed adviser response and 3.5 seconds of quiet before replying; thinking/holding remarks do not trigger an automatic reply. A manual client line is available to steer the demo. The call docks automatically on the right when started, leaving Compass usable while the conversation and suggestions update. **Expand call** returns to the full controls, and **Close call** ends the session.
+
+Each new session writes a separate JSONL file to the gitignored `.local/live-call-logs/` directory, containing the selected case context, facts given to M3, finalized Deepgram segments and turns, generated or manual client lines, suggestion cards, and stream or playback errors. The small log ID is shown in the call status. The files remain on the local development machine for inspection after the call; raw audio and interim transcripts are not saved. The logs may contain client details, so handle or delete them as case data. Calls made before logging was added cannot be recovered.
+
+Set `DEEPGRAM_API_KEY` and `ELEVENLABS_API_KEY` in the gitignored `.env.local`. The existing `AI_PROVIDER=azure` and `AZURE_OPENAI_DEPLOYMENT=FW-MiniMax-M3` configuration supplies both LLM roles; other configured AI providers also work. Start with `npm run dev`, open **Live Call**, choose the client and portfolio, and allow the browser microphone. Use Chrome and headphones. By default M3 opens as a client concerned about the selected portfolio and replies after each adviser turn; the manual controls remain available. Its roleplay context includes the selected client's profile, cash, positions, recorded performance and redacted notes. The page runs on localhost, which browsers treat as a secure context for microphone access. A second device requires an HTTPS deployment or trusted local HTTPS setup.
+
+The client voice defaults to Rachel, with George and Adam selectable in the full call controls. Flash v2.5 remains the low-latency model; voice settings favor conversational variation without adding a second synthesis step. `ELEVENLABS_VOICE_ID` overrides the default choice. Readiness checks local configuration; a key with speech-only permission need not have ElevenLabs account-reading permission.
+
+This is a synthetic demo using the selected case records. The suggested questions are for adviser review, with one record location shown on each card. The local brief and portfolio calculations provide the facts; M3 does not execute trades. ElevenLabs and Deepgram credentials remain on the server. Their usage may incur provider charges after free allowances; the page only calls ElevenLabs when a client line is spoken and only calls M3 for client replies and finalized client speech.
 
 The supporting challenge presentation, consolidated case knowledge base, source transcripts, pitch-deck materials and document render history are preserved in [`knowledge/`](knowledge/README.md).
 
@@ -38,6 +50,22 @@ The API adapters run under both Vite dev and preview. A static-only deployment n
 - Funds expand their top ten constituents inside the same canvas. A verified identical ISIN can connect a direct position and several funds. Names alone do not merge identities, and different share classes remain distinct. Position evidence and currency stay separate even when the visual instrument node is shared.
 - Solid links describe source relationships; dashed links show inferred news relevance. Node size reflects connection count, not financial exposure. Clustering does not represent correlation or causality.
 - Client-array and client-plus-reference JSON ingestion, with restore and missing-reference handling. Dates, price dates, rule descriptions and rule paths survive projection.
+
+## Import client data: PDF statements
+
+Use **Import client data** in the top bar to select one or more JSON files, or one text PDF. JSON files add their clients to the current workspace, retaining names and existing cases. You can select several `clients.json`-shape arrays together, optionally with a separate `reference.json`; the whole selection is validated before saving. A PDF opens a reconciliation preview; create a client from its named owner or select an existing client and confirm ownership. Confirmed PDFs append a separate **External** portfolio without replacing existing clients.
+
+The PDF parser follows section headings across all pages, including continuation pages; it has no eight-page assumption. The supplied German custody-statement format is supported, with up to 25 MB per file. Scanned PDFs and other layouts fail with a useful error instead of guessing. Parsing uses PDF.js in the browser, with no OCR service, Docker container or LLM needed. The worker is loaded only when importing a PDF.
+
+- Imports holdings, cash, portfolio metadata, net TWR, net flows, monetary profit, asset-class contributions and scoped allocation charts.
+- Validates totals and weights before saving; incomplete pages and malformed position rows cannot silently produce partial portfolios.
+- Invalid/conflicting ISINs retain reported values and source identifiers but are excluded from automatic identity matching.
+- Saves the imported workspace and original PDF in this browser's IndexedDB, surviving reloads. The source drawer links to the original PDF page. This is local persistence, not cross-device/team synchronization. **Restore cases** clears those local imports.
+- Duplicate files are detected by SHA-256. Newer reports for the same confirmed depot update its current snapshot and retain previous snapshots; older/same-date replacement attempts require review and are rejected.
+- Briefing, chat and graph consume the external positions and reported performance. Equity-sector/region percentages remain explicitly equities-only. Historical return does not populate missing daily/weekly/monthly return series. Selected transactions remain in the original document, not a complete imported ledger.
+- Mixed snapshots with incompatible dates or currencies withhold combined totals. An external portfolio's own currency and statement prices remain intact.
+
+Validation: all ten provided PDFs (198 securities, 24 cash balances), extended continuation pages and an 11-page/40-position same-format test, duplicates, ownership conflicts, invalid identifiers, malformed rows, mixed dates/currencies, and briefing/chat evidence. Actual browser import and reload were checked. The example preview parsed in roughly 0.5 seconds locally; this excludes asynchronous news/fund enrichment.
 
 ## News and provider choices
 
@@ -112,12 +140,12 @@ AI requests send customer-note excerpts, selected financial facts and public con
 
 ## Import contract
 
-Up to 25 MB / 1,000 customers:
+JSON imports have no fixed client-count limit. The browser must still have enough memory and local storage for the selected files. PDFs have a 25 MB per-file limit:
 
-1. A `clients.json`-shape array reuses the current reference universe. Unknown positions retain supplied names, ISINs and types; no reference classification is invented.
-2. `{ "clients": [...], "reference": { "Securities": [...], ... } }` replaces the reference universe explicitly. Securities require unique numeric `Id` values. Optional risk profiles, allocation targets, raw `FundUnbundlingMappings` or prepared `FundBreakdowns` are supported. Known constituent snapshots are reused by ISIN independently of security IDs. Imported constituent URLs are not trusted or adopted.
+1. A `clients.json`-shape array adds its clients and reuses the current reference universe. Unknown positions retain supplied names, ISINs and types; no reference classification is invented.
+2. `{ "clients": [...], "reference": { "Securities": [...], ... } }` or a separate `reference.json` merges shared lookup data by ID. Conflicting client IDs, client references, or lookup IDs are rejected; identical clients are skipped. Securities require unique numeric `Id` values. Optional risk profiles, allocation targets, raw `FundUnbundlingMappings` or prepared `FundBreakdowns` are supported. Known constituent snapshots are reused by ISIN independently of security IDs. Imported constituent URLs are not trusted or adopted.
 
-For a position absent from reference, include `Isin` (or `SecurityIsin`) and `SecurityTypeName: "Investment fund"` to enable manual fund lookup. Automatic lookup requires a supplied equity classification; it does not assume every fund holds companies. Refresh restores the original dataset; in-session edits/imports are not persisted.
+For a position absent from reference, include `Isin` (or `SecurityIsin`) and `SecurityTypeName: "Investment fund"` to enable manual fund lookup. Automatic lookup requires a supplied equity classification; it does not assume every fund holds companies. Imports are saved in this browser; **Restore cases** clears them and returns to the original dataset.
 
 ## Fund lookup and arithmetic
 
@@ -189,7 +217,7 @@ Requires Docker. The script checks out upstream commit `1ec0af6f33db2bc14d9339bd
 
 Compass packages World Monitor's API without its dashboard frontend: upstream's full dashboard build currently depends on a time-limited crawlable marketing snapshot. The API handlers are unchanged. The Docker packaging adds the configured AIS relay origin to the sidecar’s Docker-only private-fetch allowlist; the pinned upstream sidecar otherwise blocks its own relay. `deploy/worldmonitor/Dockerfile` retains the upstream runtime and license. World Monitor is AGPL-3.0-only; the pinned source and its license are retained in the local checkout. Compass calls the independent service over HTTP.
 
-`/api/world-context` reads the global RSS digest, caches it for five minutes and returns normalized, dated articles. Matching to portfolio companies, countries and industry topics happens inside Compass. No customer names, notes, holdings or account identifiers are sent to World Monitor. Only explicit name / verified ticker matches are used; article and portfolio geography remain separately labeled. Missing provider keys, failed feeds and stale upstream digests are visible in Coverage; no synthetic events are inserted. Shipping routes, sanctions and company-specific energy-disruption mappings are not inferred from positions or prices.
+`/api/world-context` reads the global RSS digest, caches it for five minutes and returns normalized, dated articles. Matching to portfolio companies, countries and industry topics happens inside Compass. No customer names, notes, holdings or account identifiers are sent to World Monitor. Only explicit company-name and supported alias matches are used; article and portfolio geography remain separately labeled. Missing provider keys, failed feeds and stale upstream digests are visible in Coverage; no synthetic events are inserted. Shipping routes, sanctions and company-specific energy-disruption mappings are not inferred from positions or prices.
 
 Provider keys live in ignored `.env.local` as `AISSTREAM_API_KEY`, `EIA_API_KEY`, and `NASA_FIRMS_API_KEY` (the FIRMS MAP_KEY). They are server-only. `npm run world:start` explicitly loads both the service’s `.env` and the app’s `.env.local` into Compose, then recreates services when credentials change. Never use a `VITE_` prefix for keys.
 
@@ -209,3 +237,33 @@ docker compose -f .cache/worldmonitor/docker-compose.yml -f deploy/worldmonitor/
 
 Map geometry is Natural Earth public-domain data distributed through `world-atlas` (ISC). `public/geo/countries.json` is a low-resolution country boundary asset, not a statement of territorial policy.
 Regenerate the bundled map with `npm run prepare:map` after changing the map data dependency.
+
+### Instrument quotes and metadata fidelity
+
+Both Cockpit and Brief show **Latest instrument prices** for the selected scope. `/api/instrument-quotes` accepts up to 20 `{isin,name,type}` instruments plus optional `refresh`. It validates ISIN syntax/check digit, performs an exact-ISIN Yahoo Finance search with fuzzy matching disabled, accepts only a single compatible listing, and verifies the returned chart symbol/type, positive price, currency and source observation time. A provider search result is resolution evidence, not an independently audited issuer registry. Ambiguous, invalid, unsupported and missing results remain unavailable. No ticker is guessed from a company name.
+
+Prices are latest available observations, not a guaranteed real-time stream. Exchange quotes can be delayed or from the last market close; mutual funds return published NAVs when covered. The UI shows the provider-selected symbol, exchange, currency, current provider name and UTC observation time. Currency is not assumed to equal the imported holding's currency; GBp remains pence. Prices older than four days (exchange) or seven days (NAV) are marked stale. No quote overwrites an imported price or revalues portfolio history/exposure. Client changes cancel and hide previous-scope results.
+
+The quote cache lasts one minute (30 seconds for unavailable results); successful listing resolution is cached for one day. Manual refresh bypasses both. Retrieval is server-side, four requests at a time per batch, without client identities or values sent upstream. No additional API key or OpenBB equity extension is required. OpenBB remains the optional company-news service.
+
+When Yahoo cannot resolve a US equity ISIN, an [OpenFIGI exact-ISIN mapping](https://www.openfigi.com/api/documentation) is attempted for the US common-stock composite. Only one compatible ticker/share-class mapping is accepted; exchange suffixes are not invented. The fallback is limited to 20 requests/minute per resolver without a key, below the documented public mapping allowance. This repairs the observed Alphabet ISIN search gap; the returned GOOGL quote still comes from Yahoo and is checked against that resolved symbol. Other unavailable identities remain explicit gaps.
+
+The prepared/reference-import pipeline retains country, industry, region and separate SAA classifications. Exact-ISIN constituent/master joins attach classifications with provenance, withholding conflicts. Direct regions and partial constituent countries now participate in exposure calculations; broad and country-specific buckets stay distinct. Existing saved workspaces recover missing fields only from matching source identities. PDF imports retain the same fields when their reference identity is accepted. Unknown metadata remains unknown.
+
+News targets carry these classifications; World exposes them with evidence. Country/region/sector weights overlap and are never added by the cockpit. Computed sector/geographic policy drift is withheld unless classification and denominator are demonstrably comparable; fund product labels are not substituted for underlying policy allocations. Older fund snapshots are checked automatically and refresh failures retain dated data with a warning. Explicit World refresh bypasses Compass's five-minute cache, while upstream source caching may remain.
+
+Verification on 19 September 2026 included live ISIN lookup/quotes for Apple, Nestlé, Alphabet through OpenFIGI, two ETFs and five Swiss fund NAVs. The Joker browser scope returned 13 available prices out of 15 instruments at check time. Coverage varies by instrument/provider and is not a promise that every fund or private security has a public quote. The case data contains one non-ISIN identifier (`A1ACARWASH01`), which is excluded from price lookup.
+
+For a complete Azure MiniMax M3 input replay with measured extraction and news-identity checks, run `npm run reingest:minimax`. See [MINIMAX-INGESTION.md](MINIMAX-INGESTION.md) for scope, source coverage, resume behavior and local quality-report artifacts. Model output is kept separate from authoritative records.
+
+## News & Client Impact
+
+The new top-level tab scans the loaded client book using a rolling seven-day publication window. It reuses the existing **Import client data** flow: uploaded clients and reference records invalidate the local exposure index, trigger fresh searches when this tab is active (or next opened), and retain links to their own position/portfolio evidence. Public search queries are deduplicated across clients; client identities, amounts and notes are not sent to the news classifier.
+
+MiniMax classifies public source text through the existing Azure endpoint/key; `OUTREACH_MODEL` defaults to `FW-MiniMax-M3`, independently of the briefing model. Exact source quotes and allowed entity IDs are checked. Classification is cached by source content, model and schema version. Unsupported or failed output uses labeled conservative rules.
+
+Urgency is deterministic per client/development: connection 0–3, event significance 0–3, materiality 0–2 (3% and 10% thresholds), and evidenced timing 0–2. Eligible results range from 1–10; the default filter is 7+. Category-only matches and fallback classifications are capped at 6; speculative/denied/unclear reports and older events without a current timed trigger are capped at 3. Scores describe outreach priority, not expected loss. Unknown weights earn no materiality points. Incompatible portfolio scopes are evaluated separately, and only the strongest supported connection is shown per client.
+
+Source coverage remains bounded by existing adapters (up to two headlines per exposure and 500 world-digest articles); missing feeds and incomplete fund look-through remain visible. Contacted/dismissed status persists locally in this browser. Conversation starters are editable drafts; nothing is sent.
+
+Validation includes newly imported JSON clients and security references, evidence ownership, seven-day boundaries, false issuer matches, scoring/time decay, old reports, duplicates, isolated global observations, classifier validation/cache and fallback.

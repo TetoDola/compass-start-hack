@@ -38,7 +38,7 @@ export function useBriefing(analysis: Analysis | null) {
     let newsPhase='Screening news across covered holdings and exposures…';
     const withResearch=(context:MarketContext)=>{const merged=worldLayer?mergeWorldContext(context,worldLayer,targets):context;return {...merged,items:[...merged.items,...house]};};
     // Shared public digest: no client records or portfolio identifiers leave Compass.
-    const worldPromise=fetch('/api/world-context',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}',signal:AbortSignal.any([abort.signal,AbortSignal.timeout(27000)])})
+    const worldPromise=fetch('/api/world-context',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({refresh:force}),signal:AbortSignal.any([abort.signal,AbortSignal.timeout(27000)])})
       .then(async response=>{if(!response.ok)throw new Error('World feed unavailable');return await response.json() as WorldDigest;})
       .catch(():WorldDigest=>({articles:[],state:'unavailable',retrievedAt:new Date().toISOString(),message:'World Monitor unavailable. Portfolio news remains available.'}))
       .then(digest=>{worldLayer=worldContext(digest,targets,days);if(!abort.signal.aborted)setState({key,context:withResearch(latestMarket),phase:newsPhase});return digest;});

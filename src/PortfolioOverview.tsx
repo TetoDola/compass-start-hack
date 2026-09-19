@@ -9,6 +9,7 @@ import { materialEvent } from './lib/events';
 import { COLORS, dimensionColor } from './lib/colors';
 import { dateLabel, money, percent } from './lib/format';
 import { HistoryChart } from './components';
+import { enrichRelevance } from './lib/research';
 
 export function RangeControl({ value, onChange, label }: { value: TimeRange; onChange: (r: TimeRange) => void; label: string }) {
   return <div className="range-control" role="group" aria-label={label}>{ranges.map(r => <button key={r} aria-pressed={r === value} onClick={() => onChange(r)}>{r}</button>)}</div>;
@@ -23,9 +24,10 @@ export function PerformancePanel({ analysis, range, onRange }: { analysis: Analy
 }
 export function getAttentionItems(analysis: Analysis, context?: MarketContext): AttentionItem[] {
   const targets = newsTargets(analysis);
-  const events: AttentionItem[] = (context?.items || []).filter(i => i.kind === 'news' && materialEvent(i.title) && i.entityIds.some(id => targets.some(t => t.id === id && (!t.kind || t.kind === 'company')))).map(item => {
+  const enriched=context?enrichRelevance(context,targets):undefined;
+  const events: AttentionItem[] = (enriched?.items || []).filter(i => i.kind === 'news' && !i.sample && materialEvent(i.title) && i.entityIds.some(id => targets.some(t => t.id === id && (!t.kind || t.kind === 'company')))).map(item => {
     const linked = targets.filter(t => item.entityIds.includes(t.id) && (!t.kind || t.kind === 'company'));
-    const weight = linked.every(t => t.weight != null) ? linked.reduce((n,t) => n+t.weight!,0) : null;
+    const weight = item.exposureWeight ?? null;
     return { id: item.id, contextId: item.id, level: materialEvent(item.title)!.severity, label: materialEvent(item.title)!.label, title: item.title, metric: weight == null ? 'Exposure unavailable' : `${percent(weight, 2)} linked exposure`, detail: `${linked.map(t => t.name).join(', ')} · ${item.source} · ${dateLabel(item.publishedAt, true)}. Name-matched headline; verify the affected entity and event.`, action: 'Open the article, verify the event and review the linked positions even if the total portfolio value rose.', evidence: [contextEvidence(item)] };
   });
   const rank = { critical: 0, review: 1, gap: 2 };

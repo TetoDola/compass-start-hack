@@ -1,4 +1,5 @@
 import { lookThrough } from './lib/advisory';
+import { fundSnapshotNeedsRefresh } from './lib/analysis';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import type { Analysis, Dataset } from './lib/types';
@@ -17,7 +18,7 @@ export function useFundHoldings(analysis: Analysis | null, setDataset: Dispatch<
         const result = await response.json();
         if (!response.ok || !result.snapshot) throw new Error(result.error || 'No verified holdings returned.');
         setDataset(d => !d ? d : ({ ...d, reference: { ...d.reference, FundHoldings: [...(d.reference.FundHoldings || []).filter(s => s.isin !== isin), result.snapshot] } }));
-        setStatus(s => ({ ...s, [isin]: { status: 'ready', elapsedMs: result.elapsedMs } }));
+        setStatus(s => ({ ...s, [isin]: result.stale || result.warning ? { status: 'unavailable', message: result.warning || 'The available fund snapshot is older than the freshness window.', elapsedMs: result.elapsedMs } : { status: 'ready', elapsedMs: result.elapsedMs } }));
       } catch (e) {
         setStatus(s => ({ ...s, [isin]: { status: 'unavailable', message: e instanceof Error ? e.message : 'Lookup unavailable.' } }));
       } finally { pending.current.delete(isin); }
@@ -25,7 +26,7 @@ export function useFundHoldings(analysis: Analysis | null, setDataset: Dispatch<
     pending.current.set(isin, job);
     return job;
   }, [setDataset]);
-  const missing = [...new Set((analysis?.holdings || []).filter(h => h.instrumentType === 'Investment fund' && /shares|equit/i.test(h.asset) && lookThrough(h).status === 'unavailable' && h.isin && !h.fundHoldings).map(h => h.isin!))].sort().join(',');
+  const missing = [...new Set((analysis?.holdings || []).filter(h => h.instrumentType === 'Investment fund' && /shares|equit/i.test(h.asset) && h.isin && ((!h.fundHoldings && lookThrough(h).status === 'unavailable') || (h.fundHoldings && fundSnapshotNeedsRefresh(h.fundHoldings)))).map(h => h.isin!))].sort().join(',');
   const attempted = useRef(new Set<string>());
   useEffect(() => {
     const queue = missing.split(',').filter(isin => isin && !attempted.current.has(isin));

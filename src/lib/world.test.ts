@@ -12,11 +12,11 @@ test('world news matches explicit country aliases without converting broad regio
  assert.equal(matchesWorldArticle({...article,title:'Tell us about your portfolio'},{...target,name:'United States'}),false);
  assert.equal(countryKey('United States of America'),countryKey('United States'));
 });
-test('company matching uses a legal name or verified ticker and not substrings',()=>{
+test('company matching requires issuer text; dictionary ticker tags do not establish identity',()=>{
  const t:NewsTarget={id:'instrument:1',name:'Nvidia Corp.',symbol:'NVDA',via:'Fund',weight:.03};
  assert.equal(matchesWorldArticle({...article,title:'Nvidia reports earnings'},t),true);
  assert.equal(matchesWorldArticle({...article,title:'Nvidiathon launches'},t),false);
- assert.equal(matchesWorldArticle({...article,tickers:['NVDA']},t),true);
+ assert.equal(matchesWorldArticle({...article,tickers:['NVDA']},t),false);
  assert.equal(matchesWorldArticle({...article,title:'Detentions in Equatorial Guinea'},{...t,name:'Equatorial SA',symbol:undefined}),false);
  assert.equal(matchesWorldArticle({...article,title:'Equatorial shares rally after earnings'},{...t,name:'Equatorial SA',symbol:undefined}),true);
 });
@@ -31,6 +31,13 @@ test('merging does not duplicate headlines, replace existing IDs or sum overlapp
  assert.equal(merged.items.length,1);assert.equal(merged.items[0].id,'existing');assert.deepEqual(merged.items[0].entityIds,[target.id]);assert.equal(merged.items[0].exposureWeight,.25);
 });
 test('hypothetical arithmetic never invents exposure or accepts invalid weights',()=>{assert.ok(Math.abs(scenarioEffect(.1,-.2)!+.02)<1e-10);assert.equal(scenarioEffect(null,-.2),null);assert.equal(scenarioEffect(2,-.2),null);});
+
+test('independent sensor events sharing a provider URL retain their identities',()=>{
+ const first={...article,id:'quake:1',layer:'disaster' as const,title:'Earthquake one',url:'https://example.com/sensor'};
+ const second={...first,id:'quake:2',title:'Earthquake two'};
+ const result=worldContext({articles:[],signals:[first,second,first],state:'complete',retrievedAt:new Date(now).toISOString(),message:'Fixture'},[],7,now);
+ assert.deepEqual(result.world?.globalItems?.map(i=>i.id),['quake:1','quake:2']);
+});
 
 test('a country event traces through the selected real portfolio to source holdings',async()=>{
  const {readFileSync}=await import('node:fs');

@@ -1,6 +1,7 @@
 export type Row = Record<string, any>;
 export interface FundBreakdown { id: number; total: number; sectors: Record<string, number>; regions: Record<string, number> }
-export interface FundHoldingSnapshot { isin: string; name: string; asOf: string; retrievedAt: string; sourceName: string; sourceUrl: string; coverage: 'top-holdings' | 'complete'; holdings: { name: string; isin?: string; weight: number; country?: string }[] }
+export interface SecurityClassification { country?: string; region?: string; industry?: string; saaRegion?: string; saaIndustry?: string; classificationEvidence?: Evidence[] }
+export interface FundHoldingSnapshot { isin: string; name: string; asOf: string; retrievedAt: string; sourceName: string; sourceUrl: string; coverage: 'top-holdings' | 'complete'; holdings: ({ name: string; isin?: string; weight: number } & SecurityClassification)[] }
 export interface Dataset {
   version: string;
   clients: Row[];
@@ -20,7 +21,7 @@ export interface Finding {
 }
 export interface Holding {
   id: string; name: string; securityId: number; portfolio: string; portfolioId: number;
-  currency: string; value: number | null; weight: number; asset: string; sector: string; country?: string;
+  currency: string; value: number | null; weight: number; asset: string; sector: string; country?: string; region?: string; saaRegion?: string; saaIndustry?: string;
   known: boolean; evidence: Evidence;
   instrumentType: string; displayName: string; isin?: string; priceDate?: string; priceStale?: boolean; fundBreakdown?: FundBreakdown; fundHoldings?: FundHoldingSnapshot;
   productRiskClass?: number; sustainabilityScore?: number; riskContribution?: number;

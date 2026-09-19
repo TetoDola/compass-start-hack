@@ -11,6 +11,8 @@ export interface WorldArticle { id:string; title:string; source:string; url:stri
 export interface WorldQuote { symbol:string; name:string; price:number; change:number|null; asOf?:string; currency?:string; unit?:string; changeBasis?:string; source:string; url:string; sparkline:number[] }
 export interface WorldChokepoint { id:string; name:string; coordinates:[number,number]; routes:string[]; status:'reference'|'reported'; detail:string; asOf?:string; url:string }
 export interface WorldLayerStatus { id:string; label:string; state:'available'|'partial'|'stale'|'unavailable'; count:number; message:string; sourceUrl:string }
+export interface WorldCiiScore { code:string; score:number; change24h:number; trend:'rising'|'stable'|'falling'; components:{unrest:number;conflict:number;security:number;information:number}; computedAt:string; methodologyVersion:string }
+export interface WorldCiiDigest { state:'available'|'partial'|'stale'|'unavailable'|'unconfigured'; scores:WorldCiiScore[]; retrievedAt:string; message:string; sourceUrl:string }
 export interface WorldDigest { articles:WorldArticle[]; signals?:WorldArticle[]; quotes?:WorldQuote[]; chokepoints?:WorldChokepoint[]; layers?:WorldLayerStatus[]; state:'complete'|'partial'|'stale'|'unavailable'|'unconfigured'; generatedAt?:string; retrievedAt:string; message:string }
 export interface WorldStatus { state:WorldDigest['state']; generatedAt?:string; retrievedAt:string; articles:number; matched:number; message:string; globalItems?:ContextItem[]; quotes?:WorldQuote[]; chokepoints?:WorldChokepoint[]; layers?:WorldLayerStatus[] }
 export function matchesWorldArticle(article:WorldArticle,target:NewsTarget):boolean {
@@ -19,9 +21,10 @@ export function matchesWorldArticle(article:WorldArticle,target:NewsTarget):bool
 export function worldContext(digest:WorldDigest,targets:NewsTarget[],days:number,now=Date.now()):MarketContext {
   const items:ContextItem[]=[]; const seen=new Set<string>();
   for(const article of [...digest.articles,...digest.signals||[]]) {
-    const date=Date.parse(article.publishedAt); if(!Number.isFinite(date)||date>now||date<now-days*86400000||seen.has(article.url))continue;
+    const identity=article.layer&&article.layer!=='news'?`${article.layer}:${article.id}`:`news:${article.url}`;
+    const date=Date.parse(article.publishedAt); if(!Number.isFinite(date)||date>now||date<now-days*86400000||seen.has(identity))continue;
     const linked=targets.filter(t=>matchesWorldArticle(article,t));
-    seen.add(article.url);
+    seen.add(identity);
     items.push({id:article.id,kind:'news',layer:article.layer||'news',title:article.title,source:article.source,url:article.url,publishedAt:article.publishedAt,retrievedAt:digest.retrievedAt,summary:article.summary,entityIds:linked.map(t=>t.id),provider:article.layer&&article.layer!=='news'?article.source:'World Monitor · self-hosted RSS',relevance:linked.length?'Source text matched to portfolio entities. Geographic or industry relevance does not establish an operating dependency or a price effect.':'Global event; no supported portfolio connection identified.',event:materialEvent(article.title),geo:article.location?{coordinates:article.location,label:article.locationName||'Source location',basis:article.layer&&article.layer!=='news'?'event-location':'article-location'}:undefined});
   }
   const enriched=enrichRelevance({items,checked:0,requested:targets.length,warnings:[],elapsedMs:0,fetchedAt:digest.retrievedAt,providers:['World Monitor']},targets);

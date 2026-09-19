@@ -1,4 +1,4 @@
-import { companyName, matchesNewsTarget } from '../src/lib/newsMatching.ts';
+import { companyName, matchesNewsTarget, targetNames } from '../src/lib/newsMatching.ts';
 import { materialEvent } from '../src/lib/events.ts';
 import { load } from 'cheerio';
 import { createHash } from 'node:crypto';
@@ -8,6 +8,10 @@ import { fmpGet, resolveFmpSymbol, validIsin, type ProviderConfig } from './prov
 const id = (s: string) => createHash('sha256').update(s).digest('hex').slice(0, 16);
 export function safeUrl(value: unknown): string | undefined { try { const u = new URL(String(value)); return ['http:', 'https:'].includes(u.protocol) && !u.username && !u.password ? u.href : undefined; } catch { return undefined; } }
 export function companyQuery(name: string) { return companyName(name).slice(0,90); }
+export function targetQuery(target: NewsTarget) {
+  const names = targetNames(target).slice(0, 8).map(name => `"${name.replace(/["\\]/g, ' ').slice(0,90)}"`);
+  return names.length > 1 ? `(${names.join(' OR ')})` : names[0] || '';
+}
 function relevance(target: NewsTarget) { if (target.kind && target.kind !== 'company') return `Matches ${target.name} ${target.kind} exposure. Topic relevance is inferred; portfolio impact is unverified.`; const direct = target.via.includes('Direct position'), indirect = target.via !== 'Direct position'; return `Matches ${target.name}; ${direct && indirect ? 'held directly and through covered funds' : direct ? 'held directly' : 'present in the fund look-through'}. Potential relevance; impact is unverified.`; }
 export function headlinePriority(title: string) {
   return (materialEvent(title)?.severity === 'critical' ? 100 : materialEvent(title) ? 40 : 0) + (/earnings|results|guidance|regulat|approval|trial|acquisition|merger|recall|lawsuit|antitrust|supply|demand|dividend/i.test(title) ? 2 : 0) - (/jaw.dropping|stunning|buy point|breakout watch|stock heads|modest gain|moderate buy|price target|dividend credits|stock units|director.*(?:buy|sell|award)/i.test(title) ? 3 : 0);
@@ -77,7 +81,7 @@ export function createContextResolver(config: ProviderConfig) {
           const items = rows.filter(r => r.symbol === symbol).map(r => newsItem(r.title, r.url, r.publishedDate, r.publisher || r.site || 'FMP publisher', 'FMP', target, days,`${r.title} ${r.text || ''}`,r.image)).filter((n): n is ContextItem => !!n).sort((a,b) => headlinePriority(b.title)-headlinePriority(a.title)).slice(0, 2);
           if (items.length) return items;
         } catch { /* Continue to the public feed. */ }
-        const query = companyQuery(target.name);
+        const query = targetNames(target)[0]?.slice(0,90) || '';
         if (query.length < 2) return [];
         // A public name search carries publisher thumbnails without guessing a security ticker.
         // It establishes headline relevance only; it never resolves or merges portfolio identities.
@@ -90,7 +94,7 @@ export function createContextResolver(config: ProviderConfig) {
           if (items.length) return items;
         } catch { /* Keep text-only RSS usable when thumbnail-bearing news is unavailable. */ }
         const url = new URL('https://news.google.com/rss/search');
-        url.search = new URLSearchParams({ q: `"${query}" ${target.kind === "country" || target.kind === "region" ? "economy markets" : target.kind === "industry" ? "industry" : "stock"} when:${days}d`, hl: 'en-US', gl: 'US', ceid: 'US:en' }).toString();
+        url.search = new URLSearchParams({ q: `${targetQuery(target)} ${target.kind === "country" || target.kind === "region" ? "(economy OR markets)" : target.kind === "industry" ? "industry" : "stock"} when:${days}d`, hl: 'en-US', gl: 'US', ceid: 'US:en' }).toString();
         const response = await fetch(url, { signal: AbortSignal.timeout(4500) });
         if (!response.ok) throw new Error('Public news feed unavailable.');
         return parseNewsRss(await response.text(), target, days);

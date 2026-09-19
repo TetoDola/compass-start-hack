@@ -1,6 +1,7 @@
 import type { FundHoldingSnapshot } from '../src/lib/types.ts';
 
 export interface ProviderConfig {
+  OUTREACH_MODEL?: string;
   AISSTREAM_API_KEY?: string;
   EIA_API_KEY?: string;
   NASA_FIRMS_API_KEY?: string;
@@ -24,6 +25,9 @@ export interface ProviderConfig {
   AI_PROVIDER?: string;
   CODEX_MODEL?: string;
   CODEX_BIN?: string;
+  DEEPGRAM_API_KEY?: string;
+  ELEVENLABS_API_KEY?: string;
+  ELEVENLABS_VOICE_ID?: string;
 }
 export const validIsin = (s: unknown): s is string => typeof s === 'string' && /^[A-Z]{2}[A-Z0-9]{9}[0-9]$/.test(s);
 export async function fmpGet(route: string, params: Record<string, string>, key: string, signal = AbortSignal.timeout(3000)) {

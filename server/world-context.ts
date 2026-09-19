@@ -24,10 +24,10 @@ export function parseWorldDigest(raw:unknown,now=Date.now()):WorldDigest {
 }
 export function createWorldResolver(config:ProviderConfig,request:typeof fetch=fetch) {
   let cached:WorldDigest|undefined,at=0,pending:Promise<WorldDigest>|undefined;
-  return async ():Promise<WorldDigest>=>{
+  return async (refresh=false):Promise<WorldDigest>=>{
     const empty=(state:'unavailable'|'unconfigured',message:string):WorldDigest=>({state,message,articles:[],retrievedAt:new Date().toISOString()});
     if(!config.WORLDMONITOR_BASE_URL&&!config.EIA_API_KEY&&!config.NASA_FIRMS_API_KEY)return empty('unconfigured','World Monitor is not configured. Portfolio news remains available.');
-    if(cached&&Date.now()-at<(cached.state==='unavailable'?30000:300000))return cached;
+    if(!refresh&&cached&&Date.now()-at<(cached.state==='unavailable'?30000:300000))return cached;
     if(pending)return pending;
     pending=(async()=>{
       const layers=loadWorldLayers(config,request);

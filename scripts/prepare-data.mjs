@@ -57,7 +57,7 @@ const output = {
   version: '134d6ff',
   clients: sanitized,
   reference: {
-    Securities: reference.Securities.map(s => pick(s, ['Id','Isin','Name','SecurityTypeName','Currency','PriceDateUtc','EndOfDayPrice','MaturityDateUtc','SAA_AssetClassName','IndustryName','CountryName','InRecommendationList','PRC','SustainabilityScore'])),
+    Securities: reference.Securities.map(s => pick(s, ['Id','Isin','Name','SecurityTypeName','Currency','PriceDateUtc','EndOfDayPrice','MaturityDateUtc','SAA_AssetClassName','IndustryName','CountryName','CountryGroupName','SAA_CountryGroupName','SAA_IndustryName','InRecommendationList','PRC','SustainabilityScore'])),
     RiskProfiles: reference.RiskProfiles,
     EsgProfiles: reference.EsgProfiles,
     StrategicAssetAllocations: reference.StrategicAssetAllocations,

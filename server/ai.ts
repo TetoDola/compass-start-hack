@@ -49,7 +49,9 @@ export async function selectJson(instructions: string, input: unknown, schema: u
     const azure=config.AI_PROVIDER==='azure';
     const base=azure ? azureBase : (config.FIREWORKS_BASE_URL || 'https://api.fireworks.ai/inference/v1').replace(/\/+$/,'');
     const headers:Record<string,string>=azure ? {'api-key':config.AZURE_OPENAI_API_KEY || ''} : {Authorization:`Bearer ${config.FIREWORKS_API_KEY}`};
-    const response=await fetch(`${base}/chat/completions`,{method:'POST',signal:AbortSignal.timeout(18000),headers:{...headers,'Content-Type':'application/json'},body:JSON.stringify({model:azure ? config.AZURE_OPENAI_DEPLOYMENT : config.FIREWORKS_MODEL || 'accounts/fireworks/models/qwen3-8b',messages:[{role:'system',content:instructions},{role:'user',content:JSON.stringify(input)}],...(azure ? (effort ? {reasoning_effort:effort} : {}) : {temperature:0,max_tokens:600,...(effort?{reasoning_effort:effort}:{})}),response_format:{type:'json_schema',json_schema:{name,strict:true,schema}}})});
+    // Chat providers can enforce a schema without exposing it to the model's prompt.
+    const structuredInstructions=`${instructions}\n\nReturn only JSON matching this output schema:\n${JSON.stringify(schema)}`;
+    const response=await fetch(`${base}/chat/completions`,{method:'POST',signal:AbortSignal.timeout(18000),headers:{...headers,'Content-Type':'application/json'},body:JSON.stringify({model:azure ? config.AZURE_OPENAI_DEPLOYMENT : config.FIREWORKS_MODEL || 'accounts/fireworks/models/qwen3-8b',messages:[{role:'system',content:structuredInstructions},{role:'user',content:JSON.stringify(input)}],...(azure ? (effort ? {reasoning_effort:effort} : {}) : {temperature:0,max_tokens:600,...(effort?{reasoning_effort:effort}:{})}),response_format:{type:'json_schema',json_schema:{name,strict:true,schema}}})});
     if(!response.ok)throw new Error('AI service unavailable');
     const data=await response.json();
     const text=data.choices?.[0]?.message?.content;

@@ -1,285 +1,197 @@
+import { useId, useMemo, useState } from 'react';
+import { ArrowUpRight, ChevronDown, FileText, Network, X } from 'lucide-react';
 import { ClientAvatar } from './ClientAvatar';
-import { useMemo, useState } from 'react';
-import { ArrowUpRight, FileText, Minus } from 'lucide-react';
+import { CurrentPricesPanel } from './CurrentPricesPanel';
+import { getAttentionItems } from './PortfolioOverview';
+import { aggregateProducts, productEvidence, lookThrough, clientContextEvidence } from './lib/advisory';
 import type { Analysis, Dataset, Evidence } from './lib/types';
 import type { MarketContext } from './lib/briefing';
-import { breakdownRows, cockpitPrompts, portfolioEvents, riskContributors, type BreakdownRow, type CockpitPrompt } from './lib/cockpit';
-import { periodPerformance, ranges, type ExposureKind, type TimeRange } from './lib/portfolio';
+import { breakdownRows, portfolioEvents, riskContributors, type BreakdownRow } from './lib/cockpit';
+import { periodPerformance, ranges, type AttentionItem, type ExposureKind, type TimeRange } from './lib/portfolio';
 import { clientName, dateLabel, list, money, number, percent } from './lib/format';
 
+type Tab = 'asset' | 'positions' | ExposureKind;
 const dimensions: { kind: ExposureKind; title: string; note: string }[] = [
-  { kind: 'country', title: 'By country', note: 'Reference country for direct securities plus country-specific fund categories. Broad regions are not guessed.' },
-  { kind: 'industry', title: 'By industry', note: 'Direct classifications plus the supplied fund industry breakdowns, without counting a fund twice.' },
-  { kind: 'company', title: 'By company', note: 'Direct equity plus published fund top-ten holdings, joined by ISIN. Share classes stay separate.' },
+  { kind: 'country', title: 'Country', note: 'Direct reference countries, country-specific fund categories and classified published constituents. Broad regions are not assigned to countries.' },
+  { kind: 'industry', title: 'Industry', note: 'Direct classifications and supplied fund industry breakdowns. Each fund is counted once within this dimension.' },
+  { kind: 'company', title: 'Company', note: 'Direct equity and published fund constituents, joined by ISIN. Share classes remain separate; published top holdings can give partial coverage.' },
+  { kind: 'region', title: 'Regions', note: 'Supplied broad regional classifications. They may overlap country coverage; these dimensions must not be added together.' },
 ];
+const tabs: { kind: Tab; title: string }[] = [{ kind: 'asset', title: 'Asset class' }, { kind: 'positions', title: 'Positions' }, ...dimensions];
+type Navigation = {
+  onEvidence: (e: Evidence) => void; onNews: (id?: string, name?: string) => void;
+  onGraph: (id?: string) => void; onFinding: (id: string) => void; onNewsGraph: (id: string) => void; onRecords: () => void;
+};
 
-export function Cockpit({ analysis, dataset, context, range, onRange, onEvidence, onNews }: {
-  analysis: Analysis; dataset: Dataset; context?: MarketContext; range: TimeRange;
-  onRange: (r: TimeRange) => void; onEvidence: (e: Evidence) => void; onNews: (id: string, name: string) => void;
-}) {
+export function Cockpit({ analysis, dataset, context, range, onRange, ...navigation }: {
+  analysis: Analysis; dataset: Dataset; context?: MarketContext; range: TimeRange; onRange: (r: TimeRange) => void;
+} & Navigation) {
+  const [tab, setTab] = useState<Tab>('asset');
   const [focus, setFocus] = useState<{ kind: ExposureKind; id: string } | null>(null);
-  const prompts = useMemo(() => cockpitPrompts(analysis, dataset, context), [analysis, dataset, context]);
+  const attention = useMemo(() => getAttentionItems(analysis, context), [analysis, context]);
   const rows = useMemo(() => Object.fromEntries(dimensions.map(d => [d.kind, breakdownRows(analysis, dataset, d.kind, context)])) as Record<ExposureKind, BreakdownRow[]>, [analysis, dataset, context]);
   const focused = focus ? rows[focus.kind]?.find(r => r.id === focus.id) : undefined;
-
-  return <div className="cockpit">
+  return <div className="cockpit" aria-label="Client cockpit">
     <div className="cockpit-top">
-      <ClientRail analysis={analysis} dataset={dataset} onEvidence={onEvidence} />
+      <aside className="cockpit-left">
+        <ClientRail analysis={analysis} onEvidence={navigation.onEvidence} onRecords={navigation.onRecords} />
+        <NotesPanel analysis={analysis} onEvidence={navigation.onEvidence} onRecords={navigation.onRecords} />
+      </aside>
       <div className="cockpit-centre">
-        <PerformanceCard analysis={analysis} range={range} onRange={onRange} />
-        <ImpactCard analysis={analysis} context={context} onEvidence={onEvidence} />
+        <section className="panel cockpit-portfolio" aria-label="Portfolio value and risk">
+          <PerformanceCard analysis={analysis} range={range} onRange={onRange} />
+          <RiskSection analysis={analysis} dataset={dataset} onEvidence={navigation.onEvidence} />
+        </section>
+        <section className="panel cockpit-exposures" aria-label="Portfolio exposure">
+          <div className="cockpit-section-heading"><h2>Portfolio exposure</h2><button className="text-button" onClick={() => navigation.onGraph()}>View connections <ArrowUpRight size={13}/></button></div>
+          <div className="cockpit-tabs" role="group" aria-label="Exposure dimension">{tabs.map(item => <button key={item.kind} aria-pressed={tab === item.kind} onClick={() => { setTab(item.kind); setFocus(null); }}>{item.title}</button>)}</div>
+          {tab === 'asset' ? <AssetTable analysis={analysis} onEvidence={navigation.onEvidence} /> : tab === 'positions' ? <PositionsTable analysis={analysis} onEvidence={navigation.onEvidence} onGraph={navigation.onGraph} /> : <BreakdownSection key={tab} dimension={dimensions.find(d => d.kind === tab)!} rows={rows[tab]} analysis={analysis} focus={focus?.id} onFocus={id => setFocus(f => f?.id === id ? null : { kind: tab, id })} />}
+          {focused && <Drilldown row={focused} analysis={analysis} context={context} onEvidence={navigation.onEvidence} onNews={navigation.onNews} onGraph={navigation.onGraph} onClose={() => setFocus(null)} />}
+        </section>
       </div>
-      <PromptRail prompts={prompts} onEvidence={onEvidence} onFocus={id => { const kind = dimensions.map(d => d.kind).find(k => rows[k].some(r => r.id === id)); if (kind) setFocus({ kind, id }); }} />
+      <aside className="cockpit-right">
+        <PromptRail prompts={attention} {...navigation} />
+        <NewsPanel analysis={analysis} context={context} onEvidence={navigation.onEvidence} onNews={navigation.onNews} onNewsGraph={navigation.onNewsGraph} />
+        <section className="panel cockpit-coverage" aria-label="Data coverage"><details><summary>Data coverage & sources <ChevronDown size={14}/></summary><p>Case dates are shifted. Current news does not explain historical portfolio movement.</p>{[...new Set([...analysis.warnings, ...(context?.warnings || [])])].map(warning => <p key={warning}>{warning}</p>)}<p>Fund company coverage uses published holdings. Missing exposure is unknown, not zero.</p><button className="text-button" onClick={navigation.onRecords}>Inspect source records <ArrowUpRight size={12}/></button></details></section>
+      </aside>
     </div>
-
-    {dimensions.map(dimension => <BreakdownSection key={dimension.kind} dimension={dimension} rows={rows[dimension.kind]} analysis={analysis} focus={focus} onFocus={id => setFocus(f => f?.id === id ? null : { kind: dimension.kind, id })} />)}
-
-    {focused && <Drilldown row={focused} analysis={analysis} context={context} onEvidence={onEvidence} onNews={onNews} onClose={() => setFocus(null)} />}
+    <CurrentPricesPanel analysis={analysis}/>
   </div>;
 }
 
-function ClientRail({ analysis, dataset, onEvidence }: { analysis: Analysis; dataset: Dataset; onEvidence: (e: Evidence) => void }) {
-  const [allNotes, setAllNotes] = useState(false);
+function ClientRail({ analysis, onEvidence, onRecords }: { analysis: Analysis; onEvidence: Navigation['onEvidence']; onRecords: Navigation['onRecords'] }) {
   const customer = analysis.customer;
   const portfolio = analysis.portfolios.length === 1 ? analysis.portfolios[0] : undefined;
-  const profile = dataset.reference.RiskProfiles.find(p => p.Id === customer.RiskProfileId);
-  const volatility = number(portfolio?.Volatility);
-  const ceiling = number(profile?.MaxVola);
   const proposal = analysis.proposals[0];
-  const notes = allNotes ? analysis.notes : analysis.notes.slice(0, 3);
-  const errors = analysis.violations.filter(v => v.Severity === 'Error').length;
-  return <section className="panel cockpit-rail">
-    <span className="eyebrow">CLIENT RECORD</span>
-    <div className="client-identity-heading"><ClientAvatar client={customer}/><h2>{clientName(customer)}</h2></div>
-    <p className="cockpit-rail-sub">{customer.RegulatoryClientTypeName || 'Customer'} · {customer.ReportingCurrency || 'Currency not recorded'}{customer.EsgProfileName ? ` · ESG ${customer.EsgProfileName}` : ''}</p>
-
+  return <section className="panel cockpit-rail" aria-label="Client profile">
+    <div className="cockpit-section-heading"><h2>Client profile</h2><button className="text-button" onClick={onRecords}>Records <ArrowUpRight size={12}/></button></div>
+    <div className="client-identity-heading"><ClientAvatar client={customer}/><div><h3>{clientName(customer)}</h3><p>{customer.RegulatoryClientTypeName || 'Classification not recorded'}</p><span>{customer.ReportingCurrency || 'Currency not recorded'}</span></div></div>
     <dl className="cockpit-facts">
       <div><dt>Risk profile</dt><dd>{customer.RiskProfileName || 'Not recorded'}</dd></div>
-      <div><dt>Service</dt><dd>{portfolio?.InvestmentServiceName || 'Multiple portfolios in scope'}</dd></div>
+      <div><dt>Service</dt><dd>{portfolio?.InvestmentServiceName || (analysis.portfolios.length ? 'Multiple portfolios' : 'Not recorded')}</dd></div>
       <div><dt>Strategy</dt><dd>{analysis.strategy}</dd></div>
-      <div><dt>Profiled</dt><dd>{dateLabel(customer.ProfilingDateUtc, true)}</dd></div>
-      <div><dt>Liquidity</dt><dd>{money(analysis.liquidity, analysis.currency)}{analysis.aum && analysis.liquidity != null ? ` · ${percent(analysis.liquidity / analysis.aum)}` : ''}</dd></div>
+      <div><dt>Last profiling</dt><dd>{dateLabel(customer.ProfilingDateUtc, true)}</dd></div>
+      <div><dt>ESG preference</dt><dd>{customer.EsgProfileName || 'Not recorded'}</dd></div>
     </dl>
-
-    {volatility != null && <div className="cockpit-gauge">
-      <div><span>Volatility vs profile ceiling</span><strong>{percent(volatility)}{ceiling != null ? ` / ${percent(ceiling)}` : ''}</strong></div>
-      <div className="cockpit-gauge-track"><i style={{ width: `${Math.min(100, ceiling ? volatility / ceiling * 100 : 0)}%` }} /></div>
-      <div className="cockpit-gauge-meta">
-        <span>Expected return <b>{number(portfolio?.ExpectedReturn) != null ? percent(portfolio!.ExpectedReturn) : '—'}</b></span>
-        <span>VaR <b>{number(portfolio?.ValueAtRisk) != null ? percent(portfolio!.ValueAtRisk) : '—'}</b></span>
-      </div>
-      <p className="microcopy">Supplied snapshot figures, not recalculated here.</p>
-    </div>}
-
-    <div className="cockpit-rail-block">
-      <div className="cockpit-rail-head"><span className="eyebrow">ADVISER NOTES</span><span>{analysis.notes.length} recorded</span></div>
-      {notes.map((note, i) => <div className="cockpit-note" key={i}><i /><div><p>{note.Note}</p><span>{dateLabel(note.CreatedByDateUTC, true)}</span></div></div>)}
-      {!analysis.notes.length && <p className="muted">No customer notes were supplied.</p>}
-      {analysis.notes.length > 3 && <button className="text-button" onClick={() => setAllNotes(a => !a)}>{allNotes ? 'Show the latest three' : `Show all ${analysis.notes.length} notes`}</button>}
-    </div>
-
-    {proposal && <div className="cockpit-rail-block">
-      <span className="eyebrow">LAST PROPOSAL</span>
-      <strong className="cockpit-proposal">{proposal.Reason || 'Investment proposal'}</strong>
-      <span className="cockpit-rail-meta">{dateLabel(proposal.ProposedDateUTC, true)} · {proposal.ProposalStatusName || 'Status not recorded'}{list(proposal.SecurityPositions).length ? ` · ${list(proposal.SecurityPositions).length} proposed trades` : ''}</span>
-    </div>}
-
-    <div className="cockpit-counters">
-      <div><strong>{analysis.proposals.length}</strong><span>Proposals</span></div>
-      <div><strong>{analysis.holdings.length}</strong><span>Positions</span></div>
-      <div className={errors ? 'flagged' : ''}><strong>{analysis.violations.length}</strong><span>Open findings</span></div>
-    </div>
+    <button className="text-button cockpit-profile-source" onClick={() => onEvidence(clientContextEvidence(analysis))}>Profile source <FileText size={12}/></button>
+    {proposal && <div className="cockpit-rail-block"><span className="eyebrow">Latest proposal</span><strong className="cockpit-proposal">{proposal.Reason || 'Investment proposal'}</strong><span className="cockpit-rail-meta">{dateLabel(proposal.ProposedDateUTC, true)} · {proposal.ProposalStatusName || 'Status not recorded'}{list(proposal.SecurityPositions).length ? ` · ${list(proposal.SecurityPositions).length} proposed trades` : ''}</span></div>}
+    <div className="cockpit-counters"><div><strong>{analysis.proposals.length}</strong><span>Proposals</span></div><div><strong>{analysis.holdings.length}</strong><span>Positions</span></div><div><strong>{analysis.violations.length}</strong><span>Recorded findings</span></div></div>
     {analysis.unresolved > 0 && <p className="microcopy">{analysis.unresolved} further advisory record{analysis.unresolved === 1 ? '' : 's'} reference a portfolio missing from this export and are excluded here.</p>}
-    {analysis.evidence.some(e => e.id.startsWith('p-')) && <button className="text-button" onClick={() => onEvidence(analysis.evidence.find(e => e.id.startsWith('p-'))!)}><FileText size={13} />Inspect the portfolio record</button>}
+  </section>;
+}
+
+function NotesPanel({ analysis, onEvidence, onRecords }: { analysis: Analysis; onEvidence: Navigation['onEvidence']; onRecords: Navigation['onRecords'] }) {
+  const [all, setAll] = useState(false);
+  return <section className="panel cockpit-notes" aria-label="Adviser notes"><div className="cockpit-section-heading"><h2>Notes <span>{analysis.notes.length}</span></h2><button className="text-button" onClick={onRecords}>View records <ArrowUpRight size={12}/></button></div>
+    {(all ? analysis.notes : analysis.notes.slice(0, 3)).map((note, index) => { const source = analysis.evidence.find(e => e.id === `note-${index}`); return <article className="cockpit-note" key={index}><div><time>{dateLabel(note.CreatedByDateUTC, true)}</time>{source && <button aria-label={`Source for note dated ${dateLabel(note.CreatedByDateUTC, true)}`} onClick={() => onEvidence(source)}><FileText size={12}/></button>}</div><p>{note.Note}</p></article>; })}
+    {!analysis.notes.length && <p className="muted">No customer notes supplied.</p>}
+    {analysis.notes.length > 3 && <button className="text-button cockpit-show-more" onClick={() => setAll(value => !value)}>{all ? 'Show latest three' : `View all ${analysis.notes.length} notes`} <ChevronDown size={12}/></button>}
   </section>;
 }
 
 function PerformanceCard({ analysis, range, onRange }: { analysis: Analysis; range: TimeRange; onRange: (r: TimeRange) => void }) {
   const period = periodPerformance(analysis, range);
   const latest = analysis.history.at(-1);
-  const negative = (period.change ?? 0) < 0;
-  return <section className="panel cockpit-performance">
-    <div className="cockpit-performance-head">
-      <div>
-        <span className="eyebrow">PORTFOLIO VALUE{latest ? ` · ${dateLabel(latest.date, true)}` : ''}</span>
-        <strong>{latest ? money(latest.value, analysis.historyCurrency) : money(analysis.aum,analysis.currency)}</strong>
-      </div>
-      {period.change != null
-        ? <div className={`cockpit-delta ${negative ? 'negative' : 'positive'}`}><strong>{negative ? '▼' : '▲'} {percent(Math.abs(period.change))}</strong><span>{period.amount != null ? `${period.amount >= 0 ? '+' : '−'}${money(Math.abs(period.amount), analysis.historyCurrency)} over ${range}` : ''}</span></div>
-        : <div className="cockpit-delta neutral"><strong>Not available</strong><span>{analysis.scopeAmbiguous ? 'Select one portfolio to resolve overlapping assets.' : `No matching ${range} start and end observations.`}</span></div>}
-      <div className="range-control" role="group" aria-label="Portfolio history period">{ranges.map(r => <button key={r} aria-pressed={r === range} onClick={() => onRange(r)}>{r}</button>)}</div>
-    </div>
-    <ValueChart points={analysis.history} from={period.startDate} currency={analysis.historyCurrency} />
-    <p className="microcopy">The whole supplied history; the selected {range} period is marked. {period.start && period.end ? `${dateLabel(period.start.date, true)} → ${dateLabel(period.end.date, true)}. ` : ''}Portfolio-value movement including possible cash flows, not a cash-flow-adjusted investment return. No holding-level attribution is claimed.</p>
-  </section>;
+  return <div className="cockpit-performance">
+    <div className="cockpit-section-heading"><h2>Portfolio value</h2><div className="range-control" role="group" aria-label="Portfolio history period">{ranges.map(r => <button key={r} aria-pressed={r === range} onClick={() => onRange(r)}>{r}</button>)}</div></div>
+    <div className="cockpit-value-heading"><strong>{latest ? money(latest.value, analysis.historyCurrency) : money(analysis.aum, analysis.currency)}</strong><span>{latest ? `Latest observation · ${dateLabel(latest.date, true)}` : 'Reported portfolio snapshot'}</span></div>
+    <ValueChart points={analysis.history} from={period.startDate} currency={analysis.historyCurrency}/>
+    <div className="cockpit-value-metrics"><div><strong className={period.change == null ? '' : period.change < 0 ? 'negative' : 'positive'}>{period.change == null ? 'Unavailable' : `${period.change >= 0 ? '+' : '−'}${percent(Math.abs(period.change))}`}</strong><span>Value change · {range}</span></div><div><strong>{period.amount == null ? '—' : `${period.amount >= 0 ? '+' : '−'}${money(Math.abs(period.amount), analysis.historyCurrency)}`}</strong><span>Change in value · {range}</span></div><div><strong>{analysis.history.length}</strong><span>Supplied observations</span></div></div>
+    <details className="cockpit-method"><summary>Value movement includes cash flows; it is not investment return.</summary><p>The full supplied history is shown; the selected {range} window is marked. {period.start && period.end ? `${dateLabel(period.start.date, true)} to ${dateLabel(period.end.date, true)}.` : analysis.scopeAmbiguous ? 'Select one portfolio to resolve overlapping assets.' : `No matching ${range} start and end observations are available.`} Holding-level performance attribution is not available.</p>{analysis.history.length > 0 && <div className="cockpit-history-observations" tabIndex={0} role="region" aria-label="Historical portfolio values"><table><caption>All {analysis.history.length} supplied observations</caption><thead><tr><th scope="col">Date</th><th scope="col">Value ({analysis.historyCurrency})</th></tr></thead><tbody>{analysis.history.map(point => <tr key={point.date}><th scope="row">{dateLabel(point.date, true)}</th><td>{money(point.value, analysis.historyCurrency)}</td></tr>)}</tbody></table></div>}</details>
+  </div>;
 }
 
 function ValueChart({ points, from, currency }: { points: { date: string; value: number }[]; from: string; currency: string }) {
-  if (points.length < 2) return <p className="muted">No compatible portfolio-value history is available in this scope.</p>;
-  const values = points.map(p => p.value);
-  const min = Math.min(...values), max = Math.max(...values), span = max - min || 1;
-  const width = 640, height = 150;
-  const coords = values.map((v, i) => [i / (values.length - 1) * width, height - 10 - (v - min) / span * (height - 26)] as const);
-  const pair = ([x, y]: readonly [number, number]) => `${x},${y}`;
-  // The selected period is drawn over the full history, so the range control never hides context.
-  const start = Math.max(0, points.findIndex(p => p.date.slice(0, 10) >= from));
-  const marked = coords.slice(Math.min(start, coords.length - 2));
-  const falling = values.at(-1)! < values[Math.min(start, values.length - 2)];
-  return <svg className="cockpit-chart" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" role="img" aria-label={`Portfolio value across ${points.length} observations, from ${money(values[0], currency)} to ${money(values.at(-1)!, currency)}`}>
-    <polygon points={`${coords.map(pair).join(' ')} ${width},${height} 0,${height}`} className="cockpit-chart-fill" />
-    <polyline points={coords.map(pair).join(' ')} className="cockpit-chart-line" />
-    <polyline points={marked.map(pair).join(' ')} className={`cockpit-chart-last ${falling ? 'negative' : 'positive'}`} />
-    <circle cx={coords.at(-1)![0]} cy={coords.at(-1)![1]} r="4" className={falling ? 'negative' : 'positive'} />
-  </svg>;
+  const gradientId = useId().replace(/:/g, '');
+  const [hover, setHover] = useState<number | null>(null);
+  if (points.length < 2) return <div className="cockpit-chart-empty"><span>History unavailable</span><p>No compatible portfolio-value series was supplied for this scope.</p></div>;
+  const values = points.map(p => p.value), timestamps = points.map(p => new Date(p.date).getTime());
+  const lowest = Math.min(...values), highest = Math.max(...values), padding = (highest - lowest || highest || 1) * .12;
+  const min = lowest - padding, max = highest + padding;
+  const width = 720, height = 218, left = 62, right = 16, top = 12, bottom = 32;
+  const plotWidth = width - left - right, plotHeight = height - top - bottom;
+  const elapsed = timestamps.at(-1)! - timestamps[0] || 1;
+  const x = (time: number) => left + (time - timestamps[0]) / elapsed * plotWidth;
+  const y = (value: number) => top + (max - value) / (max - min) * plotHeight;
+  const coords = points.map((point, i) => [x(timestamps[i]), y(point.value)]);
+  const path = coords.map(([px, py], i) => `${i ? 'L' : 'M'}${px},${py}`).join(' ');
+  const compact = (value: number) => new Intl.NumberFormat('en-GB', { notation: 'compact', maximumFractionDigits: 1 }).format(value);
+  const fromTime = new Date(from).getTime(), markerX = Number.isFinite(fromTime) ? Math.max(left, Math.min(width - right, x(fromTime))) : left;
+  const active = hover == null ? null : points[hover];
+  const activeX = hover == null ? 0 : coords[hover][0];
+  const dateIndexes = [...new Set([0, Math.round((points.length - 1) / 4), Math.round((points.length - 1) / 2), Math.round((points.length - 1) * 3 / 4), points.length - 1])];
+  return <div className="cockpit-chart-wrap"><svg className="cockpit-chart" preserveAspectRatio="none" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`${currency} portfolio values across ${points.length} observations, ${dateLabel(points[0].date, true)} to ${dateLabel(points.at(-1)!.date, true)}`} onPointerLeave={() => setHover(null)} onPointerMove={event => { const bounds = event.currentTarget.getBoundingClientRect(); const px = (event.clientX - bounds.left) / bounds.width * width; let nearest = 0; coords.forEach((point, i) => { if (Math.abs(point[0] - px) < Math.abs(coords[nearest][0] - px)) nearest = i; }); setHover(nearest); }}>
+    <defs><linearGradient id={gradientId} x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor="var(--allocation-one)" stopOpacity=".18"/><stop offset="100%" stopColor="var(--allocation-one)" stopOpacity=".025"/></linearGradient></defs>
+    {[0, 1, 2, 3].map(index => { const value = min + (max - min) * index / 3; return <g key={index}><line x1={left} x2={width - right} y1={y(value)} y2={y(value)} className="cockpit-chart-grid"/><text x={left - 10} y={y(value) + 4} textAnchor="end">{compact(value)}</text></g>; })}
+    {dateIndexes.map(index => <g key={index}><line x1={coords[index][0]} x2={coords[index][0]} y1={top} y2={height - bottom} className="cockpit-chart-grid"/><text x={coords[index][0]} y={height - 10} textAnchor={index === 0 ? 'start' : index === points.length - 1 ? 'end' : 'middle'}>{new Date(points[index].date).toLocaleDateString('en-GB', { month: 'short', year: '2-digit', timeZone: 'UTC' })}</text></g>)}
+    <rect x={markerX} y={top} width={width - right - markerX} height={plotHeight} className="cockpit-chart-window"/>
+    <path d={`${path} L${width - right},${height - bottom} L${left},${height - bottom} Z`} fill={`url(#${gradientId})`}/>
+    <path d={path} className="cockpit-chart-line"/>
+    <circle cx={coords.at(-1)![0]} cy={coords.at(-1)![1]} r="4" className="cockpit-chart-end"/>
+    {active && <g className="cockpit-chart-inspection"><line x1={activeX} x2={activeX} y1={top} y2={height - bottom}/><circle cx={activeX} cy={y(active.value)} r="4"/><rect x={Math.max(left, Math.min(width - 190, activeX - 88))} y={top + 2} width="174" height="39" rx="4"/><text x={Math.max(left, Math.min(width - 190, activeX - 88)) + 87} y={top + 18} textAnchor="middle">{money(active.value, currency)}</text><text x={Math.max(left, Math.min(width - 190, activeX - 88)) + 87} y={top + 33} textAnchor="middle">{dateLabel(active.date, true)}</text></g>}
+  </svg></div>;
 }
 
-function ImpactCard({ analysis, context, onEvidence }: { analysis: Analysis; context?: MarketContext; onEvidence: (e: Evidence) => void }) {
-  const contributors = riskContributors(analysis).slice(0, 5);
-  const events = portfolioEvents(analysis, context).slice(0, 3);
-  const total = contributors.reduce((sum, h) => sum + h.riskContribution!, 0);
-  return <section className="panel cockpit-impact">
-    <div className="cockpit-impact-head"><span className="eyebrow">WHAT MOVED THE PORTFOLIO</span></div>
-
-    <div className="cockpit-subhead"><h3>Largest risk contributors</h3><span className="cockpit-chip">Position-level profit and loss needs the market-price feed</span></div>
-    {contributors.length ? <div className="cockpit-rows">
-      {contributors.map(h => <button className="cockpit-row" key={h.id} onClick={() => onEvidence(h.evidence)}>
-        <i style={{ height: `${Math.max(20, h.riskContribution! / (contributors[0].riskContribution || 1) * 26)}px` }} />
-        <span className="cockpit-row-name">{h.displayName}</span>
-        <span className="cockpit-row-weight">{percent(h.weight)}</span>
-        <strong>{percent(h.riskContribution!, 2)}</strong>
-      </button>)}
-      <p className="microcopy">Supplied contribution to portfolio volatility — the share of risk each position carries, not a profit or loss. These five carry {percent(total, 2)} of {analysis.portfolios.length === 1 && number(analysis.portfolios[0].Volatility) != null ? percent(analysis.portfolios[0].Volatility) : 'the total'}.</p>
-    </div> : <p className="muted">No risk-contribution figures were supplied for these positions.</p>}
-
-    <div className="cockpit-subhead"><h3>Events touching these holdings</h3><span className="cockpit-chip">{context ? `${context.checked}/${context.requested} searches complete` : 'Screening in progress'}</span></div>
-    {events.length ? <div className="cockpit-events">
-      {events.map((event, i) => <button className="cockpit-event" key={event.id} onClick={() => onEvidence(event.evidence)}>
-        <span className="cockpit-event-index">{i + 1}</span>
-        <span className="cockpit-event-body"><strong>{event.title}</strong><small>{event.names.slice(0, 3).join(', ')} · {event.source} · {dateLabel(event.publishedAt, true)}</small></span>
-        <span className="cockpit-event-weight"><strong>{event.weight == null ? '—' : percent(event.weight, 2)}</strong><small>{event.match === 'company' ? 'held directly' : 'in this category'}</small></span>
-      </button>)}
-    </div> : <p className="muted">No headline has been matched to a holding in this window yet.</p>}
-    <p className="microcopy">Headlines are matched to holdings by name and ISIN. A match shows what to check; it does not prove the event moved the price.</p>
-  </section>;
-}
-
-function PromptRail({ prompts, onEvidence, onFocus }: { prompts: CockpitPrompt[]; onEvidence: (e: Evidence) => void; onFocus: (id: string) => void }) {
-  return <section className="panel cockpit-prompts">
-    <span className="eyebrow">WHAT YOU COULD DO</span>
-    <p className="cockpit-rail-sub">{prompts.length ? `${prompts.length} suggestion${prompts.length === 1 ? '' : 's'} from recorded findings, policy targets and customer notes.` : 'No recorded finding, target deviation or note needs an action in this scope. This is not a clean bill of health.'}</p>
-    {prompts.map((prompt, i) => <article className={`cockpit-prompt ${prompt.level}`} key={prompt.id}>
-      <div className="cockpit-prompt-top"><span className="cockpit-prompt-index">{i + 1}</span><span className="cockpit-prompt-label">{prompt.label}</span></div>
-      <h3>{prompt.title}</h3>
-      <p>{prompt.detail}</p>
-      <p className="cockpit-prompt-action"><b>Next:</b> {prompt.action}</p>
-      <div className="cockpit-prompt-actions">
-        {prompt.evidence[0] && <button onClick={() => onEvidence(prompt.evidence[0])}><FileText size={12} />Inspect evidence{prompt.evidence.length > 1 ? ` (${prompt.evidence.length})` : ''}</button>}
-        {prompt.exposureId && <button onClick={() => onFocus(prompt.exposureId!)}>Open the breakdown <ArrowUpRight size={12} /></button>}
-      </div>
-    </article>)}
-    <p className="microcopy">Suggestions for adviser review. No order is placed from this screen.</p>
-  </section>;
-}
-
-function BreakdownSection({ dimension, rows, analysis, focus, onFocus }: { dimension: { kind: ExposureKind; title: string; note: string }; rows: BreakdownRow[]; analysis: Analysis; focus: { kind: ExposureKind; id: string } | null; onFocus: (id: string) => void }) {
+function RiskSection({ analysis, dataset, onEvidence }: { analysis: Analysis; dataset: Dataset; onEvidence: Navigation['onEvidence'] }) {
   const [all, setAll] = useState(false);
-  const attributed = rows.reduce((sum, r) => sum + r.weight, 0);
-  if (!analysis.weightsAvailable) return <section className="panel cockpit-breakdown"><h3>{dimension.title}</h3><p className="muted">Choose a non-overlapping portfolio to calculate weights.</p></section>;
-  const visible = all ? rows : rows.slice(0, 6);
-  return <section className="panel cockpit-breakdown">
-    <div className="cockpit-breakdown-head">
-      <h3>{dimension.title}</h3>
-      <p>{dimension.note} · {percent(attributed)} of the portfolio attributed</p>
-    </div>
-    <div className="cockpit-table" role="table" aria-label={dimension.title}>
-      <div className="cockpit-table-head" role="row">
-        <span role="columnheader">{dimension.kind === 'company' ? 'COMPANY' : dimension.kind === 'country' ? 'COUNTRY' : 'INDUSTRY'}</span>
-        <span role="columnheader">SHARE</span>
-        <span role="columnheader" className="numeric">VS TARGET</span>
-        <span role="columnheader" className="numeric">HOLDINGS 1M</span>
-        <span role="columnheader" className="numeric">INDEX 1M</span>
-        <span role="columnheader" className="numeric">SECTOR ETF 1M</span>
-        <span role="columnheader" className="numeric">NEWS</span>
-      </div>
-      {visible.map(row => <button role="row" className={`cockpit-table-row ${focus?.id === row.id ? 'focused' : ''}`} key={row.id} onClick={() => onFocus(row.id)}>
-        <span role="cell" className="cockpit-cell-name">{row.name}{row.violation && <em className={row.violation.Severity === 'Error' ? 'breach' : 'warning'}>{row.violation.Severity === 'Error' ? 'Recorded breach' : 'Recorded warning'}</em>}{row.isin && dimension.kind === 'company' && !row.via.includes(row.name) && <em className="via">via {row.via[0]}</em>}</span>
-        <span role="cell" className="cockpit-cell-bar"><i><b style={{ width: `${Math.min(100, row.weight / (rows[0]?.weight || 1) * 100)}%` }} /></i><strong>{percent(row.weight, 1)}</strong></span>
-        <span role="cell" className={`numeric ${row.deviation == null ? 'unavailable' : row.deviation < 0 ? 'negative' : 'positive'}`}>{row.deviation == null ? 'no target' : `${row.deviation >= 0 ? '+' : '−'}${(Math.abs(row.deviation) * 100).toFixed(1)} pp`}</span>
-        <span role="cell" className="numeric unavailable">—</span>
-        <span role="cell" className="numeric unavailable">—</span>
-        <span role="cell" className="numeric unavailable">—</span>
-        <span role="cell" className="numeric">{row.newsCount || '—'}</span>
-      </button>)}
-    </div>
-    {!rows.length && <p className="muted">No classified exposure is available for this dimension.</p>}
-    {rows.length > 6 && <button className="text-button" onClick={() => setAll(a => !a)}>{all ? 'Show the top six' : `Show all ${rows.length}`}</button>}
-    <p className="microcopy">Weights use the whole selected portfolio as denominator. Index and sector-ETF columns need a market-data feed; they stay empty rather than estimated.</p>
+  const contributors = riskContributors(analysis);
+  const portfolio = analysis.portfolios.length === 1 ? analysis.portfolios[0] : undefined;
+  const volatility = number(portfolio?.Volatility), profile = dataset.reference.RiskProfiles.find(p => p.Id === analysis.customer.RiskProfileId), ceiling = number(profile?.MaxVola);
+  const source = analysis.evidence.find(e => e.id === `p-${portfolio?.PortfolioId}`);
+  return <div className="cockpit-risk"><div className="cockpit-section-heading"><h3>Risk contributors</h3>{contributors.length > 5 && <button className="text-button" onClick={() => setAll(value => !value)}>{all ? 'Show top five' : `View all ${contributors.length}`} <ChevronDown size={12}/></button>}</div>
+    <div className="cockpit-risk-grid"><div>{contributors.length ? <div className="cockpit-risk-rows">{(all ? contributors : contributors.slice(0, 5)).map(holding => <button className="cockpit-risk-row" key={holding.id} onClick={() => onEvidence(holding.evidence)} title={`${holding.displayName}: ${percent(holding.weight)} portfolio weight`}><span>{holding.displayName}</span><i><b style={{width: `${Math.max(1, holding.riskContribution! / contributors[0].riskContribution! * 100)}%`}}/></i><strong>{percent(holding.riskContribution!, 2)}</strong></button>)}</div> : <p className="muted">No position risk-contribution figures supplied.</p>}<p className="microcopy">Supplied contributions to portfolio volatility, not profit and loss. Select a position to inspect its source.</p></div>
+    <div className="cockpit-risk-summary"><span>Portfolio volatility</span><strong className={volatility != null && ceiling != null && volatility > ceiling ? 'negative' : ''}>{volatility == null ? '—' : percent(volatility)}</strong><small>{ceiling == null ? 'Profile ceiling not supplied' : `Profile ceiling ${percent(ceiling)}`}</small>{volatility != null && ceiling != null && ceiling > 0 && <div className="cockpit-gauge-track"><i className={volatility > ceiling ? 'over-limit' : ''} style={{width:`${Math.min(100, volatility / ceiling * 100)}%`}}/></div>}<dl><div><dt>Expected return</dt><dd>{number(portfolio?.ExpectedReturn) == null ? '—' : percent(portfolio!.ExpectedReturn)}</dd></div><div><dt>Value at risk</dt><dd>{number(portfolio?.ValueAtRisk) == null ? '—' : percent(portfolio!.ValueAtRisk)}</dd></div></dl>{source && <button className="text-button" onClick={() => onEvidence(source)}>Supplied snapshot <ArrowUpRight size={11}/></button>}{!portfolio && <small>Select one portfolio for risk figures.</small>}</div></div>
+  </div>;
+}
+
+function AssetTable({ analysis, onEvidence }: { analysis: Analysis; onEvidence: Navigation['onEvidence'] }) {
+  if (!analysis.weightsAvailable) return <p className="cockpit-empty">Select a non-overlapping portfolio to see allocation weights.</p>;
+  const source: Evidence = { id: 'cockpit:asset-composition', title: 'Portfolio asset composition', type: 'calculation', location: 'Selected portfolio security positions and accounts / supplied portfolio weights', fields: analysis.allocations.map(row => ({label: row.label, value: percent(row.weight, 2)})), note: 'Uses supplied security and account weights in the selected scope. Asset labels are classifications, not policy targets.' };
+  return <div className="cockpit-table-body"><div className="cockpit-asset-table" aria-label="Asset class allocation"><div className="cockpit-table-head"><span>Asset class</span><span>Allocation</span><span className="numeric">Weight</span></div>{analysis.allocations.map(row => <button className="cockpit-table-row" key={row.label} onClick={() => onEvidence(source)}><span>{row.label}</span><span className="cockpit-cell-bar"><i><b style={{width:`${Math.min(100, row.weight * 100)}%`}}/></i></span><strong className="numeric">{percent(row.weight, 1)}</strong></button>)}</div>{!analysis.allocations.length && <p className="muted">No asset-class allocation supplied.</p>}<p className="microcopy">Security and account weights from the selected snapshot. Select a row to inspect the calculation.</p></div>;
+}
+
+function PositionsTable({ analysis, onEvidence, onGraph }: { analysis: Analysis; onEvidence: Navigation['onEvidence']; onGraph: Navigation['onGraph'] }) {
+  const [all, setAll] = useState(false), products = aggregateProducts(analysis);
+  return <div className="cockpit-table-body"><div className="cockpit-position-table" aria-label="Positions by portfolio weight"><div className="cockpit-table-head"><span>Investment</span><span className="numeric">Value</span><span className="numeric">Weight</span><span className="visually-hidden">Connections</span></div>{(all ? products : products.slice(0, 6)).map(product => <div className="cockpit-table-row" key={product.id}><button className="cockpit-position-name" onClick={() => onEvidence(productEvidence(analysis, product))}><strong>{product.name}</strong><small>{lookThrough(product.positions[0]).label}{product.positions.length > 1 ? ` · ${product.positions.length} positions` : ''}</small></button><span className="numeric">{analysis.scopeAmbiguous ? '—' : money(product.value, product.currency)}</span><strong className="numeric">{analysis.weightsAvailable ? percent(product.weight, 1) : '—'}</strong><span><button className="ws-icon" aria-label={`Explore ${product.name} in graph`} onClick={() => onGraph(product.id)}><Network size={14}/></button></span></div>)}</div>{!products.length && <p className="muted">No security positions supplied.</p>}{products.length > 6 && <button className="text-button cockpit-show-more" onClick={() => setAll(value => !value)}>{all ? 'Show top six' : `View all ${products.length} investments`} <ChevronDown size={12}/></button>}<p className="microcopy">Same-ISIN positions are combined. Cash is shown under Asset class.</p></div>;
+}
+
+function BreakdownSection({ dimension, rows, analysis, focus, onFocus }: { dimension: typeof dimensions[number]; rows: BreakdownRow[]; analysis: Analysis; focus?: string; onFocus: (id: string) => void }) {
+  const [all, setAll] = useState(false);
+  if (!analysis.weightsAvailable) return <p className="cockpit-empty">Select a non-overlapping portfolio to calculate exposure weights.</p>;
+  const attributed = rows.reduce((sum, row) => sum + row.weight, 0), securityWeight = analysis.holdings.reduce((sum, holding) => sum + holding.weight, 0);
+  return <div className="cockpit-table-body"><div className="cockpit-breakdown-table" aria-label={`Exposure by ${dimension.title.toLowerCase()}`}><div className="cockpit-table-head"><span>{dimension.title}</span><span className="numeric">Weight</span><span className="numeric">Vs target</span><span className="numeric">News</span></div>{(all ? rows : rows.slice(0, 6)).map(row => <button aria-expanded={focus === row.id} className={`cockpit-table-row ${focus === row.id ? 'focused' : ''}`} key={row.id} onClick={() => onFocus(row.id)}><span className="cockpit-cell-name">{row.name}{row.violation && <small className={row.violation.Severity === 'Error' ? 'negative' : ''}>Recorded {row.violation.Severity === 'Error' ? 'breach' : 'warning'}</small>}{row.isin && dimension.kind === 'company' && !row.via.includes(row.name) && <small>via {row.via[0]}</small>}</span><strong className="numeric">{percent(row.weight, 1)}</strong><span className={`numeric ${row.deviation == null ? 'unavailable' : row.deviation < 0 ? 'negative' : 'positive'}`}>{row.deviation == null ? '—' : `${row.deviation >= 0 ? '+' : '−'}${(Math.abs(row.deviation) * 100).toFixed(1)} pp`}</span><span className="numeric">{row.newsCount || '—'}</span></button>)}</div>{!rows.length && <p className="muted">No classified exposure available for this dimension.</p>}{rows.length > 6 && <button className="text-button cockpit-show-more" onClick={() => setAll(value => !value)}>{all ? 'Show top six' : `View all ${rows.length}`} <ChevronDown size={12}/></button>}<p className="cockpit-coverage-line"><strong>{percent(attributed, 1)} attributed</strong><span>{percent(Math.max(0, securityWeight - attributed), 1)} of portfolio in unattributed securities</span></p><details className="cockpit-method"><summary>Coverage and target comparison</summary><p>{dimension.note} Weights use the whole selected portfolio. A dash means no comparable policy target was supplied. Targets are compared only when classifications cover the same positions and weights.</p></details></div>;
+}
+
+function PromptRail({ prompts, onEvidence, onGraph, onFinding, onNewsGraph }: { prompts: AttentionItem[] } & Navigation) {
+  const [all, setAll] = useState(false);
+  function trace(item: AttentionItem) { if (item.contextId) onNewsGraph(item.contextId); else if (item.graphNodeId) onGraph(item.graphNodeId); else if (item.findingId && item.findingId !== 'customer-context') onFinding(item.findingId); }
+  return <section className="panel cockpit-prompts" aria-label="Review actions"><div className="cockpit-section-heading"><h2>Review actions <span>{prompts.length}</span></h2>{prompts.length > 4 && <button className="text-button" onClick={() => setAll(value => !value)}>{all ? 'Show less' : 'View all'} <ArrowUpRight size={12}/></button>}</div>
+    {!prompts.length && <p className="muted">No issue flagged by available checks. Coverage may be incomplete.</p>}
+    {(all ? prompts : prompts.slice(0, 4)).map((prompt, index) => <details className={`cockpit-prompt ${prompt.level}`} key={prompt.id}><summary><span className="cockpit-prompt-index">{index + 1}</span><span className="cockpit-prompt-summary"><strong>{prompt.title}</strong><small>{prompt.label}</small></span><ChevronDown size={13}/></summary><div className="cockpit-prompt-detail">{prompt.metric && <strong className="cockpit-prompt-metric">{prompt.metric}</strong>}<p>{prompt.detail}</p><p><b>Next:</b> {prompt.action}</p><div className="cockpit-prompt-actions">{prompt.evidence[0] && <button onClick={() => onEvidence(prompt.evidence[0])}><FileText size={12}/>Evidence</button>}{(prompt.contextId || prompt.graphNodeId || (prompt.findingId && prompt.findingId !== 'customer-context')) && <button onClick={() => trace(prompt)}><Network size={12}/>Trace exposure</button>}</div>{prompt.evidence.length > 1 && <details className="cockpit-method"><summary>All {prompt.evidence.length} source records</summary>{prompt.evidence.map(source => <button className="text-button" key={source.id} onClick={() => onEvidence(source)}>{source.title} <ArrowUpRight size={11}/></button>)}</details>}</div></details>)}
+    <p className="microcopy">For adviser review. Recorded findings may have changed since the supplied snapshot.</p>
   </section>;
 }
 
-function Drilldown({ row, analysis, context, onEvidence, onNews, onClose }: { row: BreakdownRow; analysis: Analysis; context?: MarketContext; onEvidence: (e: Evidence) => void; onNews: (id: string, name: string) => void; onClose: () => void }) {
-  // Each contribution is the share of THIS exposure a position carries, not the position's whole weight.
-  const contributions = [...row.contributions].sort((a, b) => b.weight - a.weight);
-  const articles = (context?.items || []).filter(i => i.entityIds.includes(row.id));
+function NewsPanel({ analysis, context, onEvidence, onNews, onNewsGraph }: { analysis: Analysis; context?: MarketContext; onEvidence: Navigation['onEvidence']; onNews: Navigation['onNews']; onNewsGraph: Navigation['onNewsGraph'] }) {
+  const events = portfolioEvents(analysis, context).slice(0, 3);
+  return <section className="panel cockpit-news" aria-label="Portfolio news"><div className="cockpit-section-heading"><h2>Portfolio news</h2><button className="text-button" onClick={() => onNews()}>All news <ArrowUpRight size={12}/></button></div><div className="cockpit-wire-status"><i/>{context ? `${context.checked}/${context.requested} searches checked` : 'News screening in progress'}</div>
+    {events.map(event => <article className="cockpit-event" key={event.id}><div className="cockpit-event-meta"><span>{event.source}</span><time>{dateLabel(event.publishedAt, true)}</time></div><h3><a href={event.url} target="_blank" rel="noreferrer">{event.title}</a></h3><div className="cockpit-event-exposure"><button onClick={() => onNewsGraph(event.id)}>{event.names[0]}{event.names.length > 1 ? ` +${event.names.length - 1}` : ''} <ArrowUpRight size={11}/></button><span>{event.weight == null ? 'Weight unknown' : `${percent(event.weight, 1)} ${event.match === 'company' ? 'covered' : 'matched bucket'}`}</span><button aria-label={`Evidence for ${event.title}`} onClick={() => onEvidence(event.evidence)}><FileText size={12}/></button></div></article>)}
+    {!events.length && <p className="muted">No headline has been matched to a holding in this window.</p>}
+    <p className="microcopy">Linked exposure is not measured impact. Category weights may overlap; screening is not exhaustive.</p>
+  </section>;
+}
+
+function Drilldown({ row, analysis, context, onEvidence, onNews, onGraph, onClose }: { row: BreakdownRow; analysis: Analysis; context?: MarketContext; onEvidence: Navigation['onEvidence']; onNews: Navigation['onNews']; onGraph: Navigation['onGraph']; onClose: () => void }) {
+  const contributions = [...row.contributions].sort((a, b) => b.weight - a.weight), articles = (context?.items || []).filter(item => item.entityIds.includes(row.id));
   const value = analysis.aum != null ? analysis.aum * row.weight : null;
-  return <section className="panel cockpit-drilldown">
-    <div className="cockpit-drilldown-head">
-      <div>
-        <span className="eyebrow">{row.kind === 'company' ? 'COMPANY EXPOSURE' : row.kind === 'country' ? 'COUNTRY EXPOSURE' : 'INDUSTRY EXPOSURE'}</span>
-        <h3>{row.name}</h3>
-        <p>{row.via.length} contributing position{row.via.length === 1 ? '' : 's'}{value != null ? ` · ${money(value, analysis.currency)} at the case snapshot` : ''}</p>
-      </div>
-      <div className="cockpit-drilldown-stats">
-        <div className="dark"><strong>{percent(row.weight, 1)}</strong><span>of the portfolio</span></div>
-        {row.deviation != null && <div><strong className={row.deviation < 0 ? 'negative' : 'positive'}>{row.deviation >= 0 ? '+' : '−'}{(Math.abs(row.deviation) * 100).toFixed(1)} pp</strong><span>vs {percent(row.target!, 1)} target</span></div>}
-      </div>
-      <button className="icon-button" aria-label="Close this exposure" onClick={onClose}><Minus size={18} /></button>
-    </div>
-
-    <div className="cockpit-drilldown-body">
-      <div className="cockpit-drilldown-main">
-        <div className="cockpit-compare">
-          <div className="cockpit-compare-legend">
-            <span><i className="holdings" />Your holdings</span>
-            <span><i className="index" />Market index</span>
-            <span><i className="etf" />Sector ETF</span>
-          </div>
-          <p className="muted">The one-year comparison against a market index and a sector ETF needs the market-data feed (FMP or OpenBB). The case export carries a single end-of-day price per instrument, so no series is drawn rather than estimated.</p>
-        </div>
-        <h4>What makes up this exposure</h4>
-        <div className="cockpit-rows">
-          {contributions.map(contribution => {
-            const holding = analysis.holdings.find(h => h.id === contribution.id);
-            return <button className="cockpit-row" key={contribution.id} onClick={() => holding && onEvidence(holding.evidence)}>
-              <i />
-              <span className="cockpit-row-name">{contribution.name}<small>{holding ? `${holding.instrumentType} · ${percent(holding.weight, 2)} position` : 'Position record unavailable'}</small></span>
-              <span className="cockpit-row-weight">{holding ? money(holding.value, holding.currency) : ''}</span>
-              <strong>{percent(contribution.weight, 2)}</strong>
-            </button>;
-          })}
-          {!contributions.length && <p className="muted">The contributing positions could not be resolved for this row.</p>}
-        </div>
-        <p className="microcopy">The right-hand figure is the share of the whole portfolio this position contributes to {row.name} — for a fund, its position weight times the supplied category weight, never its full holding.</p>
-        <button className="text-button" onClick={() => onEvidence(row.evidence[0])}><FileText size={13} />Inspect how this weight was calculated</button>
-      </div>
-
-      <aside className="cockpit-newsfeed">
-        <div className="cockpit-rail-head"><span className="eyebrow">NEWS AFFECTING {row.name.toUpperCase()}</span></div>
-        {row.violation && <div className="cockpit-callout">
-          <span className={row.violation.Severity === 'Error' ? 'breach' : 'warning'}>RECORDED FINDING · {String(row.violation.Severity || 'Recorded').toUpperCase()}</span>
-          <strong>{row.violation.RuleCode}</strong>
-          <p>Last flagged {dateLabel(row.violation.LastViolatedDateUTC, true)}. An exported rule-engine finding, not recomputed here — check whether it is still open.</p>
-        </div>}
-        {articles.map(item => <article className="cockpit-article" key={item.id}>
-          <span className="cockpit-article-meta">{item.source} · {dateLabel(item.publishedAt, true)}</span>
-          <strong>{item.title}</strong>
-          <p>{item.relevance}</p>
-          <a href={item.url} target="_blank" rel="noreferrer">Read the article ↗</a>
-        </article>)}
-        {!articles.length && <p className="muted">No headline has been matched to this exposure in the current window.</p>}
-        <button className="text-button" onClick={() => onNews(row.id, row.name)}>Open the full news screen <ArrowUpRight size={13} /></button>
-        <p className="microcopy">Headlines are matched by name and ISIN; a match is a prompt to read the article, not proof of impact. Screening is not exhaustive.</p>
-      </aside>
-    </div>
+  return <section className="cockpit-drilldown" aria-label={`${row.name} exposure details`}><div className="cockpit-drilldown-head"><div><span className="eyebrow">{row.kind} exposure</span><h3>{row.name}</h3><p>{percent(row.weight, 1)} of portfolio{value != null ? ` · ${money(value, analysis.currency)} at snapshot` : ''}</p></div><button className="ws-icon" aria-label="Close this exposure" onClick={onClose}><X size={16}/></button></div>
+    <div className="cockpit-drilldown-actions"><button className="text-button" onClick={() => onGraph(row.id)}>Trace connections <Network size={12}/></button><button className="text-button" onClick={() => onNews(row.id, row.name)}>Exposure news <ArrowUpRight size={12}/></button></div>
+    {row.deviation != null && <p className="microcopy">{row.deviation >= 0 ? '+' : '−'}{(Math.abs(row.deviation) * 100).toFixed(1)} percentage points versus a {percent(row.target!, 1)} supplied target.</p>}
+    <h4>Contributing positions</h4><div className="cockpit-contributions">{contributions.map(contribution => { const holding = analysis.holdings.find(h => h.id === contribution.id); return <button key={contribution.id} disabled={!holding} onClick={() => holding && onEvidence(holding.evidence)}><span>{contribution.name}<small>{holding ? `${holding.instrumentType} · ${percent(holding.weight, 2)} full position` : 'Position record unavailable'}</small></span><strong>{percent(contribution.weight, 2)}</strong></button>; })}</div>
+    <p className="microcopy">Figures show the share of the whole portfolio contributed to this exposure. Fund contributions use position weight × published category weight.</p>
+    <details className="cockpit-method"><summary>Calculation and all {row.evidence.length} sources</summary>{row.evidence.map(source => <button className="text-button" key={source.id} onClick={() => onEvidence(source)}>{source.title} <ArrowUpRight size={11}/></button>)}</details>
+    {row.violation && <div className="cockpit-callout"><strong>Recorded {row.violation.Severity === 'Error' ? 'breach' : 'warning'} · {row.violation.RuleCode}</strong><p>Last flagged {dateLabel(row.violation.LastViolatedDateUTC, true)}. This supplied finding is not recomputed; verify its current status.</p></div>}
+    {articles.length > 0 && <details className="cockpit-method"><summary>{articles.length} matched headline{articles.length === 1 ? '' : 's'}</summary>{articles.map(item => <article className="cockpit-article" key={item.id}><span>{item.source} · {dateLabel(item.publishedAt, true)}</span><a href={item.url} target="_blank" rel="noreferrer">{item.title} ↗</a><p>{item.relevance}</p></article>)}</details>}
+    <details className="cockpit-method"><summary>Market comparisons unavailable</summary><p>A one-year comparison against an index or ETF needs compatible market-price history. The supplied reference prices alone do not provide that series.</p></details>
   </section>;
 }

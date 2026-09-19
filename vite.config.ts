@@ -1,11 +1,13 @@
 import { defineConfig, loadEnv } from 'vite';
 import { fundHoldingsMiddleware } from './server/fund-holdings.ts';
 import { intelligenceMiddleware } from './server/intelligence.ts';
+import { instrumentQuotesMiddleware } from './server/instrument-quotes.ts';
+import { attachLiveCallSocket, liveCallMiddleware } from './server/live-call.ts';
 
 export default defineConfig(({ mode }) => {
  const config = { ...loadEnv(mode, process.cwd(), ''), ...process.env };
  return {
-  plugins: [{ name: 'compass-data', configureServer(server) { server.middlewares.use(fundHoldingsMiddleware(process.cwd(), config)); server.middlewares.use(intelligenceMiddleware(config)); }, configurePreviewServer(server) { server.middlewares.use(fundHoldingsMiddleware(process.cwd(), config)); server.middlewares.use(intelligenceMiddleware(config)); } }],
+  plugins: [{ name: 'compass-data', configureServer(server) { server.middlewares.use(fundHoldingsMiddleware(process.cwd(), config)); server.middlewares.use(intelligenceMiddleware(config)); server.middlewares.use(instrumentQuotesMiddleware()); server.middlewares.use(liveCallMiddleware(config)); attachLiveCallSocket(server.httpServer, config); }, configurePreviewServer(server) { server.middlewares.use(fundHoldingsMiddleware(process.cwd(), config)); server.middlewares.use(intelligenceMiddleware(config)); server.middlewares.use(instrumentQuotesMiddleware()); server.middlewares.use(liveCallMiddleware(config)); attachLiveCallSocket(server.httpServer, config); } }],
   server: {
     fs: {
       deny: ['.env', '.env.*', '*.{crt,pem}', '**/.git/**', '**/.cache/**', '**/unriskomega-2026/**'],

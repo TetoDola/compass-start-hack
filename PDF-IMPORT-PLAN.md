@@ -1,6 +1,6 @@
 # External custody PDF import: findings and implementation plan
 
-Reviewed 19 September 2026. Scope: all ten supplied eight-page statements in `unriskomega-2026/side-challenge`, plus the current import and portfolio analysis code. This is an extraction feasibility audit and implementation plan. PDF upload and attachment to a client are not implemented by this work.
+Reviewed 19 September 2026. Scope: all ten supplied eight-page statements in `unriskomega-2026/side-challenge`, plus the current import and portfolio analysis code. Implementation update: PDF upload, client creation/attachment, browser persistence, heading-driven multi-page extraction, source evidence, reported performance and scoped allocation display are now implemented. The notes below record the original audit and design rationale. Selected transactions remain in the source PDF; unknown layouts and scans require another ingestion path.
 
 ## What the examples contain
 

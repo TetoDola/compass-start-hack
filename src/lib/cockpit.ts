@@ -4,16 +4,11 @@ import { portfolioExposures, violationEvidence, violationMeasurement, type Expos
 import { materialEvent } from './events';
 import { contextEvidence, newsTargets, type MarketContext } from './briefing';
 import { notePriority } from './analysis';
+import { enrichRelevance } from './research';
 
-// Strategic targets are set against the coarser SAA taxonomy. These three pairs are the
-// same bucket under a different label; every other name stays untargeted rather than guessed.
-const targetAlias: Record<string, string> = {
-  'Raw materials': 'Materials',
-  'Communication Services': 'Telecommunication Services',
-  'United Kingdom': 'Great Britain',
-};
 const saaDimension: Partial<Record<ExposureKind, string>> = { industry: 'Industry', country: 'CountryGroup' };
 const quotedName = (code: unknown) => /"([^"]+)"/.exec(String(code || ''))?.[1];
+const policyCategory=(holding:Holding,kind:ExposureKind)=>kind==='industry'?holding.saaIndustry:kind==='country'?holding.saaRegion:undefined;
 
 /** Supplied policy targets for one exposure dimension. Empty unless a single portfolio is in scope. */
 export function saaTargets(analysis: Analysis, dataset: Dataset, kind: ExposureKind): Map<string, number> {
@@ -35,16 +30,38 @@ export interface BreakdownRow extends Exposure {
   newsCount: number;
 }
 
+// A fund's SAA category describes the product, not its underlying sector/region.
+// The export supplies no denominator or policy-taxonomy crosswalk for mixed assets.
+// Only a fully classified, reconciled direct-equity scope establishes a comparable
+// denominator without guessing; recorded rule findings remain independently usable.
+function policyRows(analysis:Analysis,dataset:Dataset,kind:ExposureKind) {
+  if(!analysis.weightsAvailable)return [];
+  const targets=saaTargets(analysis,dataset,kind);
+  const equities=new Set(['Shares','Dividend right certificates','Participation certificate']);
+  const holdingsInScope=analysis.holdings.filter(h=>h.weight>0);
+  if(!holdingsInScope.length||holdingsInScope.some(h=>!equities.has(h.instrumentType)||!targets.has(policyCategory(h,kind)||'')))return [];
+  if(Math.abs(holdingsInScope.reduce((sum,h)=>sum+h.weight,0)-1)>.001||Math.abs([...targets.values()].reduce((sum,target)=>sum+target,0)-1)>.001||[...targets.values()].some(target=>target<0||target>1))return [];
+  return [...targets].flatMap(([name,target])=>{
+    const holdings=holdingsInScope.filter(h=>policyCategory(h,kind)===name);
+    if(!holdings.length)return [];
+    const weight=holdings.reduce((sum,h)=>sum+h.weight,0);
+    const evidence:Evidence={id:`policy:${kind}:${name}`,title:`${name} strategic allocation comparison`,type:'calculation',location:`reference.json / StrategicAssetAllocations / Id=${analysis.portfolios[0].StrategicAssetAllocationId}`,fields:[{label:'Policy dimension',value:saaDimension[kind]!},{label:'Policy category',value:name},{label:'Supplied target',value:percent(target,2)},{label:'Classified position weight',value:percent(weight,2)}],note:'Uses complete retained SAA classifications in a direct-equity portfolio whose position weights and policy targets each reconcile to 100%. Fund product classifications and partial look-through are not used for computed policy comparisons.'};
+    return [{id:`policy:${kind}:${name}`,name,target,weight,deviation:weight-target,holdings,evidence:[evidence,...holdings.map(h=>h.evidence)]}];
+  });
+}
+
 /** One exposure dimension with its supplied target, deviation, recorded finding and news count. */
 export function breakdownRows(analysis: Analysis, dataset: Dataset, kind: ExposureKind, context?: MarketContext | null): BreakdownRow[] {
-  const targets = saaTargets(analysis, dataset, kind);
+  const policies=policyRows(analysis,dataset,kind);
   return portfolioExposures(analysis, kind).map(exposure => {
-    const target = targets.get(targetAlias[exposure.name] || exposure.name) ?? targets.get(exposure.name) ?? null;
+    const policy=policies.find(p=>p.holdings.length===exposure.contributions.length&&p.holdings.every(h=>exposure.contributions.some(c=>c.id===h.id&&Math.abs(c.weight-h.weight)<1e-8)));
+    const target = policy?.target ?? null;
     return {
       ...exposure,
+      evidence:policy?[...new Map([...exposure.evidence,...policy.evidence].map(e=>[e.id,e])).values()]:exposure.evidence,
       target,
       deviation: target == null ? null : exposure.weight - target,
-      violation: analysis.violations.find(v => { const quoted = quotedName(v.RuleCode); return !!quoted && (quoted === exposure.name || quoted === targetAlias[exposure.name]); }),
+      violation: analysis.violations.find(v => { const quoted = quotedName(v.RuleCode); return !!quoted && (quoted === exposure.name || quoted === policy?.name); }),
       newsCount: (context?.items || []).filter(i => i.entityIds.includes(exposure.id)).length,
     };
   });
@@ -60,11 +77,12 @@ export interface CockpitEvent { id: string; title: string; source: string; publi
 /** Live headlines matched to holdings, ranked by the portfolio weight they touch. */
 export function portfolioEvents(analysis: Analysis, context?: MarketContext | null): CockpitEvent[] {
   const targets = newsTargets(analysis);
-  return (context?.items || []).filter(item => item.kind === 'news').map(item => {
+  const enriched=context?enrichRelevance(context,targets):undefined;
+  return (enriched?.items || []).filter(item => item.kind === 'news'&&!item.sample).map(item => {
     const companies = targets.filter(t => item.entityIds.includes(t.id) && (!t.kind || t.kind === 'company'));
     // A category headline touches a whole exposure bucket, never one identified holding — say which.
     const named = companies.length ? companies : targets.filter(t => item.entityIds.includes(t.id));
-    const weight = named.length && named.every(t => t.weight != null) ? named.reduce((sum, t) => sum + t.weight!, 0) : null;
+    const weight = item.exposureWeight ?? null;
     return { id: item.id, title: item.title, source: item.source, publishedAt: item.publishedAt, url: item.url, names: named.map(t => t.name), weight, match: companies.length ? 'company' as const : 'category' as const, severity: materialEvent(item.title)?.label, evidence: contextEvidence(item) };
   }).filter(e => e.names.length).sort((a, b) => Number(!!b.severity) - Number(!!a.severity) || Number(a.match === 'category') - Number(b.match === 'category') || (b.weight || 0) - (a.weight || 0));
 }
@@ -90,7 +108,7 @@ export function cockpitPrompts(analysis: Analysis, dataset: Dataset, context?: M
     });
   }
   const drifts = (['industry', 'country'] as const)
-    .flatMap(kind => breakdownRows(analysis, dataset, kind).filter(row => row.deviation != null))
+    .flatMap(kind => policyRows(analysis, dataset, kind))
     .sort((a, b) => Math.abs(b.deviation!) - Math.abs(a.deviation!));
   const drift = drifts[0];
   if (drift && Math.abs(drift.deviation!) >= 0.02) prompts.push({
@@ -98,10 +116,9 @@ export function cockpitPrompts(analysis: Analysis, dataset: Dataset, context?: M
     level: 'gap',
     label: 'Off the strategic target',
     title: `${drift.deviation! < 0 ? 'Close' : 'Reduce'} the ${drift.name} ${drift.deviation! < 0 ? 'underweight' : 'overweight'}`,
-    detail: `${percent(drift.weight, 1)} held against a ${percent(drift.target!, 1)} strategic target — ${percent(Math.abs(drift.deviation!), 1)} ${drift.deviation! < 0 ? 'short' : 'over'}.`,
+    detail: `${percent(drift.weight, 1)} in the supplied SAA security classification against a ${percent(drift.target!, 1)} strategic target — ${percent(Math.abs(drift.deviation!), 1)} ${drift.deviation! < 0 ? 'short' : 'over'}. Direct-equity holdings and policy targets each reconcile to 100%.`,
     action: 'Compare the deviation with the agreed tolerance before proposing a trade.',
     evidence: drift.evidence,
-    exposureId: drift.id,
   });
   const event = portfolioEvents(analysis, context).find(e => e.severity);
   if (event) prompts.push({
@@ -109,7 +126,7 @@ export function cockpitPrompts(analysis: Analysis, dataset: Dataset, context?: M
     level: 'warning',
     label: `Live event · ${event.severity}`,
     title: event.title,
-    detail: `${event.names.slice(0, 3).join(', ')}${event.weight == null ? '' : ` · ${percent(event.weight, 2)} ${event.match === 'company' ? 'held directly' : 'in this exposure category'}`} · ${event.source} · ${dateLabel(event.publishedAt, true)}.`,
+    detail: `${event.names.slice(0, 3).join(', ')}${event.weight == null ? '' : ` · ${percent(event.weight, 2)} ${event.match === 'company' ? 'covered company exposure' : 'largest matched classification; overlaps not added'}`} · ${event.source} · ${dateLabel(event.publishedAt, true)}.`,
     action: 'Open the article, verify the affected entity, then review the linked positions.',
     evidence: [event.evidence],
   });

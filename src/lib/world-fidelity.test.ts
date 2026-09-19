@@ -56,6 +56,13 @@ test('distinct sensor observations sharing a source map URL remain distinct',()=
   assert.deepEqual(mergeContextItems([first,second,first]).map(item=>item.id),['fire:1','fire:2']);
 });
 
+test('publisher suffixes do not duplicate the same headline across feeds',()=>{
+  const duplicate={...story,id:'world:publisher',title:`${story.title} - AP News`,source:'AP News',url:'https://apnews.com/article/example',entityIds:[b.id]};
+  const merged=mergeContextItems([story,duplicate]);
+  assert.equal(merged.length,1);assert.deepEqual(merged[0].entityIds,[a.id,b.id]);
+  assert.equal(mergeContextItems([story,{...duplicate,title:`${story.title} - another development`}]).length,2);
+});
+
 test('only same-instrument published aliases extend name matching',()=>{
   const target={...a,name:'International Business Machines Corp IBM',aliases:['IBM']};
   assert.equal(matchesNewsTarget({title:'IBM reports higher earnings'},target),true);

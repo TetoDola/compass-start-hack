@@ -28,7 +28,11 @@ export function researchItems(views:ResearchView[],targets:NewsTarget[]):Context
 export function mergeContextItems(items:ContextItem[]):ContextItem[] {
   const result:ContextItem[]=[], keys=new Map<string,number>();
   for(const item of items) {
-    const title=item.title.normalize('NFKD').replace(/\p{M}/gu,'').toLowerCase().replace(/[^\p{L}\p{N}]+/gu,' ').trim();
+    // Some feeds append their publisher to an otherwise identical headline.
+    // Strip only this item's declared source, never arbitrary trailing text.
+    const source=item.source.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+    const headline=item.title.replace(new RegExp(`\\s+[-–—|]\\s+${source}\\s*$`,'i'),'');
+    const title=headline.normalize('NFKD').replace(/\p{M}/gu,'').toLowerCase().replace(/[^\p{L}\p{N}]+/gu,' ').trim();
     const news=item.kind==='news'&&(!item.layer||item.layer==='news');
     const aliases=news?[`news:url:${item.url}`, ...(title.length>=20?[`news:title:${item.publishedAt.slice(0,10)}:${title}`]:[])]:[`${item.kind}:${item.layer||'research'}:id:${item.id}`];
     const index=aliases.map(k=>keys.get(k)).find(i=>i!=null);
@@ -47,7 +51,7 @@ export function enrichRelevance(context:MarketContext,targets:NewsTarget[]):Mark
     const validWeight=(t:NewsTarget)=>t.weight!=null&&Number.isFinite(t.weight)&&t.weight>=0&&t.weight<=1;
     const rawWeight=companies.length?(companies.every(validWeight)?companies.reduce((n,t)=>n+t.weight!,0):null):linked.length && linked.every(validWeight)?Math.max(...linked.map(t=>t.weight!)):null;
     const weight=rawWeight!=null&&rawWeight<=1?rawWeight:null;
-    const sourceRelevance=item.kind==='house-view'?(item.sourceRelevance ?? item.relevance):companies.length?'Company name or verified symbol matched in the source. Financial impact is unverified.':'Country, region or sector context only; operating and supply-chain exposure are not established.';
+    const sourceRelevance=item.kind==='house-view'?(item.sourceRelevance ?? item.relevance):companies.length?'Company name matched in the source. Financial impact is unverified.':'Country, region or sector context only; operating and supply-chain exposure are not established.';
     return {...item,entityIds:linked.map(t=>t.id),sourceRelevance,matchKind:companies.length?'company' as const:linked.length?'topic' as const:undefined,exposureWeight:weight,relevance:linked.length?`${linked.map(t=>`${t.name}: ${validWeight(t)?percent(t.weight!,2):'weight unavailable'} ${t.kind||'company'} exposure via ${t.via}`).join('; ')}. ${sourceRelevance}`:'Global context; no supported match in the selected portfolio.'};
   })};
 }

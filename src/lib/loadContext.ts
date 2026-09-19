@@ -10,7 +10,7 @@ export async function loadMarketContext(targets:NewsTarget[],{days=30,refresh=fa
     while(next<targets.length&&!signal.aborted) {
       const batchTargets=targets.slice(next,next+12);next+=12;
       try {
-        const response=await fetch(`${base}/api/market-context`,{method:'POST',headers:{'Content-Type':'application/json'},signal:AbortSignal.any([signal,AbortSignal.timeout(15000)]),body:JSON.stringify({targets:batchTargets,refresh,days})});
+        const response=await fetch(`${base}/api/market-context`,{method:'POST',headers:{'Content-Type':'application/json'},signal:AbortSignal.any([signal,AbortSignal.timeout(20000)]),body:JSON.stringify({targets:batchTargets,refresh,days})});
         if(!response.ok)throw new Error('Context unavailable');
         const batch:MarketContext=await response.json();
         const items=new Map(context.items.map(i=>[i.id,i]));

@@ -1,0 +1,63 @@
+import { useMemo, useState } from 'react';
+import { ArrowUpRight, Check, ChevronRight, Clock3, Newspaper, RefreshCw, Search, Users, X } from 'lucide-react';
+import { useOutreach } from './useOutreach';
+import { conversationStarter, eventLabels, OUTREACH_VERSION, statusKey, type Development, type OutreachHistory, type OutreachStatus, type Recommendation } from './lib/outreach';
+import type { Dataset, Evidence } from './lib/types';
+import { clientName, dateLabel } from './lib/format';
+import './client-impact.css';
+
+const storageKey = `compass-${OUTREACH_VERSION}-actions`;
+function loadHistory(): OutreachHistory {
+  try {
+    const value = JSON.parse(localStorage.getItem(storageKey) || '{}');
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+    return Object.fromEntries(Object.entries(value).filter(([, v]: [string, any]) => v && ['contacted', 'dismissed'].includes(v.status) && Number.isFinite(Date.parse(v.at)))) as OutreachHistory;
+  } catch { return {}; }
+}
+function Urgency({ value }: { value: number }) {
+  return <span className={`impact-score ${value >= 7 ? 'impact-score--high' : value >= 4 ? 'impact-score--medium' : ''}`} aria-label={`Urgency ${value} out of 10`}>{value}<small>/10</small></span>;
+}
+function ClientOpportunity({ development, recommendation: r, state, imported, onStatus, onOpen, onEvidence }: {
+  development: Development; recommendation: Recommendation; state?: OutreachHistory[string]; imported: boolean;
+  onStatus: (status?: OutreachStatus) => void; onOpen: () => void; onEvidence: (e: Evidence) => void;
+}) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const classification = development.articles.find(a => a.article.id === r.article.id)?.classification;
+  return <article className="impact-client">
+    <header><div><span className="ws-kicker">{imported ? 'Imported client' : 'Client opportunity'}</span><h3>{r.name}</h3></div><Urgency value={r.urgency}/></header>
+    <p className="impact-connection"><strong>{r.target.name}</strong><span>{r.target.via}</span></p>
+    <p className="impact-snapshot">{r.scopeName} · {r.snapshot ? `Record snapshot ${dateLabel(r.snapshot, true)}` : 'Snapshot date unavailable'} · Confirm holdings are current.</p>
+    <details><summary>Why {r.urgency}/10? <ChevronRight size={13}/></summary><dl className="impact-score-breakdown">{r.components.map(c => <div key={c.label}><dt>{c.label}<small>{c.reason}</small></dt><dd>{c.points}/{c.max}</dd></div>)}</dl>{r.limitations.map(text => <p className="impact-caveat" key={text}>{text}</p>)}<p className="impact-caveat">Outreach priority heuristic, not a financial loss estimate. The strongest supported connection is scored; overlapping exposures are not added.</p></details>
+    <details><summary>News & client evidence <ChevronRight size={13}/></summary><blockquote>{r.evidence}</blockquote><a className="ws-link" href={r.article.url} target="_blank" rel="noreferrer">Read original report <ArrowUpRight size={12}/></a><p className="impact-caveat">{classification?.mode === 'minimax' ? 'MiniMax classification' : 'Conservative rule-based classification'} · {classification?.status}. Relevance does not establish portfolio impact.</p>{r.recordEvidence.length ? r.recordEvidence.map(e => <button className="impact-record" key={e.id} onClick={() => onEvidence(e)}><span>{e.title}<small>{e.location}</small></span><ArrowUpRight size={13}/></button>) : <p className="impact-caveat">Open the client to inspect the supplied allocation records.</p>}</details>
+    {state && <p className="impact-action-state">{state.status === 'contacted' ? 'Marked contacted' : 'Dismissed'} · {dateLabel(state.at, true)} <button className="ws-link" onClick={() => onStatus()}>Undo</button></p>}
+    <div className="impact-client-actions"><button className="ws-button ws-button--primary" onClick={() => setDraft(draft === null ? conversationStarter(r) : null)}>Prepare conversation</button><button className="ws-button" onClick={onOpen}>Open client <ArrowUpRight size={12}/></button>{!state && <><button className="ws-button" onClick={() => onStatus('contacted')}><Check size={13}/>Contacted</button><button className="ws-button" onClick={() => onStatus('dismissed')}><X size={13}/>Dismiss</button></>}</div>
+    {draft !== null && <label className="impact-draft">Conversation starter · edit before using<textarea value={draft} onChange={e => setDraft(e.target.value)} rows={5}/></label>}
+  </article>;
+}
+
+export function ClientImpact({ dataset, active, originalClientIds, onOpenClient, onEvidence }: { dataset: Dataset; active: boolean; originalClientIds: number[]; onOpenClient: (id: number, scope: string) => void; onEvidence: (e: Evidence) => void }) {
+  const scan = useOutreach(dataset, active);
+  const [minimum, setMinimum] = useState(7), [category, setCategory] = useState('all'), [search, setSearch] = useState('');
+  const [showHandled, setShowHandled] = useState(false), [selected, setSelected] = useState('');
+  const [history, setHistory] = useState(loadHistory), [storageError, setStorageError] = useState('');
+  const importedIds = useMemo(() => new Set(dataset.clients.filter(c => !originalClientIds.includes(c.ClientId)).map(c => c.ClientId)), [dataset.clients, originalClientIds]);
+  const filtered = scan.developments.map(d => ({ ...d, recommendations: d.recommendations.filter(r => r.urgency >= minimum && (showHandled || !history[statusKey(d, r)]) && (!search || `${d.articles[0].article.title} ${r.name} ${r.target.name}`.toLowerCase().includes(search.toLowerCase()))) })).filter(d => d.recommendations.length && (category === 'all' || d.articles[0].classification.type === category)).sort((a, b) => b.recommendations[0].urgency - a.recommendations[0].urgency || b.articles[0].article.publishedAt.localeCompare(a.articles[0].article.publishedAt) || a.id.localeCompare(b.id));
+  const chosen = filtered.find(d => d.id === selected) || filtered[0];
+  const readyClients = new Set(filtered.flatMap(d => d.recommendations.map(r => r.clientId))).size;
+  function mark(d: Development, r: Recommendation, status?: OutreachStatus) {
+    const updated = { ...history }, key = statusKey(d, r);
+    if (status) updated[key] = { status, at: new Date().toISOString() }; else delete updated[key];
+    setHistory(updated);
+    try { localStorage.setItem(storageKey, JSON.stringify(updated)); setStorageError(''); } catch { setStorageError('Contact status is kept for this session only; browser storage is unavailable.'); }
+  }
+  return <main className="impact-page" id="news-client-impact" hidden={!active}>
+    <header className="impact-heading"><div><span className="ws-kicker">Across your client book · rolling 7 days</span><h1>News & Client Impact</h1><p>Who could benefit from a conversation today?</p></div><button className="ws-button" disabled={!!scan.phase} onClick={() => void scan.refresh()}><RefreshCw size={14} className={scan.phase ? 'impact-spinning' : ''}/>{scan.phase ? 'Scanning…' : 'Refresh news'}</button></header>
+    <div className="impact-stats"><div><Users size={17}/><strong>{dataset.clients.length}</strong><span>clients in scope{importedIds.size > 0 && <small>Including {importedIds.size} imported</small>}</span></div><div><Newspaper size={17}/><strong>{scan.articles}</strong><span>unique reports<small>Published in the past 7 days</small></span></div><div><Clock3 size={17}/><strong>{readyClients}</strong><span>clients matching filters<small>Minimum urgency {minimum}/10</small></span></div></div>
+    <div className="impact-filters"><label className="impact-search"><Search size={15}/><input aria-label="Search news or clients" placeholder="Search news, clients, or holdings" value={search} onChange={e => setSearch(e.target.value)}/></label><label className="impact-minimum">Minimum urgency <strong>{minimum}/10</strong><input aria-label="Minimum urgency" type="range" min="1" max="10" step="1" value={minimum} onChange={e => setMinimum(Number(e.target.value))}/></label><label>Event type<select value={category} onChange={e => setCategory(e.target.value)}><option value="all">All developments</option>{Object.entries(eventLabels).map(([key, label]) => <option value={key} key={key}>{label}</option>)}</select></label><label className="impact-checkbox"><input type="checkbox" checked={showHandled} onChange={e => setShowHandled(e.target.checked)}/>Show contacted / dismissed</label></div>
+    <div className="impact-progress" role="status">{scan.phase || (scan.completedAt ? `Last scan ${new Date(scan.completedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · ${scan.screened} relevant articles processed` : 'Open this tab to scan the current client book.')}<span>7–10 prioritize · 4–6 review · 1–3 context</span></div>
+    {!scan.phase && scan.rows.some(r => r.classification.mode === 'rules') && <p className="impact-caveat" role="status">{scan.rows.filter(r => r.classification.mode === 'minimax').length} articles classified by MiniMax · {scan.rows.filter(r => r.classification.mode === 'rules').length} use conservative fallback rules, capped at 6/10. Lower the filter to inspect them.</p>}
+    <details className="impact-coverage"><summary>Source coverage & client records <ChevronRight size={13}/></summary><p>{scan.checked}/{scan.book.targets.length} unique public exposure searches completed. Portfolio providers return up to two headlines per exposure; the world digest contains up to 500 articles. Empty results are not proof that no relevant news exists.</p><p>Imported JSON clients and reference records are included automatically. Ratings use the supplied portfolio snapshots; case dates may be shifted. Contact status is local to this browser.</p>{scan.warnings.map(w => <p key={w}>{w}</p>)}<div className="impact-client-coverage">{dataset.clients.map(c => { const scopes = scan.book.scopes.filter(s => s.clientId === c.ClientId), count = new Set(scopes.flatMap(s => s.targets.map(t => t.id))).size; return <button key={c.ClientId} onClick={() => onOpenClient(c.ClientId, 'all')}><strong>{clientName(c)}{importedIds.has(c.ClientId) ? ' · Imported' : ''}</strong><span>{count} searchable exposures · Client ID {c.ClientId}{!count ? ' · Reference / holding data needed' : ''}</span></button>; })}</div></details>
+    {storageError && <p role="alert">{storageError}</p>}
+    {!filtered.length ? <section className="impact-empty"><Newspaper size={30}/><h2>{scan.phase ? 'Looking for useful client conversations' : 'No opportunities match these filters'}</h2><p>{scan.phase ? 'Results appear as sources arrive and classifications finish.' : 'Try a lower urgency threshold or inspect source coverage. No recommendation is better than an unsupported one.'}</p><button className="ws-button" onClick={() => { setMinimum(1); setCategory('all'); setSearch(''); }}>Show all urgency levels</button></section> : <div className="impact-layout"><section className="impact-feed" aria-label="Developments"><div className="impact-section-label">{filtered.length} developments <span>Highest client urgency first</span></div>{filtered.map(d => { const first = d.articles[0], high = d.recommendations[0]; return <button className={`impact-story ${chosen?.id === d.id ? 'is-selected' : ''}`} aria-pressed={chosen?.id === d.id} key={d.id} onClick={() => setSelected(d.id)}><div className="impact-story-meta"><span>{eventLabels[first.classification.type]}</span><Urgency value={high.urgency}/></div><h2>{first.article.title}</h2><p>{first.article.source} · {dateLabel(first.article.publishedAt, true)}</p><div className="impact-story-clients"><Users size={13}/><span>{d.recommendations.length} client{d.recommendations.length === 1 ? '' : 's'} · {d.recommendations.slice(0, 2).map(r => r.name).join(', ')}{d.recommendations.length > 2 ? '…' : ''}</span><ChevronRight size={14}/></div></button>; })}</section>{chosen && <section className="impact-detail" aria-label="Recommended clients"><div className="impact-detail-heading"><span className="ws-kicker">Relevant clients · {chosen.recommendations.length}</span><h2>{chosen.articles[0].article.title}</h2><div className="impact-sources">{[...new Map(chosen.articles.flatMap(a => a.article.sources).map(s => [s.url, s])).values()].map(s => <a href={s.url} target="_blank" rel="noreferrer" key={s.url}>{s.name}<ArrowUpRight size={12}/></a>)}</div></div>{chosen.recommendations.map(r => <ClientOpportunity key={statusKey(chosen, r)} development={chosen} recommendation={r} imported={importedIds.has(r.clientId)} state={history[statusKey(chosen, r)]} onStatus={status => mark(chosen, r, status)} onOpen={() => onOpenClient(r.clientId, r.scope)} onEvidence={onEvidence}/>)}</section>}</div>}
+  </main>;
+}
