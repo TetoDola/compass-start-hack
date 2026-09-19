@@ -1,6 +1,7 @@
+import { pdfEvidence, reportedFinding } from './reported';
 import { fundDenominator } from './types';
 import type { Analysis, Connection, Dataset, Entity, Evidence, Finding, Holding, Row } from './types';
-import { dateLabel, list, money, number, percent, redact, statusLabel } from './format';
+import { clientName, dateLabel, list, money, number, percent, redact, statusLabel } from './format';
 
 import { displayInstrumentName } from './instruments';
 
@@ -13,8 +14,9 @@ const fields = (entries: Record<string, string>) => Object.entries(entries).map(
 export function analyze(dataset: Dataset, customer: Row, scope = 'all'): Analysis {
   const allPortfolios = list(customer.Portfolios);
   const portfolios = scope === 'all' ? allPortfolios : allPortfolios.filter(p => String(p.PortfolioId) === scope);
-  const currency = customer.ReportingCurrency || 'CHF';
-  const scopeAmbiguous = portfolios.length > 1 && portfolios.some(p => p.IsConsolidated === true || /consolid|konsolid/i.test(`${p.Name || ''} ${p.PortfolioNr || ''}`));
+  const currency = portfolios.length===1 && portfolios[0].ExternalSource ? portfolios[0].PortfolioCurrency : customer.ReportingCurrency || 'CHF';
+  const externalMixed = portfolios.length>1 && portfolios.some(p=>p.ExternalSource) && (new Set(portfolios.map(p=>String(p.FactoryDateUtc||'').slice(0,10))).size>1 || portfolios.some(p=>(p.PortfolioCurrency||currency)!==currency) || portfolios.some(p=>!p.FactoryDateUtc));
+  const scopeAmbiguous = externalMixed || (portfolios.length > 1 && portfolios.some(p => p.IsConsolidated === true || /consolid|konsolid/i.test(`${p.Name || ''} ${p.PortfolioNr || ''}`)));
   const aum = scopeAmbiguous ? null : sumKnown(portfolios.map(p => p.AssetsUnderManagementInDefaultCurrency));
   const liquidity = scopeAmbiguous ? null : sumKnown(portfolios.map(p => p.LiquidityInDefaultCurrency));
   const missingWeights = portfolios.some(p=>list(p.SecurityPositions).some(s=>number(s.PortfolioValuePercentage)==null || s.PortfolioValuePercentage<0 || s.PortfolioValuePercentage>1));
@@ -38,12 +40,13 @@ export function analyze(dataset: Dataset, customer: Row, scope = 'all'): Analysi
   const sectors = new Map<string, number>();
   let fundCoverage = 0;
   const warnings: string[] = [];
-  const root: Entity = { id: 'customer', label: customer.ClientRef || 'Customer', type: 'client', value: `${portfolios.length} portfolio${portfolios.length === 1 ? '' : 's'}` };
+  const root: Entity = { id: 'customer', label: clientName(customer), type: 'client', value: `${portfolios.length} portfolio${portfolios.length === 1 ? '' : 's'}` };
   const portfolioEntity = (p: Row): Entity => ({ id: `p-${p.PortfolioId}`, label: p.PortfolioNr || 'Portfolio', value: p.StrategyName || 'Strategy not recorded', type: 'portfolio', evidenceId: `p-${p.PortfolioId}` });
   const holdingEntity = (h: Holding): Entity => ({ id: h.id, label: h.name, value: percent(h.weight), type: 'holding', evidenceId: h.evidence.id });
   const add = (map: Map<string, number>, key: string, value: number) => map.set(key, (map.get(key) || 0) + value);
   const basePath = `clients.json / ${customer.ClientRef}`;
-  if (scopeAmbiguous) warnings.push('A consolidated view may overlap another portfolio. Combined totals, history and exposure weights are unavailable. Select one portfolio to continue.');
+  if (scopeAmbiguous) warnings.push(externalMixed?'External and other portfolios have incompatible valuation dates or currencies. Select a single snapshot; combined totals and weights are withheld.':'A consolidated view may overlap another portfolio. Combined totals, history and exposure weights are unavailable. Select one portfolio to continue.');
+  for(const p of portfolios.filter(p=>p.ExternalSource))warnings.push(...p.ExternalSource.warnings);
   if (missingWeights) warnings.push('Position weights are missing or invalid. Exposure totals and scenarios are withheld; supply complete weights for this scope.');
   if (unresolved) warnings.push(`${unresolved} advisory record${unresolved === 1 ? '' : 's'} reference a portfolio missing from this customer export. They are excluded from portfolio findings.`);
   if (!portfolios.length) warnings.push('No portfolio data is available for this customer.');
@@ -52,14 +55,17 @@ export function analyze(dataset: Dataset, customer: Row, scope = 'all'): Analysi
   for (const p of portfolios) {
     const factor = portfolios.length === 1 ? 1 : aum != null && aum > 0 ? (number(p.AssetsUnderManagementInDefaultCurrency) || 0) / aum : 0;
     evidence.push({ id: `p-${p.PortfolioId}`, type: 'record', title: p.PortfolioNr || 'Portfolio', location: `${basePath} / Portfolios[PortfolioId=${p.PortfolioId}]`, date: p.FactoryDateUtc, fields: fields({ 'Reported assets': money(number(p.AssetsUnderManagementInDefaultCurrency), currency), 'Reported liquidity': money(number(p.LiquidityInDefaultCurrency), currency), 'Portfolio currency': p.PortfolioCurrency || 'Not recorded', Strategy: p.StrategyName || 'Not recorded', 'Supplied volatility': number(p.Volatility) != null ? percent(p.Volatility) : 'Not available' }), note: 'Assets and liquidity use the customer reporting currency. Risk figures are supplied snapshot outputs, not recalculated.' });
+    if(p.ExternalSource){const e=evidence.at(-1)!;Object.assign(e,pdfEvidence(p,1,e.id,e.title,e.fields,'External custody assets, not managed AUM. Statement valuation date is preserved.'));}
     for (const [i, s] of list(p.SecurityPositions).entries()) {
       const master = securities.get(s.SecurityId);
-      const isin = master?.Isin || s.Isin || s.SecurityIsin;
+      const isin = s.IdentityIssue ? undefined : master?.Isin || s.Isin || s.SecurityIsin;
+      const priceDate = p.ExternalSource ? s.PriceDateUtc : master?.PriceDateUtc || s.PriceDateUtc;
       const instrumentType = master?.SecurityTypeName || s.SecurityTypeName || 'Unknown instrument';
       const weight = (number(s.PortfolioValuePercentage) || 0) * factor;
       const id = `holding-${p.PortfolioId}-${i}`;
-      const source: Evidence = { id, title: redact(s.SecurityName || master?.Name || 'Unresolved security'), type: 'record', location: `${basePath} / Portfolios[PortfolioId=${p.PortfolioId}] / SecurityPositions[${i}]`, fields: fields({ 'Security ID': String(s.SecurityId ?? 'Missing'), 'Position value': money(number(s.TotalAmountInPortfolioCurrency), p.PortfolioCurrency || currency), 'Portfolio weight': number(s.PortfolioValuePercentage) != null ? percent(s.PortfolioValuePercentage) : 'Not available', Quantity: String(s.Quantity ?? 'Not available'), 'Instrument type': instrumentType, 'ISIN': isin || 'Not recorded', 'Price date': dateLabel(master?.PriceDateUtc || s.PriceDateUtc), 'Security classification': master?.SAA_AssetClassName || 'Not classified', Industry: master?.IndustryName || 'Not classified', 'Reference country': master?.CountryName || 'Not classified' }), note: master ? 'Position joined to reference.json / Securities using SecurityId.' : 'This security is absent from the supplied reference file. Its position values are retained.' };
-      const holding: Holding = { id, name: source.title, securityId: s.SecurityId, portfolioId: p.PortfolioId, portfolio: p.PortfolioNr || String(p.PortfolioId), currency: p.PortfolioCurrency || currency, value: number(s.TotalAmountInPortfolioCurrency), weight, asset: master?.SAA_AssetClassName || 'Not classified', sector: master?.IndustryName || 'Not classified', country: master?.CountryName, known: !!master, evidence: source, priceDate: master?.PriceDateUtc || s.PriceDateUtc, priceStale: !validDate(master?.PriceDateUtc || s.PriceDateUtc) || !validDate(p.FactoryDateUtc) || Date.parse(p.FactoryDateUtc) - Date.parse(master?.PriceDateUtc || s.PriceDateUtc) > 30 * 86400000, instrumentType, displayName: fundHoldings.get(isin)?.name || displayInstrumentName(source.title, instrumentType), isin, fundBreakdown: funds.get(s.SecurityId), fundHoldings: instrumentType === 'Investment fund' ? fundHoldings.get(isin) : undefined, productRiskClass: number(master?.PRC) ?? undefined, sustainabilityScore: number(master?.SustainabilityScore) ?? undefined, riskContribution: number(s.ContributionVolatility) ?? undefined };
+      const source: Evidence = { id, title: redact(s.SecurityName || master?.Name || 'Unresolved security'), type: 'record', location: `${basePath} / Portfolios[PortfolioId=${p.PortfolioId}] / SecurityPositions[${i}]`, fields: fields({ 'Security ID': String(s.SecurityId ?? 'Missing'), 'Position value': money(number(s.TotalAmountInPortfolioCurrency), p.PortfolioCurrency || currency), 'Portfolio weight': number(s.PortfolioValuePercentage) != null ? percent(s.PortfolioValuePercentage) : 'Not available', Quantity: String(s.Quantity ?? 'Not available'), 'Instrument type': instrumentType, 'ISIN': isin || 'Not recorded', 'Price date': dateLabel(priceDate), 'Security classification': master?.SAA_AssetClassName || 'Not classified', Industry: master?.IndustryName || 'Not classified', 'Reference country': master?.CountryName || 'Not classified' }), note: master ? 'Position joined to reference.json / Securities using SecurityId.' : 'This security is absent from the supplied reference file. Its position values are retained.' };
+      if(p.ExternalSource){Object.assign(source,pdfEvidence(p,s.SourcePage||1,id,source.title,source.fields));source.fields.push({label:'Reported ISIN',value:s.ReportedIsin||'Not supplied'},{label:'Identity check',value:s.IdentityIssue||'Retained from statement'},{label:'Quote basis',value:s.QuoteBasis||'Not supplied'});}
+      const holding: Holding = { id, name: source.title, securityId: s.SecurityId, portfolioId: p.PortfolioId, portfolio: p.PortfolioNr || String(p.PortfolioId), currency: p.PortfolioCurrency || currency, value: number(s.TotalAmountInPortfolioCurrency), weight, asset: master?.SAA_AssetClassName || 'Not classified', sector: master?.IndustryName || 'Not classified', country: master?.CountryName, known: !!master, evidence: source, priceDate, priceStale: !validDate(priceDate) || !validDate(p.FactoryDateUtc) || Date.parse(p.FactoryDateUtc) - Date.parse(priceDate) > 30 * 86400000, instrumentType, displayName: fundHoldings.get(isin)?.name || displayInstrumentName(source.title, instrumentType), isin, fundBreakdown: funds.get(s.SecurityId), fundHoldings: instrumentType === 'Investment fund' ? fundHoldings.get(isin) : undefined, productRiskClass: number(master?.PRC) ?? undefined, sustainabilityScore: number(master?.SustainabilityScore) ?? undefined, riskContribution: number(s.ContributionVolatility) ?? undefined };
       holdings.push(holding); evidence.push(source); add(allocations, holding.asset, weight);
       const fund = funds.get(s.SecurityId);
       if (fund && fund.total > 0 && Number.isFinite(fundDenominator(fund.total))) {
@@ -84,7 +90,8 @@ export function analyze(dataset: Dataset, customer: Row, scope = 'all'): Analysi
     if (maps.length) history = [...maps[0]].filter(([date]) => maps.every(m => m.has(date))).map(([date]) => ({ date, value: maps.reduce((sum, m) => sum + m.get(date)!, 0) })).sort((a, b) => a.date.localeCompare(b.date));
   } else if (portfolios.length > 1 && !scopeAmbiguous) warnings.push('Portfolio histories use different currencies. Select a portfolio to see its value history.');
 
-  const findings: Finding[] = [];
+  const findings: Finding[] = portfolios.map(reportedFinding).filter((f):f is Finding=>!!f);
+  evidence.push(...findings.flatMap(f=>f.evidence));
   const noteEvidence = notes.map((n, i): Evidence => ({ id: `note-${i}`, title: 'Recorded customer context', type: 'record', date: n.CreatedByDateUTC, location: `${basePath} / ClientNotes / CreatedByDateUTC=${n.CreatedByDateUTC || "undated"}`, fields: fields({ Note: redact(n.Note), 'Recorded date': dateLabel(n.CreatedByDateUTC) }), note: 'Recorded context, not a transcript. Dates are shifted; time-sensitive needs require confirmation.' }));
   evidence.push(...noteEvidence);
   const rankedNotes = notes.map((n, i) => ({ note: n, source: noteEvidence[i], score: notePriority(n.Note) })).sort((a, b) => b.score - a.score);

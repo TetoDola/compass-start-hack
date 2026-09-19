@@ -1,3 +1,4 @@
+import { clientName } from './lib/format';
 import { useState } from 'react';
 import { AlertTriangle, ArrowUpRight, FileText } from 'lucide-react';
 import type { Analysis, Evidence } from './lib/types';
@@ -43,7 +44,7 @@ export function AttentionPanel({ analysis, context, onEvidence, onGraph, onConte
 }
 export function CustomerIdentity({ analysis }: { analysis: Analysis }) {
   const need = analysis.findings.find(f => f.id === 'customer-context');
-  return <section className="panel crm-overview"><span className="eyebrow">WHO IS THIS CUSTOMER?</span><h3>{analysis.customer.ClientRef} · {analysis.customer.IsClientACompany === true ? 'Company' : analysis.customer.IsClientACompany === false ? 'Private client' : 'Customer'}</h3><p>{analysis.strategy}. {analysis.customer.RiskProfileName ? `Risk profile: ${analysis.customer.RiskProfileName}.` : 'Risk profile not supplied.'} {analysis.customer.EsgProfileName ? `ESG: ${analysis.customer.EsgProfileName}.` : ''}</p>{need && <p className="customer-need">{need.body}</p>}<div className="profile-tags">{(analysis.customer.Tags || []).slice(0,6).map((t: any,i: number) => <span key={i}>{t.TagName}</span>)}</div></section>;
+  return <section className="panel crm-overview"><span className="eyebrow">WHO IS THIS CUSTOMER?</span><h3>{clientName(analysis.customer)} · {analysis.customer.IsClientACompany === true ? 'Company' : analysis.customer.IsClientACompany === false ? 'Private client' : 'Customer'}</h3><p>{analysis.strategy}. {analysis.customer.RiskProfileName ? `Risk profile: ${analysis.customer.RiskProfileName}.` : 'Risk profile not supplied.'} {analysis.customer.EsgProfileName ? `ESG: ${analysis.customer.EsgProfileName}.` : ''}</p>{need && <p className="customer-need">{need.body}</p>}<div className="profile-tags">{(analysis.customer.Tags || []).slice(0,6).map((t: any,i: number) => <span key={i}>{t.TagName}</span>)}</div></section>;
 }
 export function ExposurePanel({ analysis, context, onEvidence, onNews }: { analysis: Analysis; context?: MarketContext; onEvidence: (e: Evidence) => void; onNews: (id: string, name: string) => void }) {
   const [kind,setKind] = useState<ExposureKind>('industry');

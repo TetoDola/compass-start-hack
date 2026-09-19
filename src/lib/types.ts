@@ -7,6 +7,7 @@ export interface Dataset {
   reference: { Securities: Row[]; RiskProfiles: Row[]; StrategicAssetAllocations: Row[]; FundBreakdowns: FundBreakdown[]; EsgProfiles?: Row[]; FundHoldings?: FundHoldingSnapshot[] };
 }
 export interface Evidence {
+  document?: { hash: string; page: number };
   id: string; title: string; location: string; date?: string;
   type: 'record' | 'calculation'; fields: { label: string; value: string }[]; note?: string;
 }

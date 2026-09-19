@@ -26,12 +26,13 @@ export function createWorldResolver(config:ProviderConfig,request:typeof fetch=f
   let cached:WorldDigest|undefined,at=0,pending:Promise<WorldDigest>|undefined;
   return async ():Promise<WorldDigest>=>{
     const empty=(state:'unavailable'|'unconfigured',message:string):WorldDigest=>({state,message,articles:[],retrievedAt:new Date().toISOString()});
-    if(!config.WORLDMONITOR_BASE_URL)return empty('unconfigured','World Monitor is not configured. Portfolio news remains available.');
+    if(!config.WORLDMONITOR_BASE_URL&&!config.EIA_API_KEY&&!config.NASA_FIRMS_API_KEY)return empty('unconfigured','World Monitor is not configured. Portfolio news remains available.');
     if(cached&&Date.now()-at<(cached.state==='unavailable'?30000:300000))return cached;
     if(pending)return pending;
     pending=(async()=>{
       const layers=loadWorldLayers(config,request);
-      try {
+      if(!config.WORLDMONITOR_BASE_URL)cached=empty('unconfigured','World Monitor news is not configured. Direct provider layers are reported separately.');
+      else try {
         const url=new URL('/api/news/v1/list-feed-digest?variant=full&lang=en',config.WORLDMONITOR_BASE_URL);
         const response=await request(url,{headers:config.WORLDMONITOR_API_KEY?{'X-WorldMonitor-Key':config.WORLDMONITOR_API_KEY}:{},signal:AbortSignal.timeout(25000)});
         if(!response.ok)throw new Error('Digest unavailable');

@@ -42,9 +42,14 @@ export async function selectJson(instructions: string, input: unknown, schema: u
     if(!cache.has(key)) { if(cache.size>=100)cache.delete(cache.keys().next().value!); const job=codexJson(instructions,input,schema,config);cache.set(key,job);job.catch(()=>cache.delete(key)); }
     return cache.get(key)!;
   }
-  if(config.AI_PROVIDER==='fireworks') {
-    const base=(config.FIREWORKS_BASE_URL || 'https://api.fireworks.ai/inference/v1').replace(/\/+$/,'');
-    const response=await fetch(`${base}/chat/completions`,{method:'POST',signal:AbortSignal.timeout(12000),headers:{Authorization:`Bearer ${config.FIREWORKS_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({model:config.FIREWORKS_MODEL || 'accounts/fireworks/models/qwen3-8b',messages:[{role:'system',content:instructions},{role:'user',content:JSON.stringify(input)}],temperature:0,max_tokens:600,response_format:{type:'json_schema',json_schema:{name,schema}}})});
+  const azureBase=(config.AZURE_OPENAI_ENDPOINT || '').replace(/\/+$/,'').replace(/\/openai\/v1$/i,'')+'/openai/v1';
+  const effort=(config.AI_PROVIDER==='fireworks'?config.FIREWORKS_REASONING_EFFORT:config.AZURE_OPENAI_REASONING_EFFORT)?.trim();
+  if(config.AI_PROVIDER==='azure' && effort && !['none','minimal','low','medium','high'].includes(effort)) throw new Error('Unsupported Azure reasoning effort');
+  if(config.AI_PROVIDER==='fireworks' || (config.AI_PROVIDER==='azure' && config.AZURE_OPENAI_API==='chat')) {
+    const azure=config.AI_PROVIDER==='azure';
+    const base=azure ? azureBase : (config.FIREWORKS_BASE_URL || 'https://api.fireworks.ai/inference/v1').replace(/\/+$/,'');
+    const headers:Record<string,string>=azure ? {'api-key':config.AZURE_OPENAI_API_KEY || ''} : {Authorization:`Bearer ${config.FIREWORKS_API_KEY}`};
+    const response=await fetch(`${base}/chat/completions`,{method:'POST',signal:AbortSignal.timeout(18000),headers:{...headers,'Content-Type':'application/json'},body:JSON.stringify({model:azure ? config.AZURE_OPENAI_DEPLOYMENT : config.FIREWORKS_MODEL || 'accounts/fireworks/models/qwen3-8b',messages:[{role:'system',content:instructions},{role:'user',content:JSON.stringify(input)}],...(azure ? (effort ? {reasoning_effort:effort} : {}) : {temperature:0,max_tokens:600,...(effort?{reasoning_effort:effort}:{})}),response_format:{type:'json_schema',json_schema:{name,strict:true,schema}}})});
     if(!response.ok)throw new Error('AI service unavailable');
     const data=await response.json();
     const text=data.choices?.[0]?.message?.content;
@@ -52,12 +57,12 @@ export async function selectJson(instructions: string, input: unknown, schema: u
     return JSON.parse(text);
   }
   const endpoint=config.AI_PROVIDER==='azure'
-    ? `${(config.AZURE_OPENAI_ENDPOINT || '').replace(/\/+$/,'')}${/\/openai\/v1$/i.test(config.AZURE_OPENAI_ENDPOINT || '') ? '' : '/openai/v1'}/responses`
+    ? `${azureBase}/responses`
     : 'https://api.openai.com/v1/responses';
   const headers: Record<string,string>=config.AI_PROVIDER==='azure'
     ? {'api-key':config.AZURE_OPENAI_API_KEY || '','Content-Type':'application/json'}
     : {Authorization:`Bearer ${config.OPENAI_API_KEY}`,'Content-Type':'application/json'};
-  const body={model:config.AI_PROVIDER==='azure' ? config.AZURE_OPENAI_DEPLOYMENT : config.OPENAI_MODEL || 'gpt-5-mini',store:false,input:[{role:'developer',content:instructions},{role:'user',content:JSON.stringify(input)}],text:{format:{type:'json_schema',name,strict:true,schema}},...(config.AI_PROVIDER==='azure' ? {} : {reasoning:{effort:'minimal'}})};
+  const body={model:config.AI_PROVIDER==='azure' ? config.AZURE_OPENAI_DEPLOYMENT : config.OPENAI_MODEL || 'gpt-5-mini',store:false,input:[{role:'developer',content:instructions},{role:'user',content:JSON.stringify(input)}],text:{format:{type:'json_schema',name,strict:true,schema}},...(config.AI_PROVIDER==='azure' ? (effort ? {reasoning:{effort}} : {}) : {reasoning:{effort:'minimal'}})};
   const response=await fetch(endpoint,{method:'POST',signal:AbortSignal.timeout(18000),headers,body:JSON.stringify(body)});
   if(!response.ok)throw new Error('AI service unavailable');
   const data=await response.json();

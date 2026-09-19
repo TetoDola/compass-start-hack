@@ -1,6 +1,6 @@
 import { fundDenominator } from './types';
 import { aggregateProducts, productEvidence, lookThrough, referencePriceReview, mandate, clientContextEvidence, allocationReview, allocationEvidence, profileReview } from './advisory';
-import type { Analysis, Evidence, Holding, Row } from './types';
+import type { Analysis, Evidence, FundHoldingSnapshot, Holding, Row } from './types';
 import { dateLabel, percent } from './format';
 
 export const ranges = ['1D', '7D', '1M', '1Y'] as const;
@@ -25,6 +25,12 @@ export const isCompany = (h: Holding) => ['Shares', 'Dividend right certificates
 export const geography: Record<string, string> = { 'Equities Switzerland': 'Switzerland', 'Equities Euroland': 'Euro area', 'Aktien UK': 'United Kingdom', 'Equities EmMa': 'Emerging markets', 'Equities Japan': 'Japan', 'Equities Pacific': 'Pacific', 'Equities North America': 'North America' };
 const specificCountries = new Set(['Switzerland', 'United Kingdom', 'Japan']);
 const classified = (s?: string) => !!s && !/not classified|unknown|unclassified/i.test(s);
+// Keep original indexes for constituents without an ISIN so target and graph IDs remain stable.
+export function equityConstituents(h: Holding): [number, FundHoldingSnapshot['holdings'][number]][] {
+  if (!['partial', 'complete'].includes(lookThrough(h).status)) return [];
+  return (h.fundHoldings?.holdings || []).map((c, i): [number, typeof c] => [i, c])
+    .filter(([, c]) => Number.isFinite(c.weight) && c.weight > 0 && c.weight <= 1);
+}
 export function portfolioExposures(a: Analysis, kind: ExposureKind): Exposure[] {
   if (!a.weightsAvailable) return [];
   const result = new Map<string, Exposure>();
@@ -40,6 +46,7 @@ export function portfolioExposures(a: Analysis, kind: ExposureKind): Exposure[] 
     else result.set(key, { id: key, name: name!, kind, weight, evidence: [evidence], via: [h.displayName], contributions: [{ id: h.id, name: h.displayName, weight }], isin });
   }
   for (const h of a.holdings) {
+    if (!Number.isFinite(h.weight) || h.weight <= 0 || h.weight > 1) continue;
     const fund = h.instrumentType === 'Investment fund';
     if (!fund) {
       if (kind === 'industry') put(h.sector, h.weight, h, h.evidence);
@@ -57,15 +64,17 @@ export function portfolioExposures(a: Analysis, kind: ExposureKind): Exposure[] 
       }
     } else if (kind === 'country') {
       // Without a geographic breakdown, classify only constituents with an exact master-data match.
-      for (const c of h.fundHoldings?.holdings.slice(0,10) || []) if (c.country) put(c.country, h.weight*c.weight, h, h.evidence);
+      for (const [i, c] of equityConstituents(h)) if (c.country) put(c.country, h.weight*c.weight, h, constituentEvidence(h, c, i));
     }
-    if (kind === 'company' && ['partial','complete'].includes(lookThrough(h).status)) for (const [i, c] of (h.fundHoldings?.holdings.slice(0, 10) || []).entries()) {
-      const snapshot = h.fundHoldings!;
-      const e: Evidence = { id: `constituent:${h.id}:${i}`, title: `${c.name} through ${h.displayName}`, location: snapshot.sourceUrl, date: snapshot.asOf, type: 'calculation', fields: [{ label: 'Fund weight', value: percent(c.weight, 2) }, { label: 'Position weight', value: percent(h.weight, 2) }, { label: 'Approximate portfolio exposure', value: percent(h.weight*c.weight, 2) }], note: 'Position weight × original published constituent weight. Top ten are not rescaled. Position and fund dates may differ.' };
-      put(c.name, h.weight*c.weight, h, e, companyId(c.isin, `underlying:${h.isin || h.id}:${i}`), c.isin);
+    if (kind === 'company') for (const [i, c] of equityConstituents(h)) {
+      put(c.name, h.weight*c.weight, h, constituentEvidence(h, c, i), companyId(c.isin, `underlying:${h.isin || h.id}:${i}`), c.isin);
     }
   }
   return [...result.values()].sort((a,b) => b.weight-a.weight);
+}
+function constituentEvidence(h: Holding, c: FundHoldingSnapshot['holdings'][number], index: number): Evidence {
+  const snapshot = h.fundHoldings!;
+  return { id: `constituent:${h.id}:${index}`, title: `${c.name} through ${h.displayName}`, location: snapshot.sourceUrl, date: snapshot.asOf, type: 'calculation', fields: [{ label: 'Fund weight', value: percent(c.weight, 2) }, { label: 'Position weight', value: percent(h.weight, 2) }, { label: 'Approximate portfolio exposure', value: percent(h.weight*c.weight, 2) }, ...(c.country ? [{ label: 'Reference country', value: c.country }] : [])], note: 'Position weight × original published constituent weight. Published holdings are not rescaled. Position and fund dates may differ.' };
 }
 function categoryEvidence(h: Holding, name: string, weight: number, field: string): Evidence {
   return { id: `category:${h.id}:${field}:${name}`, title: `${h.displayName} · ${name}`, type: 'calculation', location: `reference.json / FundUnbundlingMappings / FundSecurityId=${h.securityId}`, fields: [{ label: 'Dimension', value: field }, { label: 'Share of fund', value: percent(weight/fundDenominator(h.fundBreakdown!.total), 2) }, { label: 'Share of portfolio', value: percent(h.weight*weight/fundDenominator(h.fundBreakdown!.total), 2) }], note: 'Position weight × category percentage / 100. Only totals within 1 percentage point of 100 are normalized for rounding; missing allocation remains unknown. Country groups may be regions, not individual countries.' };
@@ -92,8 +101,9 @@ function volatilityAction(records: Row[]): string {
 export interface AttentionItem { id: string; level: 'critical' | 'review' | 'gap'; label: string; title: string; detail: string; action: string; evidence: Evidence[]; findingId?: string; contextId?: string; metric?: string; graphNodeId?: string }
 export function portfolioAttention(a: Analysis): AttentionItem[] {
   const items: AttentionItem[] = [];
+  for(const p of a.portfolios.filter(p=>p.ExternalSource)){const unresolved=p.SecurityPositions.filter((s:Row)=>s.IdentityIssue);if(unresolved.length)items.push({id:`external-identity:${p.PortfolioId}`,level:'gap',label:'Import review',title:`${unresolved.length} statement identifiers need review`,detail:'Reported holdings and values are preserved. Invalid or conflicting ISINs are excluded from automatic matching.',action:'Check identifiers against the original statement before resolving companies or fund holdings.',evidence:a.holdings.filter(h=>h.portfolioId===p.PortfolioId&&unresolved.some((s:Row)=>s.SecurityId===h.securityId)).map(h=>h.evidence)});}
   if(!a.weightsAvailable&&!a.scopeAmbiguous&&a.holdings.length)items.push({id:'missing-weights',level:'gap',label:'Missing weights',title:'Exposure weights are incomplete',detail:'At least one position weight is missing or invalid; combined exposure and scenarios are withheld.',action:'Obtain complete position weights for this portfolio.',evidence:a.holdings.map(h=>h.evidence)});
-  if (a.scopeAmbiguous) items.push({ id: 'scope', level: 'gap', label: 'Resolve scope', title: 'Consolidated portfolios may overlap', detail: 'Combined totals and weights could double-count assets.', action: 'Choose one portfolio in the scope selector.', evidence: a.evidence.filter(e => e.id.startsWith('p-')) });
+  if (a.scopeAmbiguous) items.push({ id: 'scope', level: 'gap', label: 'Resolve scope', title: 'Portfolio scope needs review', detail: 'Portfolios overlap or use incompatible valuation dates or currencies; combined totals and weights are withheld.', action: 'Choose one portfolio in the scope selector.', evidence: a.evidence.filter(e => e.id.startsWith('p-')) });
   // Hard profile limits lead; a recorded preference is reviewed alongside concentration rather than ahead of it.
   const profileBreaches = profileReview(a);
   for (const b of profileBreaches.filter(b => b.kind !== 'sustainability')) items.push({ id:b.id,level:'critical',label:b.kind==='strategy'?'Mandate alignment':'Profile limit',title:b.title,metric:b.metric,detail:b.detail,action:b.action,evidence:b.evidence });

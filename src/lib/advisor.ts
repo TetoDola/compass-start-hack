@@ -11,6 +11,7 @@ export interface AdvisorAnswer { blocks: AnswerBlock[]; mode: string }
 export function advisorFacts(a: Analysis, context?: MarketContext, selection?: EventDiscussion): AnswerBlock[] {
   const note = a.findings.find(f => f.id === 'customer-context');
   const attention = portfolioAttention(a);
+  const reported=a.findings.filter(f=>f.id.startsWith('reported-performance-'));
   const blocks: AnswerBlock[] = [
     {id:'mandate',title:'Mandate and decision prerequisites',text:[mandate(a).label,mandate(a).instruction,`Liquidity: ${mandate(a).cashLabel}. Last profile: ${dateLabel(a.customer.ProfilingDateUtc,true)}. Current objectives, horizon and loss capacity require confirmation.`],evidence:[clientContextEvidence(a)]},
     {id:'actions',title:'Conditional next steps',text:attention.slice(0,3).map(i=>`${i.title}: ${i.action}`),evidence:attention.slice(0,3).flatMap(i=>i.evidence)},
@@ -19,8 +20,9 @@ export function advisorFacts(a: Analysis, context?: MarketContext, selection?: E
     { id: 'attention', title: 'What needs attention?', text: attention.length ? attention.slice(0,4).map(i => `${i.title}${i.metric ? ` — ${i.metric}` : ''}. ${i.detail} Next: ${i.action}`) : ['No issue flagged by the available checks. This does not establish suitability or the absence of risk.'], evidence: attention.slice(0,4).flatMap(i=>i.evidence) },
     { id: 'cash', title: 'Liquidity and customer needs', text: [`Reported liquidity is ${money(a.liquidity,a.currency)}${a.aum && a.liquidity != null ? ` (${percent(a.liquidity/a.aum)} of reported assets)` : ''}.`, ...(note ? [note.body] : ['No customer cash requirement supplied.']), `Reconfirm the amount and deadline. ${mandate(a).instruction} ${mandate(a).cashLabel}.`], evidence: [...a.evidence.filter(e=>e.id.startsWith('p-')), ...(note?.evidence || [])] },
     { id: 'positions', title: 'Largest positions by weight', text: [a.weightsAvailable ? 'Sorted by supplied portfolio weight. Cash is separate.' : 'Weights are unavailable for this scope; select one non-overlapping portfolio.'], rows: aggregateProducts(a).slice(0,10).map(p => ({name:`${p.name} (${p.positions.length} positions)`,value:a.weightsAvailable ? percent(p.weight,1) : 'Unavailable'})), evidence:aggregateProducts(a).slice(0,10).map(p=>productEvidence(a,p)) },
-    { id: 'limits', title: 'What the records cannot establish', text: ['No cash-flow-adjusted return, daily price history, position-level performance attribution or complete company look-through was supplied. Current news cannot explain the shifted historical portfolio values.', 'I can show recorded issues, exposures and sourced headlines. I cannot establish that the portfolio is safe, forecast a return or execute a trade.'], evidence: [] },
+    { id: 'limits', title: 'What the records cannot establish', text: [reported.length?'Statements supply historical TWR and asset-class profit contributions. Daily returns, security-level attribution and complete fund constituents are unavailable. Current news does not establish historical causality.':'No cash-flow-adjusted return, daily price history, position-level performance attribution or complete company look-through was supplied. Current news cannot explain the shifted historical portfolio values.', 'I can show recorded issues, exposures and sourced headlines. I cannot establish that the portfolio is safe, forecast a return or execute a trade.'], evidence: [] },
   ];
+  if(reported.length)blocks.push({id:'performance:reported',title:'Reported statement performance',text:reported.flatMap(f=>[f.title,...f.body.split('\n')]),evidence:reported.flatMap(f=>f.evidence)});
   for (const range of ranges) {
     const p = periodPerformance(a,range);
     const evidence: Evidence[] = p.start && p.end ? [{ id:`period:${range}`, title:`${range} portfolio-value change`, type:'calculation', location:'clients.json / selected Portfolios / PerformanceHistory',date:p.end.date,fields:[{label:'Start',value:`${p.start.date}: ${p.start.value}`},{label:'End',value:`${p.end.date}: ${p.end.value}`},{label:'Formula',value:'end / start − 1'}],note:'Observed portfolio values; not cash-flow-adjusted returns.' }] : [];
@@ -48,7 +50,7 @@ export function routeQuestion(question: string, facts: AnswerBlock[], previousQu
   if(facts.some(f=>f.id==='selected-event'))return ['selected-event'];
   const q = question.toLowerCase(); const ids: string[] = [];
   const add = (id: string) => { if (facts.some(f=>f.id===id) && !ids.includes(id)) ids.push(id); };
-  if (/brief|overview|summari[sz]e|summary/.test(q)) return [...(facts.find(f=>f.id==='events')?.articles?.length ? ['events'] : []),'attention','performance:1M','customer'];
+  if (/brief|overview|summari[sz]e|summary/.test(q)) return [...(facts.find(f=>f.id==='events')?.articles?.length ? ['events'] : []),'attention',facts.some(f=>f.id==='performance:reported')?'performance:reported':'performance:1M','customer'];
   if (/wrong|attention|problem|breach|risk|issue|safe|concentrat/.test(q)) {add('attention');add('events');}
   if (/next|action|proposal|recommend|rebalance|should|options/.test(q)) {add('actions');add('mandate');}
   if (/policy|target|allocation|drift/.test(q))add('policy');
@@ -57,6 +59,7 @@ export function routeQuestion(question: string, facts: AnswerBlock[], previousQu
   if (/cash|liquid|withdraw|tax|funding/.test(q)) add('cash');
   const range: TimeRange = /\b1d\b|one day|1 day|daily|today/.test(q) ? '1D' : /\b7d\b|7 days|week/.test(q) ? '7D' : /\b1y\b|1 year|one year|year|12 months/.test(q) ? '1Y' : '1M';
   if (/perform|return|gain|loss|lost|value|happen|doing|change|\b1[dm y]\b|7d|month|week|year/.test(q) || (/what about|and for|instead/.test(q) && previousQuestions.some(p=>/perform|value|return/i.test(p)))) add(`performance:${range}`);
+  if (/perform|return|happen|profit|annual|year|why|contribut/.test(q) && facts.some(f=>f.id==='performance:reported'))add('performance:reported');
   if (/why|caus|benchmark|attribut|forecast|predict|buy|sell|recommend/.test(q)) add('limits');
   if (/countr|geograph/.test(q)) add('exposure:country');
   if (/industr|sector/.test(q)) add('exposure:industry');

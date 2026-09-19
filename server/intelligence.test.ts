@@ -85,6 +85,23 @@ test('AI output with an unsupported claim ID falls back to the valid structured 
   try { const result = await selectBrief(candidates, { OPENAI_API_KEY: 'test-only' }); assert.equal(result.mode, 'structured'); assert.deepEqual(result.selection.development, ['development']); assert.match(result.message, /validation/); } finally { globalThis.fetch = original; }
 });
 
+test('ambiguous portfolio scope is mandatory in the AI schema before selection', async () => {
+  const original=globalThis.fetch;
+  const candidates:BriefCandidate[]=[
+    {id:'development',section:'development',text:'Client context',sourceIds:[]},
+    {id:'scope',section:'health',text:'Select a portfolio',sourceIds:[]},
+    {id:'agenda:health',section:'health',text:'Other issues',sourceIds:[]},
+    {id:'outlook',section:'outlook',text:'No news',sourceIds:[]},
+    {id:'agenda:actions',section:'actions',text:'Clarify scope',sourceIds:[]},
+  ];
+  globalThis.fetch=async(_input,init)=>{
+    const body=JSON.parse(String(init?.body));
+    assert.deepEqual(body.text.format.schema.properties.health.items.enum,['scope']);
+    return new Response(JSON.stringify({output:[{content:[{type:'output_text',text:JSON.stringify({development:['development'],health:['scope'],outlook:['outlook'],actions:['agenda:actions']})}]}]}));
+  };
+  try{assert.equal((await selectBrief(candidates,{OPENAI_API_KEY:'test'})).mode,'ai-selected');}finally{globalThis.fetch=original;}
+});
+
 test('OpenBB resolves exact ISINs without a name-derived ticker and rejects unrelated provider stories', async () => {
   const original=globalThis.fetch;
   const isin='US0378331005';

@@ -1,3 +1,15 @@
+import type { Row } from './types';
+
+export function clientName(client: Row) {
+  const clean = (value: unknown) => typeof value === 'string' ? value.trim() : '';
+  const person = [clean(client.FirstName), clean(client.LastName)].filter(Boolean).join(' ');
+  return (client.IsClientACompany ? clean(client.Company) : person) || clean(client.Company) || person || clean(client.ClientRef) || 'Unnamed client';
+}
+export function clientInitials(client: Row) {
+  const words = clientName(client).split(/\s+/);
+  return (Array.from(words[0])[0] + (words.length > 1 ? Array.from(words.at(-1)!)[0] : '')).toLocaleUpperCase();
+}
+
 export const list = <T = Record<string, any>>(value: unknown): T[] => Array.isArray(value) ? value : [];
 export const number = (value: unknown): number | null => typeof value === 'number' && Number.isFinite(value) ? value : null;
 export function money(value: number | null | undefined, currency = 'CHF', compact = false) {

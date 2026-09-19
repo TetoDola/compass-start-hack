@@ -1,6 +1,9 @@
 import type { FundHoldingSnapshot } from '../src/lib/types.ts';
 
 export interface ProviderConfig {
+  AISSTREAM_API_KEY?: string;
+  EIA_API_KEY?: string;
+  NASA_FIRMS_API_KEY?: string;
   WORLDMONITOR_BASE_URL?: string;
   WORLDMONITOR_API_KEY?: string;
   FMP_API_KEY?: string;
@@ -12,9 +15,12 @@ export interface ProviderConfig {
   AZURE_OPENAI_ENDPOINT?: string;
   AZURE_OPENAI_API_KEY?: string;
   AZURE_OPENAI_DEPLOYMENT?: string;
+  AZURE_OPENAI_API?: string;
+  AZURE_OPENAI_REASONING_EFFORT?: string;
   FIREWORKS_API_KEY?: string;
   FIREWORKS_BASE_URL?: string;
   FIREWORKS_MODEL?: string;
+  FIREWORKS_REASONING_EFFORT?: string;
   AI_PROVIDER?: string;
   CODEX_MODEL?: string;
   CODEX_BIN?: string;

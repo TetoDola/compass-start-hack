@@ -2,9 +2,9 @@ import { fundDenominator } from './types';
 import { aggregateProducts, productEvidence, lookThrough } from './advisory';
 import type { Analysis, Evidence, FundHoldingSnapshot } from './types';
 import { contextEvidence, instrumentId, type MarketContext } from './briefing';
-import { portfolioExposures } from './portfolio';
+import { equityConstituents, portfolioExposures } from './portfolio';
 import { materialEvent } from './events';
-import { dateLabel, money, percent } from './format';
+import { clientName, dateLabel, money, percent } from './format';
 
 export interface NetworkNode { id: string; name: string; type: string; evidence: Evidence[]; description: string; isin?: string; snapshot?: FundHoldingSnapshot; expanded?: boolean; materialEvent?: boolean }
 export interface NetworkEdge { id: string; source: string; target: string; labels: string[]; inferred?: boolean; evidence: Evidence[]; detail: string }
@@ -13,7 +13,7 @@ export function buildNetwork(a: Analysis, expanded: Set<string>, context?: Marke
   const nodes = new Map<string, NetworkNode>(); const edges: NetworkEdge[] = [];
   const put = (node: NetworkNode) => { const old = nodes.get(node.id); if (!old) nodes.set(node.id, node); else old.evidence = [...new Map([...old.evidence, ...node.evidence].map(e => [e.id, e])).values()]; };
   const edge = (source: string, target: string, label: string, evidence: Evidence[] = [], detail = label, inferred = false) => edges.push({ id: `${source}>${target}:${edges.length}`, source, target, labels: [label], evidence, detail, inferred });
-  put({ id: 'customer', name: a.customer.ClientRef, type: 'client', evidence: [], description: a.strategy });
+  put({ id: 'customer', name: clientName(a.customer), type: 'client', evidence: [], description: a.strategy });
   for (const p of a.portfolios) {
     const evidence = a.evidence.filter(e => e.id === `p-${p.PortfolioId}`);
     put({ id: `p-${p.PortfolioId}`, name: p.PortfolioNr || String(p.PortfolioId), type: 'portfolio', evidence, description: `${p.Name || p.StrategyName || 'Portfolio'} · ${money(p.AssetsUnderManagementInDefaultCurrency, a.currency)}` });
@@ -21,7 +21,7 @@ export function buildNetwork(a: Analysis, expanded: Set<string>, context?: Marke
   }
   for (const h of a.holdings) {
     const id = instrumentId(h.isin, h.id), fund = h.instrumentType === 'Investment fund';
-    put({ id, name: h.displayName, type: fund ? 'fund' : ['Shares', 'Dividend right certificates', 'Participation certificate'].includes(h.instrumentType) ? 'company' : 'instrument', evidence: [h.evidence], description: `${h.instrumentType} · ${h.isin || 'No verified ISIN'}. ${fund ? (lookThrough(h).status==='not-applicable'?'Inspect the product’s asset-specific risks.':'Expand to inspect dated top-ten constituents when available.') : 'Direct holding; inspect each position source for value and portfolio scope.'}`, isin: h.isin, snapshot: h.fundHoldings, expanded: expanded.has(id) });
+    put({ id, name: h.displayName, type: fund ? 'fund' : ['Shares', 'Dividend right certificates', 'Participation certificate'].includes(h.instrumentType) ? 'company' : 'instrument', evidence: [h.evidence], description: `${h.instrumentType} · ${h.isin || 'No verified ISIN'}. ${fund ? (lookThrough(h).status==='not-applicable'?'Inspect the product’s asset-specific risks.':'Expand to inspect dated constituents when available.') : 'Direct holding; inspect each position source for value and portfolio scope.'}`, isin: h.isin, snapshot: h.fundHoldings, expanded: expanded.has(id) });
     edge(`p-${h.portfolioId}`, id, 'holds directly', [h.evidence], `${h.portfolio}: ${money(h.value, h.currency)}${a.weightsAvailable ? ` · ${percent(h.weight)} of selected scope` : ' · combined scope weight unavailable'}. Position ${h.id}.`);
     if (!fund && h.sector !== 'Not classified') {
       const sectorId = `sector:${h.sector}`;
@@ -34,20 +34,23 @@ export function buildNetwork(a: Analysis, expanded: Set<string>, context?: Marke
       put({ id: sid, name: sector, type: 'sector', evidence: [source], description: 'Sector exposure from supplied classifications and fund category mappings.' });
       edge(id, sid, 'has sector exposure', [source]);
     }
-    if (fund && expanded.has(id) && h.fundHoldings) {
+    if (fund && expanded.has(id) && h.fundHoldings && (!a.weightsAvailable || (Number.isFinite(h.weight) && h.weight > 0 && h.weight <= 1))) {
       const snap = h.fundHoldings;
-      snap.holdings.slice(0, 10).forEach((company, i) => {
+      const equity = ['partial', 'complete'].includes(lookThrough(h).status);
+      // Non-equity source records remain inspectable as instruments, without becoming company exposures.
+      const constituents = equity ? equityConstituents(h) : snap.holdings.map((c, i) => [i, c] as const).filter(([, c]) => Number.isFinite(c.weight) && c.weight > 0 && c.weight <= 1);
+      for (const [i, company] of constituents) {
         const cid = instrumentId(company.isin, `underlying:${h.isin || h.id}:${i}`);
-        const source: Evidence = { id: `constituent:${h.id}:${i}`, title: `${company.name} through ${h.displayName}`, type: 'record', date: snap.asOf, location: snap.sourceUrl, fields: [{ label: 'Source', value: snap.sourceName }, { label: 'Published fund weight', value: percent(company.weight, 2) }, { label: 'Approximate scope exposure', value: a.weightsAvailable ? percent(h.weight * company.weight, 2) : 'Unavailable for this scope' }, { label: 'Holding ISIN', value: company.isin || 'Not supplied; name not merged with other securities' }], note: 'Top-ten coverage only. Fund and client position dates may differ. Indirect exposure is an estimate, not direct ownership.' };
-        put({ id: cid, name: company.name, type: ['partial','complete'].includes(lookThrough(h).status)?'company':'instrument', evidence: [source], description: 'Underlying security from a dated fund snapshot. Identical verified ISINs share a node; names alone are never merged.', isin: company.isin });
+        const source: Evidence = { id: `constituent:${h.id}:${i}`, title: `${company.name} through ${h.displayName}`, type: 'record', date: snap.asOf, location: snap.sourceUrl, fields: [{ label: 'Source', value: snap.sourceName }, { label: 'Published fund weight', value: percent(company.weight, 2) }, { label: 'Approximate scope exposure', value: a.weightsAvailable ? percent(h.weight * company.weight, 2) : 'Unavailable for this scope' }, { label: 'Holding ISIN', value: company.isin || 'Not supplied; name not merged with other securities' }], note: `${snap.coverage === 'complete' ? 'Published complete holdings.' : 'Partial published holdings; unpublished allocation remains unknown.'} Fund and client position dates may differ. Indirect exposure is an estimate, not direct ownership.` };
+        put({ id: cid, name: company.name, type: equity ? 'company' : 'instrument', evidence: [source], description: 'Underlying security from a dated fund snapshot. Identical verified ISINs share a node; names alone are never merged.', isin: company.isin });
         edge(id, cid, `${percent(company.weight, 2)} in fund`, [source], `Indirect holding · ${snap.sourceName} · ${dateLabel(snap.asOf, true)}. ${a.weightsAvailable ? `Approx. ${percent(h.weight * company.weight, 2)} of selected scope via this position.` : 'Combined scope exposure unavailable.'}`);
-      });
+      }
     }
   }
   for (const kind of ['country', 'region'] as const) for (const exposure of portfolioExposures(a, kind)) {
     put({ id: exposure.id, name: exposure.name, type: kind, evidence: exposure.evidence, description: `${percent(exposure.weight)} of selected scope attributed to this ${kind}. ${kind === 'country' ? 'Known country classifications only; fund domicile is not underlying exposure.' : 'Supplied fund geography; this may span multiple countries.'}` });
     for (const source of exposure.evidence) {
-      const h = a.holdings.find(h => source.id === h.id || source.id.startsWith(`category:${h.id}:`));
+      const h = a.holdings.find(h => source.id === h.id || source.id.startsWith(`category:${h.id}:`) || source.id.startsWith(`constituent:${h.id}:`));
       if (h) edge(instrumentId(h.isin, h.id), exposure.id, `has ${kind} exposure`, [source]);
     }
   }

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { analyze } from './analysis';
 import { parseCustomerUpload } from './import';
+import { clientName, clientInitials } from './format';
 import type { Dataset, Row } from './types';
 
 const dataset: Dataset = JSON.parse(readFileSync(new URL('../../public/data/case-data.json', import.meta.url), 'utf8'));
@@ -112,12 +113,22 @@ test('upload rejects malformed structure and financial values instead of coercin
   assert.throws(() => parseCustomerUpload('[{"ClientId":1,"ClientRef":"X"},{"ClientId":1,"ClientRef":"Y"}]'), /Duplicate/);
 });
 
-test('served and imported datasets exclude account identifiers and identity fields', () => {
-  const projection = JSON.stringify(parseCustomerUpload(JSON.stringify(rawClients)));
+test('served and imported datasets retain client display names but exclude account identifiers and birthdays', () => {
+  const imported = parseCustomerUpload(JSON.stringify(rawClients));
+  const projection = JSON.stringify(imported);
   assert.ok(!projection.includes('"IBAN"'));
-  assert.ok(!projection.includes('"FirstName"'));
+  assert.ok(!projection.includes('"Birthday"'));
   assert.ok(!JSON.stringify(dataset).includes('"IBAN"'));
   assert.ok(!JSON.stringify(dataset).includes('"Birthday"'));
+  for (const clients of [imported, dataset.clients]) {
+    assert.equal(clientName(clients.find(c=>c.ClientRef==='CASE-003')!), 'Ron Burgundy');
+    assert.equal(clientName(clients.find(c=>c.ClientRef==='CASE-018')!), 'Company 002 AG');
+    assert.equal(clientName(clients.find(c=>c.ClientRef==='CASE-001')!), 'Yoda');
+  }
+  assert.equal(clientInitials({FirstName:'Ron',LastName:'Burgundy'}), 'RB');
+  assert.equal(clientInitials({FirstName:'Yoda'}), 'Y');
+  assert.equal(clientName({FirstName:' ',LastName:null,ClientRef:'NEW-001'}), 'NEW-001');
+  assert.throws(()=>parseCustomerUpload(JSON.stringify([{ClientId:1,ClientRef:'NEW',FirstName:123}])), /FirstName must be text/);
 });
 
 test('funds are distinguished from company shares and top-ten weights are not renormalized', async () => {

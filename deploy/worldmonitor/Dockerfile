@@ -56,6 +56,9 @@ WORKDIR /app
 
 # API server
 COPY --from=builder /app/src-tauri/sidecar/local-api-server.mjs ./local-api-server.mjs
+# The pinned sidecar trusts Docker's Redis origin but omits its AIS relay.
+# Add only that configured origin to the existing Docker-only allowlist.
+RUN node --input-type=module -e "import fs from 'node:fs'; const p='local-api-server.mjs'; const s=fs.readFileSync(p,'utf8'); const anchor=\"addConfiguredPrivateOrigin('UPSTASH_REDIS_REST_URL', 'Redis calls will be SSRF-blocked');\"; if(s.split(anchor).length!==2) throw new Error('Pinned sidecar allowlist changed'); fs.writeFileSync(p,s.replace(anchor,anchor+\"\\n        addConfiguredPrivateOrigin('WS_RELAY_URL', 'AIS relay calls will be SSRF-blocked');\"));"
 COPY --from=builder /app/src-tauri/sidecar/package.json ./package.json
 COPY --from=builder /app/shared/llm-health-providers.js ./shared/llm-health-providers.js
 ENV LOCAL_API_RESOURCE_DIR=/app

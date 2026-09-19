@@ -2,43 +2,19 @@ import type { Analysis } from './types';
 import { instrumentId, type ContextItem, type MarketContext, type NewsTarget } from './briefing';
 import { portfolioExposures } from './portfolio';
 import { enrichRelevance } from './research';
-import { materialEvent } from './events';
+import { materialEvent, compareNews } from './events';
+import { matchesNewsTarget } from './newsMatching';
+export { countryKey } from './newsMatching';
+import { countryKey } from './newsMatching';
 
-export interface WorldArticle { id:string; title:string; source:string; url:string; publishedAt:string; summary?:string; tickers:string[]; location?:[number,number]; locationName?:string; layer?:'news'|'shipping'|'disaster' }
-export interface WorldQuote { symbol:string; name:string; price:number; change:number|null; asOf?:string; currency?:string; source:string; url:string; sparkline:number[] }
+export interface WorldArticle { id:string; title:string; source:string; url:string; publishedAt:string; summary?:string; tickers:string[]; portfolioMatch?:'none'; location?:[number,number]; locationName?:string; layer?:'news'|'shipping'|'disaster' }
+export interface WorldQuote { symbol:string; name:string; price:number; change:number|null; asOf?:string; currency?:string; unit?:string; changeBasis?:string; source:string; url:string; sparkline:number[] }
 export interface WorldChokepoint { id:string; name:string; coordinates:[number,number]; routes:string[]; status:'reference'|'reported'; detail:string; asOf?:string; url:string }
 export interface WorldLayerStatus { id:string; label:string; state:'available'|'partial'|'stale'|'unavailable'; count:number; message:string; sourceUrl:string }
 export interface WorldDigest { articles:WorldArticle[]; signals?:WorldArticle[]; quotes?:WorldQuote[]; chokepoints?:WorldChokepoint[]; layers?:WorldLayerStatus[]; state:'complete'|'partial'|'stale'|'unavailable'|'unconfigured'; generatedAt?:string; retrievedAt:string; message:string }
 export interface WorldStatus { state:WorldDigest['state']; generatedAt?:string; retrievedAt:string; articles:number; matched:number; message:string; globalItems?:ContextItem[]; quotes?:WorldQuote[]; chokepoints?:WorldChokepoint[]; layers?:WorldLayerStatus[] }
-const countryAliases:Record<string,string[]>={
-  'United States':['United States of America','USA','U.S.','U.S.A.'], 'United Kingdom':['UK','U.K.','Britain'],
-  'Switzerland':['Swiss'], 'China':['Chinese'], 'Germany':['German'], 'Japan':['Japanese'],
-  'France':['French'], 'Taiwan':['Taiwanese'], 'South Korea':['Korea, Republic of','Republic of Korea'],
-  'Russia':['Russian Federation'], 'Czechia':['Czech Republic'], 'Netherlands':['The Netherlands'],
-};
-export function countryKey(name:string):string {
-  const n=name.trim().toLowerCase();
-  return Object.entries(countryAliases).find(([key,aliases])=>[key,...aliases].some(a=>a.toLowerCase()===n))?.[0].toLowerCase() || n;
-}
-function mentioned(text:string,phrase:string):boolean {
-  const p=phrase.trim(); if(p.length<3)return false;
-  return new RegExp(`(?:^|[^\\p{L}\\p{N}])${p.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}(?=$|[^\\p{L}\\p{N}])`,p.length<=4?'u':'iu').test(text);
-}
 export function matchesWorldArticle(article:WorldArticle,target:NewsTarget):boolean {
-  const text=`${article.title} ${article.summary || ''}`;
-  if((target.kind||'company')==='company') {
-    if(target.symbol && article.tickers.includes(target.symbol.toUpperCase()))return true;
-    // Keep full legal names; strip only legal suffixes, never guess a ticker from an ISIN.
-    const name=target.name.replace(/\s+(Inc\.?|Corporation|Corp\.?|Ltd\.?|PLC|AG|SA|SE)(?:\s.*)?$/i,'').trim();
-    if(['equatorial','visa','shell','meta','alphabet','apple','target'].includes(name.toLowerCase())&&!/\b(company|shares?|stocks?|earnings|revenue|ceo|corporate|nasdaq|nyse|investors?|profits?|dividends?|technology)\b/i.test(text))return mentioned(text,target.name)&&target.name!==name;
-    return name.length>=4 && mentioned(text,name);
-  }
-  // Country mentions alone can be travel, sport or photo captions. Require an economic or disruption topic.
-  if(target.kind==='country'||target.kind==='region') {
-    if(!/\b(market|stocks?|bonds?|banks?|banking|finance|financial|economy|economic|inflation|interest rates?|tariffs?|trade|exports?|imports?|sanctions?|currency|investments?|investors?|earnings|recession|gdp|oil|gas|energy|supply|shipping|war|conflict|earthquake|floods?|outage|strike|bankruptcy|default)\b/i.test(text))return false;
-  }
-  const aliases=target.kind==='country'?Object.entries(countryAliases).find(([key])=>countryKey(key)===countryKey(target.name))?.[1]||[]:[];
-  return [target.name,...aliases].some(name=>mentioned(target.kind==='industry'?article.title:text,name));
+  return matchesNewsTarget(article,target);
 }
 export function worldContext(digest:WorldDigest,targets:NewsTarget[],days:number,now=Date.now()):MarketContext {
   const items:ContextItem[]=[]; const seen=new Set<string>();
@@ -53,13 +29,12 @@ export function worldContext(digest:WorldDigest,targets:NewsTarget[],days:number
   return {...enriched,items:matched,world:{state:digest.state,generatedAt:digest.generatedAt,retrievedAt:digest.retrievedAt,articles:digest.articles.length,matched:matched.length,message:digest.message,globalItems:enriched.items,quotes:digest.quotes,chokepoints:digest.chokepoints,layers:digest.layers}};
 }
 export function mergeWorldContext(base:MarketContext,world:MarketContext,targets:NewsTarget[]):MarketContext {
-  const items=[...base.items];
-  for(const item of world.items) {
-    const index=items.findIndex(i=>i.url===item.url);
-    if(index<0)items.push(item);
-    else items[index]={...items[index],entityIds:[...new Set([...items[index].entityIds,...item.entityIds])],geo:items[index].geo||item.geo,provider:[...new Set([items[index].provider,item.provider])].join(' · ')};
-  }
-  return enrichRelevance({...base,items,providers:[...new Set([...base.providers,...world.providers])],world:world.world},targets);
+  return enrichRelevance({...base,items:[...base.items,...world.items],providers:[...new Set([...base.providers,...world.providers])],world:world.world},targets);
+}
+export function worldViewItems(context:MarketContext|undefined,targets:NewsTarget[],days:number,now=Date.now()):ContextItem[] {
+  if(!context)return [];
+  const items=[...context.items,...context.world?.globalItems||[]].filter(i=>i.kind==='news'&&!i.sample&&Number.isFinite(Date.parse(i.publishedAt))&&Date.parse(i.publishedAt)<=now&&Date.parse(i.publishedAt)>=now-days*86400000);
+  return enrichRelevance({...context,items},targets).items.sort(compareNews);
 }
 export function entityCountries(a:Analysis):Map<string,string[]> {
   const result=new Map<string,string[]>();

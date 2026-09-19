@@ -75,9 +75,12 @@ export function parseCustomerUpload(text: string): Row[] {
     if (!c || typeof c !== 'object' || typeof c.ClientId !== 'number' || typeof c.ClientRef !== 'string') throw new Error(`Customer ${index + 1} needs a numeric ClientId and a ClientRef.`);
     if (ids.has(c.ClientId)) throw new Error(`Duplicate ClientId ${c.ClientId} in this file.`);
     ids.add(c.ClientId);
+    for (const field of ['FirstName','LastName','Company']) {
+      if (c[field] != null && (typeof c[field] !== 'string' || c[field].length > 300)) throw new Error(`${field} must be text up to 300 characters.`);
+    }
     const portfolioIds = new Set();
     return {
-      ...pick(c, ['ClientId','ClientRef','IsClientACompany','RegulatoryClientTypeName','ReportingCurrency','RiskProfileId','RiskProfileName','EsgProfileId','EsgProfileName','ProfilingDateUtc','AssetsUnderManagementInDefaultCurrency','LiquidityInDefaultCurrency']),
+      ...pick(c, ['ClientId','ClientRef','FirstName','LastName','Company','IsClientACompany','RegulatoryClientTypeName','ReportingCurrency','RiskProfileId','RiskProfileName','EsgProfileId','EsgProfileName','ProfilingDateUtc','AssetsUnderManagementInDefaultCurrency','LiquidityInDefaultCurrency']),
       ClientNotes: records(c, 'ClientNotes').map(n => pick(n, ['Note','CreatedByDateUTC'])),
       Tags: records(c, 'Tags').map(t => pick(t, ['TagName','TagTypeName'])),
       Portfolios: records(c, 'Portfolios').map(p => {

@@ -1,3 +1,4 @@
+import { companyName, matchesNewsTarget } from '../src/lib/newsMatching.ts';
 import { materialEvent } from '../src/lib/events.ts';
 import { load } from 'cheerio';
 import { createHash } from 'node:crypto';
@@ -5,16 +6,8 @@ import type { NewsTarget, ContextItem, MarketContext } from '../src/lib/briefing
 import { fmpGet, resolveFmpSymbol, validIsin, type ProviderConfig } from './providers.ts';
 
 const id = (s: string) => createHash('sha256').update(s).digest('hex').slice(0, 16);
-export function safeUrl(value: unknown): string | undefined { try { const u = new URL(String(value)); return ['http:', 'https:'].includes(u.protocol) ? u.href : undefined; } catch { return undefined; } }
-export function companyQuery(name: string) { return name.replace(/\b(?:registered|shares|ordinary|class [abc]|incorporated|inc|corp|corporation|plc|ltd|limited|ag|sa)\b\.?/gi, '').replace(/[-,()]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 90); }
-function matchesHeadline(title:string,query:string,topic:boolean) {
-  title=title.normalize('NFKD').replace(/\p{M}/gu,'');query=query.normalize('NFKD').replace(/\p{M}/gu,'');
-  const escaped=(value:string)=>value.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
-  if(new RegExp(`\\b${escaped(query)}\\b`,'i').test(title))return true;
-  if(topic)return false;
-  const generic=new Set('group holding holdings global international technology technologies systems energy power financial finance bank first united american china swiss switzerland germany japan north south capital partners resources materials'.split(' '));
-  return query.toLowerCase().split(' ').filter(w=>w.length>=4&&!generic.has(w)).some(w=>new RegExp(`\\b${escaped(w)}\\b`,'i').test(title));
-}
+export function safeUrl(value: unknown): string | undefined { try { const u = new URL(String(value)); return ['http:', 'https:'].includes(u.protocol) && !u.username && !u.password ? u.href : undefined; } catch { return undefined; } }
+export function companyQuery(name: string) { return companyName(name).slice(0,90); }
 function relevance(target: NewsTarget) { if (target.kind && target.kind !== 'company') return `Matches ${target.name} ${target.kind} exposure. Topic relevance is inferred; portfolio impact is unverified.`; const direct = target.via.includes('Direct position'), indirect = target.via !== 'Direct position'; return `Matches ${target.name}; ${direct && indirect ? 'held directly and through covered funds' : direct ? 'held directly' : 'present in the fund look-through'}. Potential relevance; impact is unverified.`; }
 export function headlinePriority(title: string) {
   return (materialEvent(title)?.severity === 'critical' ? 100 : materialEvent(title) ? 40 : 0) + (/earnings|results|guidance|regulat|approval|trial|acquisition|merger|recall|lawsuit|antitrust|supply|demand|dividend/i.test(title) ? 2 : 0) - (/jaw.dropping|stunning|buy point|breakout watch|stock heads|modest gain|moderate buy|price target|dividend credits|stock units|director.*(?:buy|sell|award)/i.test(title) ? 3 : 0);
@@ -22,11 +15,10 @@ export function headlinePriority(title: string) {
 function newsItem(title: string, url: string, date: string, source: string, provider: string, target: NewsTarget, days = 30, matchText = title, image?: unknown): ContextItem | null {
   const stamp = Date.parse(date), query = companyQuery(target.name);
   // Provider ticker tags can include broad market stories; require a text match too.
-  if (!safeUrl(url) || !Number.isFinite(stamp) || stamp > Date.now() + 3600000 || stamp < Date.now() - days * 86400000 || !title || title.length > 350) return null;
-  if (query.length<3 || !matchesHeadline(matchText,query,!!target.kind&&target.kind!=='company'))return null;
+  if (!safeUrl(url) || !Number.isFinite(stamp) || stamp > Date.now() || stamp < Date.now() - days * 86400000 || !title || title.length > 350) return null;
+  if (!matchesNewsTarget({title,summary:matchText},target))return null;
   if(/market size|market research report|CAGR|market forecast.*20\d{2}|market.*20\d{2}[-–]20\d{2}/i.test(title))return null;
-  if ((target.kind === 'country' || target.kind === 'region') && !/inflation|interest rate|central bank|economy|economic|gdp|tariff|sanction|recession|exports|currency|fiscal|bond|debt|equities|stock market|trade war|monetary/i.test(title)) return null;
-  return { id: `news:${id(url)}`, kind: 'news', title, url, source, provider, ...(safeUrl(image) ? {imageUrl:safeUrl(image)} : {}), publishedAt: new Date(stamp).toISOString(), retrievedAt: new Date().toISOString(), entityIds: [target.id], relevance: relevance(target), event: materialEvent(title) };
+  return { id: `news:${id(url)}`, kind: 'news', title, url, source, provider, ...(matchText!==title?{summary:matchText.slice(0,1500)}:{}), ...(safeUrl(image) ? {imageUrl:safeUrl(image)} : {}), publishedAt: new Date(stamp).toISOString(), retrievedAt: new Date().toISOString(), entityIds: [target.id], relevance: relevance(target), event: materialEvent(title) };
 }
 export function parseNewsRss(xml: string, target: NewsTarget, days = 30): ContextItem[] {
   const $ = load(xml, { xmlMode: true });
@@ -59,7 +51,7 @@ export function createContextResolver(config: ProviderConfig) {
   const cache = new Map<string, { at: number; items: ContextItem[] }>();
   const pending = new Map<string, Promise<ContextItem[]>>();
   async function lookup(target: NewsTarget, refresh: boolean, days: number) {
-    const key = `${target.kind || 'company'}:${target.isin || target.name}:${target.symbol || ''}:${days}`;
+    const key = JSON.stringify([target.kind || 'company',target.isin,target.name,target.aliases,target.symbol,days]);
     const saved = cache.get(key);
     const rebind = (items: ContextItem[]) => items.map(item => ({ ...item, entityIds: [target.id], relevance: relevance(target) }));
     if (!refresh && saved && Date.now() - saved.at < 15 * 60000) return rebind(saved.items);
@@ -86,7 +78,7 @@ export function createContextResolver(config: ProviderConfig) {
           if (items.length) return items;
         } catch { /* Continue to the public feed. */ }
         const query = companyQuery(target.name);
-        if (query.length < 3) return [];
+        if (query.length < 2) return [];
         // A public name search carries publisher thumbnails without guessing a security ticker.
         // It establishes headline relevance only; it never resolves or merges portfolio identities.
         if (!target.kind || target.kind === 'company') try {

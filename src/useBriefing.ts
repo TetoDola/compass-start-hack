@@ -15,10 +15,10 @@ export function useBriefing(analysis: Analysis | null) {
   const talkingPoint=pinnedEvent?.customerId===analysis?.customer.ClientId&&pinnedEvent?.scope===analysis?.scope?pinnedEvent:undefined;
   const pinEvent=(item:ContextItem)=>{if(analysis)setPinnedEvent({item,customerId:analysis.customer.ClientId,scope:analysis.scope});};
   const clearEvent=()=>setPinnedEvent(undefined);
-  useEffect(()=>setPinnedEvent(undefined),[analysis?.customer.ClientId,analysis?.scope]);
   const [newsRange, setNewsRange] = useState<TimeRange>('1M');
   // Re-enrich automatically when a newly resolved fund changes the covered news universe.
-  const key = analysis ? JSON.stringify([analysis.customer, analysis.scope, newsRange, research, newsTargets(analysis).map(t => [t.id, t.name, t.via])]) : '';
+  const key = analysis ? JSON.stringify([analysis.customer, analysis.scope, newsRange, research, newsTargets(analysis)]) : '';
+  useEffect(()=>setPinnedEvent(undefined),[key]);
   const latest = useRef(analysis); latest.current = analysis;
   const [state, setState] = useState<{ key: string; context?: MarketContext; result?: BriefResult; phase: string; elapsedMs?: number }>({ key: '', phase: '' });
   const controller = useRef<AbortController | null>(null);

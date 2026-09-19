@@ -56,7 +56,14 @@
 .ws-link:hover{text-decoration:underline;color:var(--ink)}
 .ws-kicker{display:block;font:10px var(--mono);letter-spacing:1.1px;text-transform:uppercase;color:var(--quiet)}
 .ws-client-header{min-height:82px;display:flex;align-items:center;gap:24px;padding:14px 0 10px}
-.ws-identity{display:flex;align-items:center;gap:20px;min-width:0}
+.ws-identity{display:flex;align-items:center;gap:12px;min-width:0}
+.client-avatar{display:inline-flex;align-items:center;justify-content:center;flex:none;width:48px;height:48px;border-radius:50%;font:600 19px var(--heading);color:hsl(var(--avatar-hue) 50% 30%);background:hsl(var(--avatar-hue) 45% 92%);border:1px solid hsl(var(--avatar-hue) 30% 80%)}
+.client-avatar--company{border-radius:12px}
+[data-theme="dark"] .client-avatar{color:hsl(var(--avatar-hue) 65% 80%);background:hsl(var(--avatar-hue) 30% 19%);border-color:hsl(var(--avatar-hue) 25% 32%)}
+.ws-client-picker{min-width:0}
+.ws-client-reference{display:block;font:10px var(--mono);color:var(--quiet);margin-top:2px}
+.client-identity-heading{display:flex;align-items:center;gap:10px;margin:8px 0;min-width:0}
+.client-identity-heading h2{margin:0;overflow-wrap:anywhere}
 .ws-client-picker>div{display:flex;align-items:center;gap:7px}
 .ws-client-picker select{appearance:none;background:transparent;border:0;font:600 26px var(--heading);letter-spacing:-.5px;cursor:pointer;color:var(--ink);padding:0 0 2px;max-width:240px}
 .ws-client-picker select option{font-size:14px}
@@ -363,3 +370,28 @@
 @media(max-width:400px){.ws-topbar{padding:0 10px;gap:8px}.ws-topbar-actions{gap:4px}.ws-topbar .ws-button{padding:6px}.ws-topbar .ws-icon{width:28px}.ws-brand{font-size:19px;gap:5px}}
 
 .ws-pinned-event{padding:14px 18px;border-top:1px solid var(--line);background:var(--accent-wash)}.ws-pinned-event>div{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:8px;font-size:12px}.ws-pinned-event .ws-brief-points{font-size:13px}.ws-pinned-event .ws-link{font-size:11px}
+
+/* Local statement import: a short review before client attachment. */
+.pdf-import { display:grid; gap:18px; max-width:960px; margin:auto; }
+.pdf-import p { margin:0; line-height:1.6; }
+.pdf-import-summary { display:grid; grid-template-columns:1.3fr 1fr 1fr; gap:20px; padding:20px; border:1px solid var(--border,#d6dce5); border-radius:10px; }
+.pdf-import-summary div { display:grid; gap:8px; }
+.pdf-import-summary strong { font-size:21px; }
+.pdf-import-summary span,.pdf-import-summary small { opacity:.75; }
+.pdf-import-target { display:grid; gap:9px; font-weight:600; }
+.pdf-import-target select { padding:12px; border:1px solid var(--border,#d6dce5); border-radius:6px; background:var(--surface,#fff); color:inherit; font:inherit; }
+.pdf-import-confirm { display:flex; align-items:flex-start; gap:10px; line-height:1.5; }
+.pdf-import-confirm input { margin-top:5px; }
+.pdf-import-check { display:flex; flex-wrap:wrap; gap:12px; color:var(--positive,#237963); }
+.pdf-import details { padding:14px; border:1px solid var(--border,#d6dce5); border-radius:6px; }
+.pdf-import summary { cursor:pointer; font-weight:600; }
+.pdf-import-table { max-height:300px; overflow:auto; margin-top:14px; }
+.pdf-import table { width:100%; border-collapse:collapse; font-size:13px; }
+.pdf-import th,.pdf-import td { text-align:left; padding:9px; border-bottom:1px solid var(--border,#d6dce5); }
+.pdf-import td small { display:block; opacity:.65; margin-top:3px; }
+.pdf-import-actions { display:flex; justify-content:flex-end; gap:10px; padding-top:8px; }
+.pdf-import-error { color:var(--negative,#bc3943); }
+.pdf-reported-performance { margin-top:16px; padding:16px; border:1px solid var(--border,#d6dce5); border-radius:8px; }
+.pdf-reported-performance ul { margin:12px 0; padding-left:20px; display:grid; gap:9px; line-height:1.5; }
+.pdf-reported-performance h3 { margin:0; font-size:15px; }
+@media(max-width:700px){.pdf-import-summary { grid-template-columns:1fr; gap:16px; }.pdf-import-actions {flex-wrap:wrap;}}

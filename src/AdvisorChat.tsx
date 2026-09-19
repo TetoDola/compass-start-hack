@@ -1,3 +1,4 @@
+import { clientName } from './lib/format';
 import type { EventDiscussion } from './lib/eventContext';
 import { useEffect, useId, useRef, useState } from 'react';
 import { ArrowUp, ArrowUpRight, Compass, FileText, RefreshCw, Minus } from 'lucide-react';
@@ -67,13 +68,13 @@ export function AdvisorChat({ analysis, context, phase, onWorkspace, onEvidence,
         {block.articles?.map(article => <a className="chat-article" key={article.id} href={article.url} target="_blank" rel="noreferrer">{article.title}<small>{article.source} ↗</small></a>)}
         {block.evidence.length > 0 && <details className="chat-sources"><summary><FileText size={12} />{new Set(block.evidence.map(e => e.id)).size} sources</summary>{[...new Map(block.evidence.map(e => [e.id, e])).values()].map(e => <button key={e.id} onClick={() => onEvidence(e)}>{e.title} ↗</button>)}</details>}
       </section>)}
-      <span className="chat-answer-mode">{answer.mode}{!compact && <> · {analysis.customer.ClientRef} · {analysis.scope === 'all' ? 'All supplied portfolios' : analysis.portfolios[0]?.PortfolioNr}</>}</span>
+      <span className="chat-answer-mode">{answer.mode}{!compact && <> · {clientName(analysis.customer)} · {analysis.scope === 'all' ? 'All supplied portfolios' : analysis.portfolios[0]?.PortfolioNr}</>}</span>
     </div>;
   }
 
   return <section className={`advisor-chat${compact ? ' advisor-chat--compact' : ''}`} aria-label="Ask Compass">
     <div className="chat-heading">
-      {compact ? <div className="compact-chat-title"><span className="compact-chat-icon"><Compass size={18} /></span><div><h2>Ask Compass</h2><p>{analysis.customer.ClientRef} · {analysis.scope==='all'?'All portfolios':analysis.portfolios[0]?.PortfolioNr}</p></div>{onClose && <button className="ws-icon chat-minimize" aria-label="Minimize chat" onClick={onClose}><Minus size={20}/></button>}</div> : <><div><span className="eyebrow">YOUR ADVISER COPILOT</span><h2>Start with the brief. Ask what matters.</h2><p>Answers stay within this customer and the selected portfolio.</p></div><button className="button secondary" onClick={onWorkspace}>Open portfolio workspace <ArrowUpRight size={14} /></button></>}
+      {compact ? <div className="compact-chat-title"><span className="compact-chat-icon"><Compass size={18} /></span><div><h2>Ask Compass</h2><p>{clientName(analysis.customer)} · {analysis.scope==='all'?'All portfolios':analysis.portfolios[0]?.PortfolioNr}</p></div>{onClose && <button className="ws-icon chat-minimize" aria-label="Minimize chat" onClick={onClose}><Minus size={20}/></button>}</div> : <><div><span className="eyebrow">YOUR ADVISER COPILOT</span><h2>Start with the brief. Ask what matters.</h2><p>Answers stay within this customer and the selected portfolio.</p></div><button className="button secondary" onClick={onWorkspace}>Open portfolio workspace <ArrowUpRight size={14} /></button></>}
     </div>
     <div className="chat-quick-actions" aria-label="Suggested questions">{suggestions.map(s => <button disabled={busy} key={s.question} onClick={() => void ask(s.question,false)}>{s.label}</button>)}</div>
     {eventContext && <div className="chat-event-context"><span>Discussing: {eventContext.item.title}</span><button onClick={()=>{setEventContext(undefined);setInput('');}}>Clear event ×</button></div>}

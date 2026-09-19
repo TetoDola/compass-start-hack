@@ -1,10 +1,11 @@
+import { ClientAvatar } from './ClientAvatar';
 import { useMemo, useState } from 'react';
 import { ArrowUpRight, FileText, Minus } from 'lucide-react';
 import type { Analysis, Dataset, Evidence } from './lib/types';
 import type { MarketContext } from './lib/briefing';
 import { breakdownRows, cockpitPrompts, portfolioEvents, riskContributors, type BreakdownRow, type CockpitPrompt } from './lib/cockpit';
 import { periodPerformance, ranges, type ExposureKind, type TimeRange } from './lib/portfolio';
-import { dateLabel, list, money, number, percent } from './lib/format';
+import { clientName, dateLabel, list, money, number, percent } from './lib/format';
 
 const dimensions: { kind: ExposureKind; title: string; note: string }[] = [
   { kind: 'country', title: 'By country', note: 'Reference country for direct securities plus country-specific fund categories. Broad regions are not guessed.' },
@@ -49,7 +50,7 @@ function ClientRail({ analysis, dataset, onEvidence }: { analysis: Analysis; dat
   const errors = analysis.violations.filter(v => v.Severity === 'Error').length;
   return <section className="panel cockpit-rail">
     <span className="eyebrow">CLIENT RECORD</span>
-    <h2>{customer.ClientRef}</h2>
+    <div className="client-identity-heading"><ClientAvatar client={customer}/><h2>{clientName(customer)}</h2></div>
     <p className="cockpit-rail-sub">{customer.RegulatoryClientTypeName || 'Customer'} · {customer.ReportingCurrency || 'Currency not recorded'}{customer.EsgProfileName ? ` · ESG ${customer.EsgProfileName}` : ''}</p>
 
     <dl className="cockpit-facts">
@@ -101,7 +102,7 @@ function PerformanceCard({ analysis, range, onRange }: { analysis: Analysis; ran
     <div className="cockpit-performance-head">
       <div>
         <span className="eyebrow">PORTFOLIO VALUE{latest ? ` · ${dateLabel(latest.date, true)}` : ''}</span>
-        <strong>{latest ? money(latest.value, analysis.historyCurrency) : 'Not available'}</strong>
+        <strong>{latest ? money(latest.value, analysis.historyCurrency) : money(analysis.aum,analysis.currency)}</strong>
       </div>
       {period.change != null
         ? <div className={`cockpit-delta ${negative ? 'negative' : 'positive'}`}><strong>{negative ? '▼' : '▲'} {percent(Math.abs(period.change))}</strong><span>{period.amount != null ? `${period.amount >= 0 ? '+' : '−'}${money(Math.abs(period.amount), analysis.historyCurrency)} over ${range}` : ''}</span></div>
