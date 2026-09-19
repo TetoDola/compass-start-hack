@@ -41,7 +41,7 @@ The API adapters run under both Vite dev and preview. A static-only deployment n
 
 ## News and provider choices
 
-The working no-key route uses public Google News RSS searches across covered company, industry and geography exposures, progressively in batches of twelve, with two batches in flight. Publication windows are 1, 7, 30 or 365 days, independently of case-history dates. Each search returns up to two ranked, dated headlines. Relevance and materiality use explicit lexical rules, not validated impact analysis; coverage is shown and this is not a complete market monitor.
+The working no-key route uses OpenBB when configured, followed by public Yahoo Finance company-name search and Google News RSS fallback; industry and geography exposures use RSS. Requests run progressively in batches of twelve, with two batches in flight. Name searches require company mentions in the headline and never assign tickers or merge portfolio identities. Publication windows are 1, 7, 30 or 365 days, independently of case-history dates. Each search returns up to two ranked, dated headlines. Relevance and materiality use explicit lexical rules, not validated impact analysis; coverage is shown and this is not a complete market monitor.
 
 Only public company identifiers/names and exposure category names are sent to news providers. Customer names, notes, portfolio amounts and account identifiers are not included in news queries. News relevance is inferred; even an exact security match does not prove a headline caused any price movement. Case export dates are shifted and are never aligned to live news as if they shared a historical timeline.
 
@@ -61,7 +61,7 @@ Optional provider configuration lives in `.env.local` (copy `.env.example` and r
 
 Keys stay server-side; never use a `VITE_` prefix for secrets. No provider keys are required for the configured local Codex + public-news demo.
 
-OpenBB provides a common API over underlying data providers; self-hosting it does not create new data entitlements. The local Docker service is installed and live-tested with the yfinance provider. The pinned connector accepts exact ISINs, so new company holdings can be resolved without guessing tickers from names. Explicit `OPENBB_SYMBOLS` overrides and FMP ISIN resolution remain available. Returned symbols and company mentions in titles/summaries are checked before linking stories; provider tags alone are insufficient. Requests go to `/news/company` relative to the configured API prefix. Failed or unavailable providers fall back to RSS and disclose the coverage limitation.
+OpenBB provides a common API over underlying data providers; self-hosting it does not create new data entitlements. The local Docker service is installed and live-tested with the yfinance provider. The pinned connector accepts exact ISINs, so new company holdings can be resolved without guessing tickers from names. Explicit `OPENBB_SYMBOLS` overrides and FMP ISIN resolution remain available. Returned symbols and company mentions in titles/summaries are checked before linking stories; provider tags alone are insufficient. Requests go to `/news/company` relative to the configured API prefix. Failed or unavailable company providers fall back to Yahoo Finance name search, then RSS, and disclose the coverage limitation.
 
 ### Local OpenBB with Docker
 
@@ -77,7 +77,7 @@ docker compose ps
 
 The container exposes only `127.0.0.1:6900`; it runs as a non-root user without host folders, credentials or customer files mounted. The image installs pinned OpenBB core, news, Yahoo Finance and API packages from PyPI, and a health check verifies the API. It uses the official [OpenBB API/Docker approach](https://docs.openbb.co/odp/python/installation) with only the extensions this app needs. API documentation: `http://127.0.0.1:6900/docs`.
 
-Live checks on 19 September 2026 returned company news for Apple, Microsoft and Nestlé by ISIN in approximately 0.8 seconds per request, and the Compass feed displayed OpenBB news for fund constituents. These are observed requests, not a coverage or latency guarantee. Industry/country searches and unsupported company lookups continue through Google News RSS. Article thumbnails are preserved from Yahoo/OpenBB, FMP image fields and RSS media/enclosure/description images. The Docker build applies a small checked patch to the pinned Yahoo normalizer to retain its supplied thumbnail in OpenBB’s standard `images` field. No separate article scraping or image download is needed. Thumbnails load lazily from publisher URLs without a referrer; missing or broken images show a neutral placeholder. The feed labels the provider per article; refresh and client changes fetch news, not a streaming market subscription. Self-hosting does not unlock paid data feeds or perform sentiment analysis.
+Live checks on 19 September 2026 returned company news for Apple, Microsoft and Nestlé by ISIN in approximately 0.8 seconds per request, and the Compass feed displayed OpenBB news for fund constituents. These are observed requests, not a coverage or latency guarantee. Holdings without security identifiers use Yahoo Finance name search, which can supply article thumbnails without a guessed ticker. Industry/country searches and unsupported company lookups continue through Google News RSS. Article thumbnails are preserved from Yahoo/OpenBB, FMP image fields and RSS media/enclosure/description images. The Docker build applies a small checked patch to the pinned Yahoo normalizer to retain its supplied thumbnail in OpenBB’s standard `images` field. No separate article scraping or image download is needed. Thumbnails load lazily from publisher URLs without a referrer; missing or broken images show a neutral placeholder. The feed labels the provider per article; refresh and client changes fetch news, not a streaming market subscription. Self-hosting does not unlock paid data feeds or perform sentiment analysis.
 
 FMP uses `/stable/search-isin`, `/stable/etf/holdings` and `/stable/news/stock`. Fund results require matching fund symbols, consistent update dates and valid original weights. Live FMP access and market coverage are unverified until a key with endpoint access is supplied. The supplied reference already contains fund sector/region breakdowns, so this version does not add redundant calls to FMP's sector and country endpoints.
 
@@ -120,7 +120,7 @@ npm run prepare:data
 
 ## Verification and observed timing
 
-41 tests pass, including all 104 client/portfolio scopes, cash-flow semantics, consolidation, same-ISIN aggregation, pension/execution-only mandates, asset-aware look-through, reference-date review, policy validation, research matching, partial news failures, source isolation and AI validation/fallback. Production build passes; the icon library emits a harmless `use client` directive warning.
+42 tests pass, including all 104 client/portfolio scopes, cash-flow semantics, consolidation, same-ISIN aggregation, pension/execution-only mandates, asset-aware look-through, reference-date review, policy validation, research matching, partial news failures, source isolation and AI validation/fallback. Production build passes; the icon library emits a harmless `use client` directive warning.
 
 Browser checks on the updated workspace covered the complete brief, the focused two-account gold path and its evidence, live Codex question answering, research-file ingestion and matched public-research text in the brief, daily-data unavailability, an imported client with new client/portfolio identifiers, and restoration of the original cases. The synthetic research was cleared afterward. A tall sticky sidebar discovered during testing was removed so the chat composer remains reachable.
 
@@ -150,3 +150,37 @@ Connections, source records and exposure-specific news open in dialogs over the 
 - Headline rules elevate affirmative distress or selected material-event wording, with explicit verification labels and affected exposure. Denials, hypothetical phrasing and recovery reports are suppressed. This is limited lexical triage, not verified bankruptcy detection or sentiment-based risk forecasting; company identity and event context require article review. Signals are never canceled out by positive aggregate value movement. The graph marks relevant company/news nodes; no synthetic bankruptcy news is inserted into the demo.
 
 Validation includes all supplied customer/portfolio scopes, exposure reconciliation, missing-period behavior, compound chat questions, unsupported questions, graph closure with notes excluded, headline negation and invalid AI-selection fallback. Live local Codex and Docker OpenBB/yfinance news are verified. FMP still needs an API key to validate live access.
+
+
+### Terminal workspace revamp
+
+The default graphite-and-amber layout follows client context → portfolio state → why it matters → next conversation. Three wealth-manager reviews, informed by the UnRiskOmega requirements and partner notes, shaped the hierarchy; client and composition facts precede subordinate review points. The compact four-part brief keeps complete leading bullets visible, with details and sources expandable. Portfolio state displays supplied asset composition, with original health findings retained in its details. Holdings and exposures follow, with a right-side image news feed and a floating assistant. No causal attribution or portfolio health score was added.
+
+A persistent light/dark toggle applies to the workspace, graph, news, records, evidence and chat. Scope overlap remains next to the selector, and graphs/dialogs identify the current client. Review flags, linked exposure and observed value changes retain distinct meanings.
+
+### Portfolio World view
+
+Use **World** in the sticky top bar to open the client-specific globe and switch to **Connections** for the existing holdings graph. Country selection filters linked news. Headline evidence retains publisher, publication time and retrieval time; **Trace event to holdings** opens the corresponding graph neighborhood. The assistant receives the same sourced context. A collapsed hypothetical-move control computes covered company weight × assumed price move, with other prices and FX fixed.
+
+The 1D / 7D / 1M / 1Y controls filter available dated news. They do not promise a complete historical news archive. Country mapping uses the existing reported country and fund allocation calculations. Broad regions, unknown allocations and cash remain outside the country map; a fund domicile is not treated as its underlying investment location. Current news does not explain shifted historical case values.
+
+Optional World Monitor news backend:
+
+```sh
+npm run world:start
+```
+
+Requires Docker. The script checks out upstream commit `1ec0af6f33db2bc14d9339bd365dbf52846ccc7f` into ignored `.cache/worldmonitor`, generates local credentials, configures `.env.local`, and starts an independent four-container Compose project. The API binds only to `127.0.0.1:6901`; Redis REST binds to `127.0.0.1:8079`. OpenBB remains on port 6900. Restart Vite if it does not pick up the new environment automatically.
+
+Compass packages World Monitor's API without its dashboard frontend: upstream's full dashboard build currently depends on a time-limited crawlable marketing snapshot. The API handlers are unchanged. `deploy/worldmonitor/Dockerfile` retains the upstream runtime and license. World Monitor is AGPL-3.0-only; the pinned source and its license are retained in the local checkout. Compass calls the independent service over HTTP.
+
+`/api/world-context` reads the global RSS digest, caches it for five minutes and returns normalized, dated articles. Matching to portfolio companies, countries and industry topics happens inside Compass. No customer names, notes, holdings or account identifiers are sent to World Monitor. Only explicit name / verified ticker matches are used; article and portfolio geography remain separately labeled. Missing provider keys, failed feeds and stale upstream digests are visible in Coverage; no synthetic events are inserted. Shipping routes, sanctions and energy-disruption layers are not connected because they need additional verified data and portfolio dependency mappings.
+
+```sh
+# Service health / stop without deleting its cache
+curl http://127.0.0.1:6901/api/sidecar-health
+docker compose -f .cache/worldmonitor/docker-compose.yml -f deploy/worldmonitor/compose.override.yml -p compass-worldmonitor stop
+```
+
+Map geometry is Natural Earth public-domain data distributed through `world-atlas` (ISC). `public/geo/countries.json` is a low-resolution country boundary asset, not a statement of territorial policy.
+Regenerate the bundled map with `npm run prepare:map` after changing the map data dependency.

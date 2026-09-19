@@ -30,9 +30,9 @@ export function AdvisorChat({ analysis, context, phase, onWorkspace, onEvidence,
   const hasEvent = facts.find(f => f.id === 'events')?.articles?.length;
   const initial = answerFromIds([...(hasEvent ? ['events'] : []), 'attention', 'performance:1M', 'customer'], facts);
   const suggestions = compact ? [
-    { label: 'What needs attention?', question: 'What needs attention in this portfolio?' },
-    { label: 'Explain performance', question: 'How has this portfolio performed over 1 month?' },
-    { label: 'Where are we exposed?', question: 'Show exposure by country and industry' },
+    { label: 'Who is this client?', question: 'Who is this customer and what are their preferences?' },
+    { label: 'Portfolio state', question: 'Show the largest positions and exposure by industry' },
+    { label: 'What changed?', question: 'How has this portfolio performed over 1 month?' },
   ] : ['Prepare my briefing', 'What is wrong with this portfolio?', 'How has it performed over 1 year?', 'Exposure by country and industry', 'Any bankruptcy or material news?'].map(question => ({ label: question, question }));
 
   async function ask(question: string) {
@@ -73,7 +73,7 @@ export function AdvisorChat({ analysis, context, phase, onWorkspace, onEvidence,
     </div>
     <div className="chat-quick-actions" aria-label="Suggested questions">{suggestions.map(s => <button disabled={busy} key={s.question} onClick={() => void ask(s.question)}>{s.label}</button>)}</div>
     <div className="chat-thread" ref={thread} role="log" aria-live="polite" aria-label="Conversation with Compass" tabIndex={compact ? 0 : undefined}>
-      {compact ? !turns.length && !busy && <div className="compact-chat-greeting"><p>Ask a question, or start with one above.</p><span>I can help with portfolio issues, performance, exposures and news.</span></div> : <article className="assistant-turn"><div className="chat-speaker"><Compass size={17} /><strong>Compass</strong><span>Customer briefing</span></div>{renderAnswer(initial, true)}<div className="chat-brief-footer"><button className="text-button" onClick={onWorkspace}>Full briefing, positions & graph ↗</button><button className="text-button" disabled={!!phase} onClick={onRefresh}><RefreshCw size={12} />{phase ? 'Checking news…' : 'Refresh sources'}</button></div>{phase && <p className="chat-progress" role="status">{phase}</p>}</article>}
+      {compact ? !turns.length && !busy && <div className="compact-chat-greeting"><p>Ask a question, or start with one above.</p><span>Explore this client’s priorities, portfolio composition, value changes and linked news.</span></div> : <article className="assistant-turn"><div className="chat-speaker"><Compass size={17} /><strong>Compass</strong><span>Customer briefing</span></div>{renderAnswer(initial, true)}<div className="chat-brief-footer"><button className="text-button" onClick={onWorkspace}>Full briefing, positions & graph ↗</button><button className="text-button" disabled={!!phase} onClick={onRefresh}><RefreshCw size={12} />{phase ? 'Checking news…' : 'Refresh sources'}</button></div>{phase && <p className="chat-progress" role="status">{phase}</p>}</article>}
       {turns.map((t, i) => <div className="chat-exchange" key={i}><div className="user-turn">{t.question}</div><article className="assistant-turn"><div className="chat-speaker"><Compass size={15} /><strong>Compass</strong></div>{renderAnswer(t.answer)}</article></div>)}
       {busy && <><div className="chat-thinking" role="status"><span className="chat-thinking-dot" />Refining the sourced answer with AI…</div></>}
     </div>

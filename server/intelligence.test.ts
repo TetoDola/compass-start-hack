@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { parseFmpHoldings } from './providers';
-import { parseNewsRss, safeUrl, createContextResolver } from './market-context';
+import { parseNewsRss, parseYahooNews, safeUrl, createContextResolver } from './market-context';
 import { selectBrief } from './intelligence';
 import { sections, type BriefCandidate } from '../src/lib/briefing';
 
@@ -38,6 +38,29 @@ test('RSS retains publisher thumbnails and rejects unsafe image URLs', () => {
   const items=parseNewsRss(xml,target);
   assert.equal(items.find(i=>i.title==='Apple earnings')?.imageUrl,'https://example.com/earnings.jpg');
   assert.equal(items.find(i=>i.title==='Apple guidance')?.imageUrl,undefined);
+});
+test('name-only company news retains article thumbnails without inventing a ticker', async () => {
+  const original = globalThis.fetch;
+  const target = { id: 'underlying:fund:0', name: 'Tesla', via: 'A fund', weight: .01 };
+  const row = { title: 'Tesla reports earnings', link: 'https://finance.yahoo.com/news/tesla-earnings', publisher: 'Publisher', providerPublishTime: Math.floor(Date.now()/1000), thumbnail: { resolutions: [{ width: 140, url: 'https://example.com/article.jpg' }] } };
+  const calls: string[] = [];
+  globalThis.fetch = async input => { calls.push(String(input)); return new Response(JSON.stringify({ news: [row, { ...row, title: 'An unrelated company reports earnings' }] })); };
+  try {
+    const result = await createContextResolver({})([target], []);
+    assert.equal(calls.length, 1);
+    assert.equal(new URL(calls[0]).searchParams.get('q'), 'Tesla');
+    assert.equal(new URL(calls[0]).searchParams.get('quotesCount'), '0');
+    assert.equal(result.items.length, 1);
+    assert.equal(result.items[0].provider, 'Yahoo Finance search');
+    assert.equal(result.items[0].imageUrl, 'https://example.com/article.jpg');
+    assert.deepEqual(result.items[0].entityIds, [target.id]);
+    const unsafe = { ...row, thumbnail: { resolutions: [{ width: 140, url: 'javascript:alert(1)' }] } };
+    assert.equal(parseYahooNews({news:[unsafe]}, target)[0].imageUrl, undefined);
+    assert.equal(parseYahooNews({news:[{...row,providerPublishTime:1}]}, target).length, 0);
+    globalThis.fetch = async input => String(input).includes('query1.finance.yahoo.com') ? new Response('', { status: 503 }) : new Response(`<rss><channel><item><title>Tesla earnings</title><link>https://example.com/rss</link><pubDate>${new Date().toUTCString()}</pubDate></item></channel></rss>`);
+    const fallback = await createContextResolver({})([target], []);
+    assert.equal(fallback.items[0].provider, 'Google News RSS');
+  } finally { globalThis.fetch = original; }
 });
 test('missing key uses a valid structured result without an API call', async () => {
   const candidates: BriefCandidate[] = sections.map(s => ({ id: s.id, section: s.id, text: 'Source-backed sentence', sourceIds: [] }));

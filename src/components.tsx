@@ -12,7 +12,7 @@ export function HistoryChart({ analysis, large = false }: { analysis: Analysis; 
   const values = data.map(d => d.value); const min = Math.min(...values); const max = Math.max(...values); const span = max - min || 1;
   const width = 560; const height = large ? 175 : 110;
   const points = values.map((v, i) => `${(i / (values.length - 1)) * width},${height - 16 - (v - min) / span * (height - 32)}`);
-  const color = values.at(-1)! < values[0] ? '#bc3943' : '#237963';
+  const color = values.at(-1)! < values[0] ? 'var(--negative, #bc3943)' : 'var(--positive, #237963)';
   const line = `M${points.join(' L')}`;
   return <div className={`history-chart ${large ? 'large' : ''}`}>
     <div className="chart-head"><div><span className="eyebrow">LATEST OBSERVATION</span><strong>{money(data.at(-1)!.value, analysis.historyCurrency)}</strong></div><span className="chart-date">{dateLabel(data.at(-1)!.date, true)}</span></div>

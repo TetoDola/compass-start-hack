@@ -39,6 +39,19 @@ export function parseNewsRss(xml: string, target: NewsTarget, days = 30): Contex
   }).filter((n): n is ContextItem => !!n).sort((a, b) => headlinePriority(b.title) - headlinePriority(a.title) || b.publishedAt.localeCompare(a.publishedAt));
   return [...new Map(items.map(item => [item.title.toLowerCase().replace(/\W/g, ''), item])).values()].slice(0, 2);
 }
+export function parseYahooNews(data: unknown, target: NewsTarget, days = 30): ContextItem[] {
+  const rows = (data as { news?: unknown })?.news;
+  if (!Array.isArray(rows)) return [];
+  return rows.flatMap(row => {
+    if (!row || typeof row.title !== 'string' || typeof row.providerPublishTime !== 'number') return [];
+    const date = new Date(row.providerPublishTime * 1000);
+    if (!Number.isFinite(date.getTime())) return [];
+    const images = Array.isArray(row.thumbnail?.resolutions) ? row.thumbnail.resolutions : [];
+    const image = images.find((i: any) => i.width >= 140 && i.width <= 640 && safeUrl(i.url)) || images.find((i: any) => safeUrl(i.url));
+    const item = newsItem(row.title, row.link, date.toISOString(), row.publisher || 'Yahoo Finance', 'Yahoo Finance search', target, days, row.title, image?.url);
+    return item ? [item] : [];
+  }).sort((a, b) => headlinePriority(b.title) - headlinePriority(a.title) || b.publishedAt.localeCompare(a.publishedAt)).slice(0, 2);
+}
 export function createContextResolver(config: ProviderConfig) {
   // Explicit provider-specific mappings; never infer a ticker from a display name.
   let configuredSymbols: Record<string, string> = {};
@@ -74,6 +87,16 @@ export function createContextResolver(config: ProviderConfig) {
         } catch { /* Continue to the public feed. */ }
         const query = companyQuery(target.name);
         if (query.length < 3) return [];
+        // A public name search carries publisher thumbnails without guessing a security ticker.
+        // It establishes headline relevance only; it never resolves or merges portfolio identities.
+        if (!target.kind || target.kind === 'company') try {
+          const url = new URL('https://query1.finance.yahoo.com/v1/finance/search');
+          url.search = new URLSearchParams({ q: query, quotesCount: '0', newsCount: '10', enableFuzzyQuery: 'false' }).toString();
+          const response = await fetch(url, { signal: AbortSignal.timeout(2500) });
+          if (!response.ok) throw new Error('Company news search unavailable');
+          const items = parseYahooNews(await response.json(), target, days);
+          if (items.length) return items;
+        } catch { /* Keep text-only RSS usable when thumbnail-bearing news is unavailable. */ }
         const url = new URL('https://news.google.com/rss/search');
         url.search = new URLSearchParams({ q: `"${query}" ${target.kind === "country" || target.kind === "region" ? "economy markets" : target.kind === "industry" ? "industry" : "stock"} when:${days}d`, hl: 'en-US', gl: 'US', ceid: 'US:en' }).toString();
         const response = await fetch(url, { signal: AbortSignal.timeout(4500) });

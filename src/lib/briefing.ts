@@ -1,3 +1,4 @@
+import type { WorldStatus } from './world';
 import { aggregateProducts, clientContextEvidence, lookThrough, mandate } from './advisory';
 import type { Analysis, Evidence } from './types.ts';
 import { portfolioAttention, periodPerformance, portfolioExposures } from './portfolio';
@@ -12,8 +13,8 @@ export const sections: { id: SectionKey; title: string; subtitle: string }[] = [
   { id: 'actions', title: 'What to do next', subtitle: 'Prepare the next conversation' },
 ];
 export interface NewsTarget { kind?: 'company' | 'industry' | 'country' | 'region'; id: string; name: string; isin?: string; symbol?: string; via: string; weight: number | null }
-export interface ContextItem { id: string; kind: 'news' | 'house-view'; title: string; source: string; url: string; publishedAt: string; retrievedAt: string; entityIds: string[]; relevance: string; imageUrl?: string; summary?: string; sample?: boolean; provider: string; provenance?: 'public-research' | 'bank-approved'; exposureWeight?: number | null; matchKind?: 'company' | 'topic'; event?: MaterialEvent }
-export interface MarketContext { items: ContextItem[]; checked: number; requested: number; totalEligible?: number; warnings: string[]; elapsedMs: number; fetchedAt: string; providers: string[]; checkedIds?: string[]; windowDays?: number }
+export interface ContextItem { id: string; kind: 'news' | 'house-view'; title: string; source: string; url: string; publishedAt: string; retrievedAt: string; entityIds: string[]; relevance: string; imageUrl?: string; summary?: string; sample?: boolean; provider: string; provenance?: 'public-research' | 'bank-approved'; exposureWeight?: number | null; matchKind?: 'company' | 'topic'; event?: MaterialEvent; geo?: {coordinates:[number,number];label:string;basis:'article-location'} }
+export interface MarketContext { items: ContextItem[]; checked: number; requested: number; totalEligible?: number; warnings: string[]; elapsedMs: number; fetchedAt: string; providers: string[]; checkedIds?: string[]; windowDays?: number; world?: WorldStatus }
 export interface BriefCandidate { id: string; section: SectionKey; text: string; sourceIds: string[]; findingId?: string; contextId?: string; evidence?: Evidence[] }
 export interface BriefSelection { development: string[]; health: string[]; outlook: string[]; actions: string[] }
 export interface BriefResult { selection: BriefSelection; mode: 'structured' | 'ai-selected'; message: string; elapsedMs: number }
@@ -31,7 +32,7 @@ export function newsTargets(a: Analysis): NewsTarget[] {
   return [...companies, ...categories];
 }
 export function contextEvidence(item: ContextItem): Evidence {
-  return { id: item.id, type: 'record', title: item.title, location: item.url, date: item.publishedAt, fields: [{ label: 'Publisher / source', value: item.source }, { label: 'Published', value: dateLabel(item.publishedAt, true) }, { label: 'Relevance', value: item.relevance }, { label: 'Feed', value: item.provider }, ...(item.summary ? [{ label: 'Context', value: item.summary }] : [])], note: item.kind === 'house-view' ? item.provenance === 'bank-approved' ? 'Uploader declares this bank-approved research; Compass has not independently verified approval. Check scope and date before applying it.' : 'Public or uploaded research, not independently verified as a bank-approved view. Check the date and original source.' : 'Headline-level coverage. Entity relevance is inferred, not proof of portfolio impact or causality. Open the article to verify its context.' };
+  return { id: item.id, type: 'record', title: item.title, location: item.url, date: item.publishedAt, fields: [{ label: 'Publisher / source', value: item.source }, { label: 'Published', value: dateLabel(item.publishedAt, true) }, { label: 'Retrieved', value: item.retrievedAt }, { label: 'Relevance', value: item.relevance }, { label: 'Feed', value: item.provider }, ...(item.summary ? [{ label: 'Context', value: item.summary }] : [])], note: item.kind === 'house-view' ? item.provenance === 'bank-approved' ? 'Uploader declares this bank-approved research; Compass has not independently verified approval. Check scope and date before applying it.' : 'Public or uploaded research, not independently verified as a bank-approved view. Check the date and original source.' : 'Headline-level coverage. Entity relevance is inferred, not proof of portfolio impact or causality. Open the article to verify its context.' };
 }
 const short = (s: string, max = 25) => { const words = s.split(/\s+/); return words.length > max ? words.slice(0, max).join(' ') + '…' : s; };
 export function briefingCandidates(a: Analysis, context?: MarketContext | null): BriefCandidate[] {

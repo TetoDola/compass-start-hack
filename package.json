@@ -9,7 +9,9 @@
     "preview": "vite preview --host 127.0.0.1",
     "test": "tsx --test src/lib/*.test.ts server/*.test.ts",
     "warm:funds": "tsx scripts/warm-funds.ts",
-    "benchmark:brief": "tsx scripts/benchmark-brief.ts"
+    "benchmark:brief": "tsx scripts/benchmark-brief.ts",
+    "world:start": "node scripts/start-worldmonitor.mjs",
+    "prepare:map": "node scripts/prepare-world-map.mjs"
   },
   "keywords": [],
   "author": "",
@@ -19,6 +21,7 @@
     "cheerio": "^1.2.0",
     "d3-drag": "^3.0.0",
     "d3-force": "^3.0.0",
+    "d3-geo": "^3.1.1",
     "d3-selection": "^3.0.0",
     "d3-zoom": "^3.0.0",
     "lucide-react": "^1.47.0",
@@ -28,14 +31,19 @@
   "devDependencies": {
     "@types/d3-drag": "^3.0.7",
     "@types/d3-force": "^3.0.10",
+    "@types/d3-geo": "^3.1.1",
     "@types/d3-selection": "^3.0.12",
     "@types/d3-zoom": "^3.0.8",
+    "@types/geojson": "^7946.0.16",
     "@types/node": "^26.6.1",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
+    "i18n-iso-countries": "^7.14.0",
+    "topojson-client": "^3.1.0",
     "tsx": "^4.23.13",
     "typescript": "^7.0.2",
-    "vite": "^8.3.0"
+    "vite": "^8.3.0",
+    "world-atlas": "^2.0.2"
   },
   "private": true
 }

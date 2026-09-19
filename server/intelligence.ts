@@ -1,3 +1,4 @@
+import { createWorldResolver } from './world-context';
 import { aiConfigured, selectJson } from './ai';
 import { selectAdvisorAnswer } from './advisor';
 import type { IncomingMessage, ServerResponse } from 'node:http';
@@ -22,16 +23,18 @@ export async function selectBrief(candidates: BriefCandidate[], config: Provider
   } catch { return { ...fallback, message: 'AI unavailable or selection failed validation · structured brief retained', elapsedMs: Math.round(performance.now() - started) }; }
 }
 export function intelligenceMiddleware(config: ProviderConfig) {
-  const context = createContextResolver(config);
+  const context = createContextResolver(config), world = createWorldResolver(config);
   return async (req: IncomingMessage, res: ServerResponse, next: () => void) => {
     const pathname = new URL(req.url || '/', 'http://localhost').pathname;
-    if (!['/api/market-context', '/api/briefing', '/api/advisor'].includes(pathname)) return next();
+    if (!['/api/world-context', '/api/market-context', '/api/briefing', '/api/advisor'].includes(pathname)) return next();
     res.setHeader('Content-Type', 'application/json'); res.setHeader('Cache-Control', 'no-store');
     if (req.headers.origin && req.headers.origin !== `http://${req.headers.host}` && req.headers.origin !== `https://${req.headers.host}`) { res.statusCode = 403; res.end(JSON.stringify({ error: 'Same-origin requests required.' })); return; }
     if (req.method !== 'POST') { res.statusCode = 405; res.end(JSON.stringify({ error: 'POST required' })); return; }
     try {
       const data = await body(req);
-      if (pathname === '/api/advisor') {
+      if (pathname === '/api/world-context') {
+        res.end(JSON.stringify(await world()));
+      } else if (pathname === '/api/advisor') {
         if (typeof data.question !== 'string' || !data.question.trim() || data.question.length>1200 || !Array.isArray(data.candidates) || data.candidates.length>500 || data.candidates.some((c:any)=>!c || typeof c.id!=='string' || typeof c.title!=='string' || !Array.isArray(c.text) || c.text.some((t:unknown)=>typeof t!=='string' || t.length>5000)) || !Array.isArray(data.fallback) || data.fallback.length>5 || data.fallback.some((id:unknown)=>!data.candidates.some((c:any)=>c.id===id))) throw new Error('Invalid grounded question.');
         data.previousQuestions = Array.isArray(data.previousQuestions) ? data.previousQuestions.filter((q:unknown)=>typeof q==='string' && q.length<=1200).slice(-4) : [];
         res.end(JSON.stringify(await selectAdvisorAnswer(data,config)));

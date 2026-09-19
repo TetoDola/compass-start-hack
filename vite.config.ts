@@ -8,7 +8,7 @@ export default defineConfig(({ mode }) => {
   plugins: [{ name: 'compass-data', configureServer(server) { server.middlewares.use(fundHoldingsMiddleware(process.cwd(), config)); server.middlewares.use(intelligenceMiddleware(config)); }, configurePreviewServer(server) { server.middlewares.use(fundHoldingsMiddleware(process.cwd(), config)); server.middlewares.use(intelligenceMiddleware(config)); } }],
   server: {
     fs: {
-      deny: ['.env', '.env.*', '*.{crt,pem}', '**/.git/**', '**/unriskomega-2026/**'],
+      deny: ['.env', '.env.*', '*.{crt,pem}', '**/.git/**', '**/.cache/**', '**/unriskomega-2026/**'],
     },
   },
 }; });

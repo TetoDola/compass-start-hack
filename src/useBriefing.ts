@@ -1,3 +1,4 @@
+import { mergeWorldContext, worldContext, type WorldDigest } from './lib/world';
 import { loadMarketContext } from './lib/loadContext';
 import { parseResearch, researchItems, type ResearchView } from './lib/research';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -25,11 +26,22 @@ export function useBriefing(analysis: Analysis | null) {
     setState({ key, phase: 'Screening news across covered holdings and exposures…' });
     const targets = newsTargets(a);
     const house=researchItems(research,targets);
-    const withResearch=(context:MarketContext)=>({...context,items:[...context.items,...house]});
+    const days={'1D':1,'7D':7,'1M':30,'1Y':365}[newsRange];
+    let worldLayer:MarketContext|undefined;
+    let latestMarket:MarketContext={items:[],checked:0,requested:targets.length,warnings:[],elapsedMs:0,fetchedAt:new Date().toISOString(),providers:[]};
+    let newsPhase='Screening news across covered holdings and exposures…';
+    const withResearch=(context:MarketContext)=>{const merged=worldLayer?mergeWorldContext(context,worldLayer):context;return {...merged,items:[...merged.items,...house]};};
+    // Shared public digest: no client records or portfolio identifiers leave Compass.
+    const worldPromise=fetch('/api/world-context',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}',signal:AbortSignal.any([abort.signal,AbortSignal.timeout(27000)])})
+      .then(async response=>{if(!response.ok)throw new Error('World feed unavailable');return await response.json() as WorldDigest;})
+      .catch(():WorldDigest=>({articles:[],state:'unavailable',retrievedAt:new Date().toISOString(),message:'World Monitor unavailable. Portfolio news remains available.'}))
+      .then(digest=>{worldLayer=worldContext(digest,targets,days);if(!abort.signal.aborted)setState({key,context:withResearch(latestMarket),phase:newsPhase});return digest;});
     let context:MarketContext;
-    try {context=withResearch(await loadMarketContext(targets,{days:{'1D':1,'7D':7,'1M':30,'1Y':365}[newsRange],refresh:force,signal:abort.signal,onProgress:(partial,processed)=>setState({key,context:withResearch(partial),phase:`Checking news · ${processed}/${targets.length} exposures processed…`})}));}
+    try {context=withResearch(await loadMarketContext(targets,{days,refresh:force,signal:abort.signal,onProgress:(partial,processed)=>{latestMarket=partial;newsPhase=`Checking news · ${processed}/${targets.length} exposures processed…`;setState({key,context:withResearch(partial),phase:newsPhase});}}));}
     catch{if(abort.signal.aborted)return;context={items:house,checked:0,requested:targets.length,warnings:['News unavailable. Source-backed portfolio facts remain usable.'],elapsedMs:0,fetchedAt:new Date().toISOString(),providers:[]};}
+    const world=await worldPromise;
     if(abort.signal.aborted)return;
+    context=mergeWorldContext(context,worldContext(world,targets,days));
     setState({key,context,phase:'Refining the brief with AI · the sourced brief is ready below…'});
     const candidates = briefingCandidates(a, context);
     let result: BriefResult = { selection: defaultSelection(candidates), mode: 'structured', message: 'Structured brief · AI not configured', elapsedMs: 0 };

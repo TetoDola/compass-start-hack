@@ -1,0 +1,5 @@
+services:
+  worldmonitor:
+    image: compass-worldmonitor-api:1ec0af6
+    build:
+      dockerfile: ../../deploy/worldmonitor/Dockerfile

@@ -30,6 +30,7 @@ export function CustomerGraph({ analysis, selected, overview, onOverview, onSele
   }, [contextFocus, context, scopeKey]);
   useEffect(() => {
     if (!nodeFocus) return;
+    setLayers(l=>({...l,countries:nodeFocus.startsWith('country:')||l.countries,sectors:nodeFocus.startsWith('sector:')||l.sectors,regions:nodeFocus.startsWith('region:')||l.regions}));
     const funds = analysis.holdings.filter(h => instrumentId(h.isin,h.id) === nodeFocus || h.fundHoldings?.holdings.some((c,i) => instrumentId(c.isin, `underlying:${h.isin || h.id}:${i}`) === nodeFocus));
     setExpanded(old => new Set([...old,...funds.map(h=>instrumentId(h.isin,h.id))]));setNodeId(nodeFocus);setEdgeId(null);setLocal(true);
   },[nodeFocus,scopeKey]);
