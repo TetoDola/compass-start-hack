@@ -1,21 +1,35 @@
-/* Compass: a compact adviser workspace with a restrained terminal palette. */
+/* Compass: the UNRISKOMEGA adviser workspace. Light is the designed ground; dark is a derived override.
+   Both themes share these token names, so component rules never name a colour directly. */
 .workspace-app {
-  --canvas:#0d1015; --surface:#14181f; --raised:#1a2029; --hover:#202834;
-  --ink:#e9edf3; --secondary:#b3becc; --quiet:#939faf; --line:#2a3340; --subline:#222a35;
-  --accent:#f4b45e; --accent-ink:#18130d; --accent-wash:#30261b; --blue:#8ebbf0;
-  --positive:#72c5aa; --negative:#f28f96; --critical:#f28f96; --review:#f4b45e; --gap:#8ebbf0;
-  --allocation-one:#8daee4; --allocation-two:#b6a1d8; --allocation-three:#76b9b0;
+  --canvas:#eceff1; --surface:#fff; --raised:#f4f1ee; --hover:#f1f2f1;
+  --ink:#08121f; --secondary:#3c586d; --quiet:#5a7183; --line:#d8d9d8; --subline:#eceff1;
+  /* Ink on orange is 6.3:1; white on orange is 2.9:1 and fails AA, so filled accents carry ink. */
+  --accent:#ff6b00; --accent-ink:#08121f; --accent-wash:#fff1e6; --blue:#285f9d;
+  --positive:#10665a; --negative:#b02e0c; --critical:#b02e0c; --review:#ff6b00; --gap:#285f9d;
+  --allocation-one:#477dbd; --allocation-two:#8d6db3; --allocation-three:#3d8b80;
+  /* Deliberately inverted surfaces (counters, dark stat tiles) need a pair that survives both themes. */
+  --chip:#08121f; --chip-ink:#fff; --chip-quiet:#9fb3c4; --negative-wash:#f7e9e4;
+  /* The map is its own stage: land, ocean and graticule need their own ramp in each theme. */
+  --stage:#e7ecef; --stage-ink:#08121f; --stage-quiet:#5a7183; --stage-line:#c3ccd2; --stage-panel:#fff;
+  --stage-land:#dbe2e6; --stage-land-edge:#9dabb5; --stage-grid:#c8d2d8;
+  --stage-ocean-inner:#f6f8f9; --stage-ocean-outer:#dde5ea;
+  --layer-news:#1f6fb2; --layer-shipping:#0e7c6d; --layer-disaster:#c2410c;
   --navy:var(--ink); --muted:var(--quiet); --border:var(--line); --green:var(--positive);
-  --heading:'DM Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --heading:'Poppins',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   --mono:'SFMono-Regular',Consolas,'Liberation Mono',monospace;
-  color-scheme:dark; min-height:100vh; background:var(--canvas); color:var(--ink); font-size:13px; line-height:1.5;
+  color-scheme:light; min-height:100vh; background:var(--canvas); color:var(--ink); font-size:13px; line-height:1.5;
 }
-.workspace-app[data-theme=light] {
-  --canvas:#edf0f4; --surface:#fff; --raised:#f4f6f9; --hover:#e9edf3;
-  --ink:#1c2837; --secondary:#4d5e71; --quiet:#596a7b; --line:#d4dce5; --subline:#e2e7ed;
-  --accent:#8a4d00; --accent-ink:#fff; --accent-wash:#fff4e5; --blue:#285f9d;
-  --positive:#21725b; --negative:#b63245; --critical:#b63245; --review:#8a4d00; --gap:#285f9d;
-  --allocation-one:#477dbd; --allocation-two:#8d6db3; --allocation-three:#3d8b80; color-scheme:light;
+.workspace-app[data-theme=dark] {
+  --canvas:#08121f; --surface:#101c2b; --raised:#16243550; --hover:#1b2d40;
+  --ink:#eef2f6; --secondary:#b6c6d4; --quiet:#94a8ba; --line:#24384c; --subline:#1b2a3a;
+  --accent:#ff8534; --accent-ink:#08121f; --accent-wash:#2e1c0e;
+  --positive:#4fb9a5; --negative:#f4917a; --critical:#f4917a; --review:#ff8534; --gap:#8ebbf0; --blue:#8ebbf0;
+  --allocation-one:#8daee4; --allocation-two:#b6a1d8; --allocation-three:#76b9b0;
+  --chip:#1b2d40; --chip-ink:#eef2f6; --chip-quiet:#94a8ba; --negative-wash:#3a1d14;
+  --stage:#090f17; --stage-ink:#d1dbe7; --stage-quiet:#98adbd; --stage-line:#34495d; --stage-panel:#142332;
+  --stage-land:#233949; --stage-land-edge:#637f90; --stage-grid:#30485b;
+  --stage-ocean-inner:#152b3c; --stage-ocean-outer:#08121e;
+  --layer-news:#87caff; --layer-shipping:#66ded0; --layer-disaster:#ff9c70; color-scheme:dark;
 }
 .workspace-app [hidden]{display:none!important}
 .workspace-app :is(button,a,input,select,textarea,summary,[tabindex]):focus-visible{outline:2px solid var(--accent);outline-offset:3px}

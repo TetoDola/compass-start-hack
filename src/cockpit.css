@@ -1,21 +1,19 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;500&display=swap');
-
-/* Adviser cockpit. Scoped to .cockpit so the surrounding workspace keeps its own palette.
-   Tokens come from the UNRISKOMEGA design system; the loss/gain pair is darkened Okabe-Ito
-   (vermillion / bluish green), which the brand itself does not define. */
-.cockpit{--ink:#08121f;--muted:#3c586d;--accent:#ff6b00;--surface:#fff;--subtle:#f1f2f1;--warm:#f4f1ee;--mist:#eceff1;--line:#d8d9d8;--neg:#b02e0c;--pos:#10665a;font-family:'Poppins',-apple-system,sans-serif;color:var(--ink);display:flex;flex-direction:column;gap:20px}
+/* Adviser cockpit. The palette it was designed in is now the workspace palette, so this file
+   only maps the cockpit's own names onto the shared tokens and it themes with everything else.
+   The loss/gain pair is darkened Okabe-Ito (vermillion / bluish green), which the brand does not define. */
+.cockpit{--subtle:var(--hover);--warm:var(--raised);--mist:var(--subline);--neg:var(--negative);--pos:var(--positive);color:var(--ink);display:flex;flex-direction:column;gap:20px}
 .cockpit .panel{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:20px}
 .cockpit h2,.cockpit h3,.cockpit h4{font-family:'Poppins',sans-serif;color:var(--ink);font-weight:500}
 .cockpit .eyebrow{font-size:11px;font-weight:500;letter-spacing:.06em;color:var(--muted)}
 .cockpit .microcopy{font-size:10.5px;font-weight:300;line-height:1.6;color:var(--muted)}
 .cockpit .muted{font-size:12px;font-weight:300;color:var(--muted)}
 .cockpit .text-button{font-size:11px;font-weight:500;color:var(--muted);text-decoration:underline;gap:6px}
-.cockpit .negative{color:var(--neg)}.cockpit .positive{color:var(--pos)}.cockpit .unavailable{color:#9aa6b0}
+.cockpit .negative{color:var(--neg)}.cockpit .positive{color:var(--pos)}.cockpit .unavailable{color:var(--quiet)}
 .cockpit .numeric{text-align:right;font-variant-numeric:tabular-nums}
 .cockpit .cockpit-chip{padding:3px 8px;border-radius:9999px;background:var(--warm);font-size:10px;font-weight:500;color:var(--muted)}
 .cockpit .range-control{display:flex;gap:4px}
 .cockpit .range-control button{height:28px;padding:0 12px;border:1px solid var(--line);border-radius:9999px;background:var(--surface);font-size:11px;font-weight:300}
-.cockpit .range-control button[aria-pressed=true]{background:var(--ink);border-color:var(--ink);color:#fff;font-weight:500}
+.cockpit .range-control button[aria-pressed=true]{background:var(--ink);border-color:var(--ink);color:var(--surface);font-weight:500}
 
 .cockpit-top{display:grid;grid-template-columns:316px minmax(0,1fr) 300px;gap:20px;align-items:start}
 .cockpit-centre{display:flex;flex-direction:column;gap:20px;min-width:0}
@@ -29,7 +27,7 @@
 .cockpit-facts dd{margin:0;font-size:12px;font-weight:300}
 .cockpit-gauge{background:var(--warm);border-radius:6px;padding:12px;margin-top:16px}
 .cockpit-gauge>div:first-child{display:flex;justify-content:space-between;gap:10px;font-size:11px;font-weight:500}
-.cockpit-gauge-track{height:6px;background:#e2ddd7;border-radius:9999px;overflow:hidden;margin:8px 0}
+.cockpit-gauge-track{height:6px;background:var(--line);border-radius:9999px;overflow:hidden;margin:8px 0}
 .cockpit-gauge-track i{display:block;height:100%;background:var(--ink);border-radius:9999px}
 .cockpit-gauge-meta{display:flex;gap:16px;font-size:11px;font-weight:300;color:var(--muted)}
 .cockpit-gauge-meta b{font-weight:500;color:var(--ink)}
@@ -43,10 +41,10 @@
 .cockpit-proposal{display:block;font-size:12px;font-weight:500;margin-top:8px}
 .cockpit-rail-meta{display:block;font-size:11px;font-weight:300;color:var(--muted);margin-top:3px}
 .cockpit-counters{display:flex;gap:6px;margin-top:16px}
-.cockpit-counters>div{flex:1;background:var(--ink);border-radius:8px;padding:8px 10px}
-.cockpit-counters strong{display:block;font-size:16px;font-weight:500;color:#fff;line-height:20px}
+.cockpit-counters>div{flex:1;background:var(--chip);border-radius:8px;padding:8px 10px}
+.cockpit-counters strong{display:block;font-size:16px;font-weight:500;color:var(--chip-ink);line-height:20px}
 .cockpit-counters.flagged strong,.cockpit-counters>div.flagged strong{color:var(--accent)}
-.cockpit-counters span{font-size:9px;font-weight:300;color:var(--line)}
+.cockpit-counters span{font-size:9px;font-weight:300;color:var(--chip-quiet)}
 .cockpit-rail>.microcopy,.cockpit-rail>.text-button{margin-top:12px}
 
 /* Centre: value and what moved it. */
@@ -80,7 +78,7 @@
 .cockpit-events{display:flex;flex-direction:column;gap:8px}
 .cockpit-event{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:10px 12px;background:var(--subtle);border-radius:8px}
 .cockpit-event:hover{background:var(--mist)}
-.cockpit-event-index{width:22px;height:22px;flex-shrink:0;border-radius:9999px;background:var(--accent);color:#fff;font-size:11px;font-weight:500;display:flex;align-items:center;justify-content:center}
+.cockpit-event-index{width:22px;height:22px;flex-shrink:0;border-radius:9999px;background:var(--accent);color:var(--accent-ink);font-size:11px;font-weight:500;display:flex;align-items:center;justify-content:center}
 .cockpit-event-body{flex:1;min-width:0}
 .cockpit-event-body strong{display:block;font-size:13px;font-weight:500;line-height:18px}
 .cockpit-event-body small{display:block;font-size:11px;font-weight:300;color:var(--muted);margin-top:2px}
@@ -92,7 +90,7 @@
 .cockpit-prompts{display:flex;flex-direction:column;gap:12px}
 .cockpit-prompt{border:1px solid var(--line);border-radius:8px;padding:12px}
 .cockpit-prompt-top{display:flex;align-items:center;gap:8px}
-.cockpit-prompt-index{width:20px;height:20px;flex-shrink:0;border-radius:9999px;background:var(--accent);color:#fff;font-size:11px;font-weight:500;display:flex;align-items:center;justify-content:center}
+.cockpit-prompt-index{width:20px;height:20px;flex-shrink:0;border-radius:9999px;background:var(--accent);color:var(--accent-ink);font-size:11px;font-weight:500;display:flex;align-items:center;justify-content:center}
 .cockpit-prompt-label{font-size:10px;font-weight:500;letter-spacing:.04em;color:var(--muted)}
 .cockpit-prompt.breach .cockpit-prompt-label{color:var(--neg)}
 .cockpit-prompt h3{font-size:13px;line-height:18px;margin-top:8px}
@@ -113,7 +111,7 @@
 .cockpit-table-row.focused{background:var(--warm)}
 .cockpit-cell-name{font-size:13px;font-weight:500;display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
 .cockpit-cell-name em{font-style:normal;padding:2px 7px;border-radius:9999px;background:var(--warm);font-size:9px;font-weight:500;color:var(--muted)}
-.cockpit-cell-name em.breach{background:#f7e9e4;color:var(--neg)}
+.cockpit-cell-name em.breach{background:var(--negative-wash);color:var(--neg)}
 .cockpit-cell-bar{display:flex;align-items:center;gap:8px}
 .cockpit-cell-bar i{flex:1;height:6px;background:var(--mist);border-radius:9999px;overflow:hidden}
 .cockpit-cell-bar b{display:block;height:100%;background:var(--ink)}
@@ -127,11 +125,11 @@
 .cockpit-drilldown-head>.icon-button{margin-left:auto;color:var(--muted)}
 .cockpit-drilldown-stats{display:flex;gap:10px;margin-left:auto}
 .cockpit-drilldown-stats>div{background:var(--warm);border-radius:8px;padding:10px 14px}
-.cockpit-drilldown-stats>div.dark{background:var(--ink)}
+.cockpit-drilldown-stats>div.dark{background:var(--chip)}
 .cockpit-drilldown-stats strong{display:block;font-size:20px;font-weight:500;line-height:24px}
-.cockpit-drilldown-stats>div.dark strong{color:#fff}
+.cockpit-drilldown-stats>div.dark strong{color:var(--chip-ink)}
 .cockpit-drilldown-stats span{font-size:10px;font-weight:300;color:var(--muted)}
-.cockpit-drilldown-stats>div.dark span{color:var(--line)}
+.cockpit-drilldown-stats>div.dark span{color:var(--chip-quiet)}
 .cockpit-drilldown-body{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:20px;margin-top:20px}
 .cockpit-drilldown-main h4{font-size:13px;margin:16px 0 8px}
 .cockpit-compare{background:var(--subtle);border-radius:8px;padding:14px}
@@ -152,31 +150,6 @@
 .cockpit-article p{font-size:11px;font-weight:300;line-height:16px;color:var(--muted)}
 .cockpit-article a{display:inline-block;font-size:11px;font-weight:500;color:var(--muted);text-decoration:underline;margin-top:5px}
 
-/* Chat, docked bottom right. */
-.cockpit-chat{position:fixed;right:24px;bottom:24px;z-index:40;width:372px;max-width:calc(100vw - 48px)}
-/* Ink title bar, light thread: the chat's own styles are written for a light ground. */
-.cockpit-chat.open{height:min(560px,calc(100vh - 120px));background:var(--surface);border:1px solid var(--line);border-radius:8px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 12px 40px #08121f33}
-.cockpit-chat-launcher{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:var(--ink);color:#fff;border-radius:8px;padding:14px 16px;box-shadow:0 8px 24px #08121f2e}
-.cockpit-chat-launcher>svg{color:var(--accent)}
-.cockpit-chat-launcher span{font-size:12px;font-weight:500}
-.cockpit-chat-launcher small{display:block;font-size:10px;font-weight:300;color:#9fb3c4;margin-top:3px}
-.cockpit-chat-bar{display:flex;align-items:center;gap:8px;padding:12px 14px;background:var(--ink);color:#fff;flex-shrink:0}
-.cockpit-chat-bar>svg{color:var(--accent)}
-.cockpit-chat-bar strong{font-size:12px;font-weight:500}
-.cockpit-chat-bar span{flex:1;min-width:0;font-size:10px;font-weight:300;color:#9fb3c4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.cockpit-chat-bar .icon-button{color:#9fb3c4}
-.cockpit-chat-bar .icon-button:hover{background:#101b28;color:#fff}
-.cockpit-chat .advisor-chat.compact{flex:1;min-height:0;display:flex;flex-direction:column;overflow:auto;padding:14px}
-.cockpit-chat .advisor-chat.compact .chat-quick-actions{flex-wrap:wrap;gap:6px}
-.cockpit-chat .advisor-chat.compact .chat-quick-actions button{font-size:10px}
-.cockpit-chat .advisor-chat.compact .chat-thread{min-height:0}
-.cockpit-chat .advisor-chat.compact .assistant-turn{padding:14px 16px;border-radius:10px;margin-bottom:12px}
-.cockpit-chat .advisor-chat.compact .chat-answer p{font-size:12px;line-height:1.75}
-.cockpit-chat .advisor-chat.compact .chat-answer h3{font-size:13px}
-.cockpit-chat .advisor-chat.compact .user-turn{font-size:12px;padding:10px 14px;margin:14px 0 12px auto}
-.cockpit-chat .advisor-chat.compact .chat-composer{padding:10px 46px 6px 12px;margin-top:14px}
-.cockpit-chat .advisor-chat.compact .chat-composer textarea{font-size:12px;min-height:38px}
-.cockpit-chat .advisor-chat.compact .send-question{width:28px;height:28px;right:10px;top:11px}
 
 @media(max-width:1400px){
   .cockpit-top{grid-template-columns:280px minmax(0,1fr) 270px}

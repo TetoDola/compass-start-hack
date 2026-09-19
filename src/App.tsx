@@ -33,7 +33,7 @@ export default function App() {
   const [evidence,setEvidence]=useState<Evidence|null>(null), returnPanel=useRef<Panel>(null);
   const [importMessage,setImportMessage]=useState(''), [importError,setImportError]=useState(false), [importing,setImporting]=useState(false);
   const uploadRef=useRef<HTMLInputElement>(null);
-  const [theme,setTheme]=useState<'dark'|'light'>(()=>localStorage.getItem('compass-theme')==='light'?'light':'dark');
+  const [theme,setTheme]=useState<'dark'|'light'>(()=>localStorage.getItem('compass-theme')==='dark'?'dark':'light');
   useEffect(()=>{localStorage.setItem('compass-theme',theme);},[theme]);
   const [chatOpen,setChatOpen]=useState(false),[chatDraft,setChatDraft]=useState<{text:string;id:number;event?:EventDiscussion}>();
   const [exploreEvent,setExploreEvent]=useState<ContextItem>();
