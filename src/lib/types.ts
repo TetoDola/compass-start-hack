@@ -34,3 +34,6 @@ export interface Analysis {
   warnings: string[]; summary: string; strategy: string;
   riskProfile?: Row; policyTargets?: { portfolioId: number; name: string; mappings: Row[] }[];
 }
+
+// Only rounding differences in a complete percentage-point mapping may be normalized.
+export const fundDenominator = (total:number):number => Math.abs(total-100)<=1 ? total : total>=0 && total<99 ? 100 : Number.NaN;

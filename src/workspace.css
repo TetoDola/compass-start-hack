@@ -347,3 +347,5 @@
 
 .ws-world-launcher{flex-shrink:0}
 @media(max-width:400px){.ws-topbar{padding:0 10px;gap:8px}.ws-topbar-actions{gap:4px}.ws-topbar .ws-button{padding:6px}.ws-topbar .ws-icon{width:28px}.ws-brand{font-size:19px;gap:5px}}
+
+.ws-pinned-event{padding:14px 18px;border-top:1px solid var(--line);background:var(--accent-wash)}.ws-pinned-event>div{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:8px;font-size:12px}.ws-pinned-event .ws-brief-points{font-size:13px}.ws-pinned-event .ws-link{font-size:11px}

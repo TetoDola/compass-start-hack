@@ -16,6 +16,7 @@ test('unconfigured, malformed and unreachable services fail visibly and never su
 test('digest requests are shared, cached and carry only server-side credentials',async()=>{
  let calls=0;
  const resolver=createWorldResolver({WORLDMONITOR_BASE_URL:'http://localhost:6901',WORLDMONITOR_API_KEY:'wm_test'},async(input,init)=>{
+ if(!String(input).includes('list-feed-digest'))return Response.json({});
  calls++;assert.equal(String(input),'http://localhost:6901/api/news/v1/list-feed-digest?variant=full&lang=en');assert.equal(new Headers(init?.headers).get('X-WorldMonitor-Key'),'wm_test');assert.equal(init?.body,undefined);
  return Response.json({categories:{news:{items:[{...row,publishedAt:Date.now()-1000}]}},coverage:{state:'complete'}});
  });

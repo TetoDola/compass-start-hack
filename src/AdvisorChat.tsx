@@ -1,3 +1,4 @@
+import type { EventDiscussion } from './lib/eventContext';
 import { useEffect, useId, useRef, useState } from 'react';
 import { ArrowUp, ArrowUpRight, Compass, FileText, RefreshCw, Minus } from 'lucide-react';
 import { advisorFacts, answerFromIds, routeQuestion, type AdvisorAnswer } from './lib/advisor';
@@ -7,26 +8,27 @@ import './advisor-chat.css';
 
 interface Turn { question: string; answer: AdvisorAnswer }
 export function AdvisorChat({ analysis, context, phase, onWorkspace, onEvidence, onNews, onRefresh, compact = false, onClose, draft }: {
-  analysis: Analysis; context?: MarketContext; phase: string; onWorkspace: () => void; onEvidence: (e: Evidence) => void; onNews: (id: string, name: string) => void; onRefresh: () => void; compact?: boolean; onClose?: () => void; draft?: { text: string; id: number };
+  analysis: Analysis; context?: MarketContext; phase: string; onWorkspace: () => void; onEvidence: (e: Evidence) => void; onNews: (id: string, name: string) => void; onRefresh: () => void; compact?: boolean; onClose?: () => void; draft?: { text: string; id: number; event?: EventDiscussion };
 }) {
   const [turns, setTurns] = useState<Turn[]>([]), [input, setInput] = useState(''), [busy, setBusy] = useState(false);
 
+  const [eventContext,setEventContext]=useState<EventDiscussion>();
   const [expanded, setExpanded] = useState(false);
   const end = useRef<HTMLDivElement>(null), thread = useRef<HTMLDivElement>(null), controller = useRef<AbortController | null>(null);
   const questionId = useId();
   useEffect(() => {
     controller.current?.abort();
     controller.current = null;
-    setTurns([]); setInput(''); setBusy(false); setExpanded(false);
+    setEventContext(undefined); setTurns([]); setInput(''); setBusy(false); setExpanded(false);
     return () => controller.current?.abort();
   }, [analysis.customer.ClientId, analysis.scope]);
-  useEffect(()=>{if(draft)setInput(draft.text);},[draft]);
+  useEffect(()=>{if(draft){setInput(draft.text);setEventContext(draft.event);}},[draft]);
   useEffect(() => {
     if (!turns.length && !busy) return;
     if (compact) thread.current?.scrollTo({ top: thread.current.scrollHeight, behavior: 'smooth' });
     else end.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [turns, busy, compact]);
-  const facts = advisorFacts(analysis, context);
+  const facts = advisorFacts(analysis, context, eventContext);
   const hasEvent = facts.find(f => f.id === 'events')?.articles?.length;
   const initial = answerFromIds([...(hasEvent ? ['events'] : []), 'attention', 'performance:1M', 'customer'], facts);
   const suggestions = compact ? [
@@ -35,8 +37,10 @@ export function AdvisorChat({ analysis, context, phase, onWorkspace, onEvidence,
     { label: 'What changed?', question: 'How has this portfolio performed over 1 month?' },
   ] : ['Prepare my briefing', 'What is wrong with this portfolio?', 'How has it performed over 1 year?', 'Exposure by country and industry', 'Any bankruptcy or material news?'].map(question => ({ label: question, question }));
 
-  async function ask(question: string) {
+  async function ask(question: string, useEvent = true) {
     if (!question.trim() || busy) return;
+    if(!useEvent)setEventContext(undefined);
+    const facts=advisorFacts(analysis,context,useEvent?eventContext:undefined);
     setInput(''); setBusy(true); setExpanded(false);
     const abort = new AbortController(); controller.current = abort;
     const previousQuestions = turns.slice(-4).map(t => t.question);
@@ -45,8 +49,8 @@ export function AdvisorChat({ analysis, context, phase, onWorkspace, onEvidence,
     const turnIndex=turns.length;
     setTurns(old=>[...old,{question,answer}]);
     try {
-      const response = await fetch('/api/advisor', { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: AbortSignal.any([abort.signal, AbortSignal.timeout(90000)]), body: JSON.stringify({ question, previousQuestions, candidates: facts.map(f => ({ id: f.id, title: f.title, text: f.text })), fallback: local }) });
-      if (response.ok) { const result = await response.json(); if (Array.isArray(result.ids) && result.ids.length <= 5 && result.ids.every((id: string) => facts.some(f => f.id === id))) answer = answerFromIds(result.ids, facts, result.mode); }
+      const response = await fetch('/api/advisor', { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: AbortSignal.any([abort.signal, AbortSignal.timeout(90000)]), body: JSON.stringify({ question, previousQuestions, selectedEventId: facts.some(f=>f.id==='selected-event')?'selected-event':undefined, candidates: facts.map(f => ({ id: f.id, title: f.title, text: f.text })), fallback: local }) });
+      if (response.ok) { const result = await response.json(); if (Array.isArray(result.ids) && result.ids.length <= 5 && result.ids.every((id: string) => facts.some(f => f.id === id))) answer = answerFromIds(useEvent&&eventContext?['selected-event',...result.ids.filter((id:string)=>id!=='selected-event')].slice(0,5):result.ids, facts, result.mode); }
     } catch { /* The local grounded answer remains available without an AI connection. */ }
     if (abort.signal.aborted) return;
     if(answer.mode.includes('pending'))answer={...answer,mode:'Local records · AI unavailable'};
@@ -71,7 +75,8 @@ export function AdvisorChat({ analysis, context, phase, onWorkspace, onEvidence,
     <div className="chat-heading">
       {compact ? <div className="compact-chat-title"><span className="compact-chat-icon"><Compass size={18} /></span><div><h2>Ask Compass</h2><p>{analysis.customer.ClientRef} · {analysis.scope==='all'?'All portfolios':analysis.portfolios[0]?.PortfolioNr}</p></div>{onClose && <button className="ws-icon chat-minimize" aria-label="Minimize chat" onClick={onClose}><Minus size={20}/></button>}</div> : <><div><span className="eyebrow">YOUR ADVISER COPILOT</span><h2>Start with the brief. Ask what matters.</h2><p>Answers stay within this customer and the selected portfolio.</p></div><button className="button secondary" onClick={onWorkspace}>Open portfolio workspace <ArrowUpRight size={14} /></button></>}
     </div>
-    <div className="chat-quick-actions" aria-label="Suggested questions">{suggestions.map(s => <button disabled={busy} key={s.question} onClick={() => void ask(s.question)}>{s.label}</button>)}</div>
+    <div className="chat-quick-actions" aria-label="Suggested questions">{suggestions.map(s => <button disabled={busy} key={s.question} onClick={() => void ask(s.question,false)}>{s.label}</button>)}</div>
+    {eventContext && <div className="chat-event-context"><span>Discussing: {eventContext.item.title}</span><button onClick={()=>{setEventContext(undefined);setInput('');}}>Clear event ×</button></div>}
     <div className="chat-thread" ref={thread} role="log" aria-live="polite" aria-label="Conversation with Compass" tabIndex={compact ? 0 : undefined}>
       {compact ? !turns.length && !busy && <div className="compact-chat-greeting"><p>Ask a question, or start with one above.</p><span>Explore this client’s priorities, portfolio composition, value changes and linked news.</span></div> : <article className="assistant-turn"><div className="chat-speaker"><Compass size={17} /><strong>Compass</strong><span>Customer briefing</span></div>{renderAnswer(initial, true)}<div className="chat-brief-footer"><button className="text-button" onClick={onWorkspace}>Full briefing, positions & graph ↗</button><button className="text-button" disabled={!!phase} onClick={onRefresh}><RefreshCw size={12} />{phase ? 'Checking news…' : 'Refresh sources'}</button></div>{phase && <p className="chat-progress" role="status">{phase}</p>}</article>}
       {turns.map((t, i) => <div className="chat-exchange" key={i}><div className="user-turn">{t.question}</div><article className="assistant-turn"><div className="chat-speaker"><Compass size={15} /><strong>Compass</strong></div>{renderAnswer(t.answer)}</article></div>)}

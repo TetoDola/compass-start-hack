@@ -4,9 +4,12 @@ import { portfolioExposures } from './portfolio';
 import { enrichRelevance } from './research';
 import { materialEvent } from './events';
 
-export interface WorldArticle { id:string; title:string; source:string; url:string; publishedAt:string; summary?:string; tickers:string[]; location?:[number,number]; locationName?:string }
-export interface WorldDigest { articles:WorldArticle[]; state:'complete'|'partial'|'stale'|'unavailable'|'unconfigured'; generatedAt?:string; retrievedAt:string; message:string }
-export interface WorldStatus { state:WorldDigest['state']; generatedAt?:string; retrievedAt:string; articles:number; matched:number; message:string }
+export interface WorldArticle { id:string; title:string; source:string; url:string; publishedAt:string; summary?:string; tickers:string[]; location?:[number,number]; locationName?:string; layer?:'news'|'shipping'|'disaster' }
+export interface WorldQuote { symbol:string; name:string; price:number; change:number|null; asOf?:string; currency?:string; source:string; url:string; sparkline:number[] }
+export interface WorldChokepoint { id:string; name:string; coordinates:[number,number]; routes:string[]; status:'reference'|'reported'; detail:string; asOf?:string; url:string }
+export interface WorldLayerStatus { id:string; label:string; state:'available'|'partial'|'stale'|'unavailable'; count:number; message:string; sourceUrl:string }
+export interface WorldDigest { articles:WorldArticle[]; signals?:WorldArticle[]; quotes?:WorldQuote[]; chokepoints?:WorldChokepoint[]; layers?:WorldLayerStatus[]; state:'complete'|'partial'|'stale'|'unavailable'|'unconfigured'; generatedAt?:string; retrievedAt:string; message:string }
+export interface WorldStatus { state:WorldDigest['state']; generatedAt?:string; retrievedAt:string; articles:number; matched:number; message:string; globalItems?:ContextItem[]; quotes?:WorldQuote[]; chokepoints?:WorldChokepoint[]; layers?:WorldLayerStatus[] }
 const countryAliases:Record<string,string[]>={
   'United States':['United States of America','USA','U.S.','U.S.A.'], 'United Kingdom':['UK','U.K.','Britain'],
   'Switzerland':['Swiss'], 'China':['Chinese'], 'Germany':['German'], 'Japan':['Japanese'],
@@ -39,22 +42,24 @@ export function matchesWorldArticle(article:WorldArticle,target:NewsTarget):bool
 }
 export function worldContext(digest:WorldDigest,targets:NewsTarget[],days:number,now=Date.now()):MarketContext {
   const items:ContextItem[]=[]; const seen=new Set<string>();
-  for(const article of digest.articles) {
+  for(const article of [...digest.articles,...digest.signals||[]]) {
     const date=Date.parse(article.publishedAt); if(!Number.isFinite(date)||date>now||date<now-days*86400000||seen.has(article.url))continue;
-    const linked=targets.filter(t=>matchesWorldArticle(article,t)); if(!linked.length)continue;
+    const linked=targets.filter(t=>matchesWorldArticle(article,t));
     seen.add(article.url);
-    items.push({id:article.id,kind:'news',title:article.title,source:article.source,url:article.url,publishedAt:article.publishedAt,retrievedAt:digest.retrievedAt,summary:article.summary,entityIds:linked.map(t=>t.id),provider:'World Monitor · self-hosted RSS',relevance:'Headline / snippet match; verify the article. Geographic or industry relevance does not establish an operating dependency or a price effect.',event:materialEvent(article.title),geo:article.location?{coordinates:article.location,label:article.locationName||'Article location',basis:'article-location'}:undefined});
+    items.push({id:article.id,kind:'news',layer:article.layer||'news',title:article.title,source:article.source,url:article.url,publishedAt:article.publishedAt,retrievedAt:digest.retrievedAt,summary:article.summary,entityIds:linked.map(t=>t.id),provider:article.layer&&article.layer!=='news'?article.source:'World Monitor · self-hosted RSS',relevance:linked.length?'Source text matched to portfolio entities. Geographic or industry relevance does not establish an operating dependency or a price effect.':'Global event; no supported portfolio connection identified.',event:materialEvent(article.title),geo:article.location?{coordinates:article.location,label:article.locationName||'Source location',basis:article.layer&&article.layer!=='news'?'event-location':'article-location'}:undefined});
   }
-  return enrichRelevance({items,checked:0,requested:targets.length,warnings:[],elapsedMs:0,fetchedAt:digest.retrievedAt,providers:['World Monitor'],world:{state:digest.state,generatedAt:digest.generatedAt,retrievedAt:digest.retrievedAt,articles:digest.articles.length,matched:items.length,message:digest.message}},targets);
+  const enriched=enrichRelevance({items,checked:0,requested:targets.length,warnings:[],elapsedMs:0,fetchedAt:digest.retrievedAt,providers:['World Monitor']},targets);
+  const matched=enriched.items.filter(i=>i.entityIds.length);
+  return {...enriched,items:matched,world:{state:digest.state,generatedAt:digest.generatedAt,retrievedAt:digest.retrievedAt,articles:digest.articles.length,matched:matched.length,message:digest.message,globalItems:enriched.items,quotes:digest.quotes,chokepoints:digest.chokepoints,layers:digest.layers}};
 }
-export function mergeWorldContext(base:MarketContext,world:MarketContext):MarketContext {
+export function mergeWorldContext(base:MarketContext,world:MarketContext,targets:NewsTarget[]):MarketContext {
   const items=[...base.items];
   for(const item of world.items) {
     const index=items.findIndex(i=>i.url===item.url);
     if(index<0)items.push(item);
-    else items[index]={...items[index],entityIds:[...new Set([...items[index].entityIds,...item.entityIds])],geo:items[index].geo||item.geo};
+    else items[index]={...items[index],entityIds:[...new Set([...items[index].entityIds,...item.entityIds])],geo:items[index].geo||item.geo,provider:[...new Set([items[index].provider,item.provider])].join(' · ')};
   }
-  return {...base,items,providers:[...new Set([...base.providers,...world.providers])],world:world.world};
+  return enrichRelevance({...base,items,providers:[...new Set([...base.providers,...world.providers])],world:world.world},targets);
 }
 export function entityCountries(a:Analysis):Map<string,string[]> {
   const result=new Map<string,string[]>();

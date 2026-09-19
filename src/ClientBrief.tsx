@@ -1,3 +1,4 @@
+import { eventQuestion } from './lib/eventContext';
 import { RefreshCw, FileText, Sparkles, Quote, ArrowUpRight } from 'lucide-react';
 import type { Analysis, Evidence } from './lib/types';
 import type { useBriefing } from './useBriefing';
@@ -28,18 +29,19 @@ export function ClientBrief({ analysis, briefing, onEvidence, onNews }: { analys
         if (stateSummary) sources.unshift(compositionEvidence);
         // Keep the leading thought whole. Qualifications and source records remain one click away.
         return <div key={id}>
-          <ul className="ws-brief-points"><li>{stateSummary ? composition : points[0]}</li></ul>
-          {stateSummary && <p className="ws-brief-qualifier">{analysis.holdings.length} positions · {analysis.strategy}. Compare the mix with the agreed mandate.</p>}
+          <ul className="ws-brief-points">{(section.id === 'health' ? points.slice(0,2) : points.slice(0,1)).map((point,i)=><li key={i}>{point}</li>)}</ul>
+          {stateSummary && <p className="ws-brief-qualifier">{composition} Recorded review points require current confirmation.</p>}
           {section.id === 'development' && id === 'fact:value-development' && <p className="ws-brief-qualifier">Value change includes possible cash flows.</p>}
-          {section.id === 'outlook' && candidate.contextId?.startsWith('news:') && <p className="ws-brief-qualifier">{contextItem?.exposureWeight != null ? `${percent(contextItem.exposureWeight, 2)} linked portfolio exposure. Impact unverified.` : 'Linked news · exposure not quantified. Impact unverified.'}</p>}
+          {section.id === 'outlook' && contextItem?.kind==='news' && <p className="ws-brief-qualifier">{contextItem?.exposureWeight != null ? `${percent(contextItem.exposureWeight, 2)} linked portfolio exposure. Impact unverified.` : 'Linked news · exposure not quantified. Impact unverified.'}</p>}
           {(sources.length > 0 || points.length > 1) && <details className="ws-disclosure ws-brief-evidence"><summary><FileText size={11}/>{points.length > 1 ? 'Details & sources' : `${sources.length} source${sources.length === 1 ? '' : 's'}`}</summary>
-            {(points.length > 1 || stateSummary) && <ul className="ws-brief-points">{points.slice(stateSummary ? 0 : 1).map((point, i) => <li key={i}>{point}</li>)}</ul>}
+            {(points.length > 1 || stateSummary) && <ul className="ws-brief-points">{points.slice(section.id==='health'?2:1).map((point, i) => <li key={i}>{point}</li>)}</ul>}
             {sources.map(e => <button className="ws-link" key={e.id} onClick={() => onEvidence(e)}>{e.title} ↗</button>)}
           </details>}
         </div>;
       })}
       {section.id === 'outlook' && <><p className="ws-card-note">{briefing.context?.items.some(i => i.kind === 'house-view') ? 'Matched research included.' : 'No matching house view supplied.'}</p><button className="ws-link" onClick={onNews}>Explore news ↗</button></>}
     </article>)}</div>
+    {briefing.talkingPoint && <div className="ws-pinned-event"><div><strong>Added to this meeting</strong><button className="ws-link" onClick={briefing.clearEvent}>Remove ×</button></div><ul className="ws-brief-points"><li>{briefing.talkingPoint.item.title}</li><li>{eventQuestion(analysis,briefing.talkingPoint.item)}</li></ul><p className="ws-brief-qualifier">{briefing.talkingPoint.item.exposureWeight!=null?`${percent(briefing.talkingPoint.item.exposureWeight,2)} linked exposure. `:'No quantified exposure. '}Impact unverified.</p><button className="ws-link" onClick={()=>onEvidence(contextEvidence(briefing.talkingPoint!.item))}>{briefing.talkingPoint.item.source} · {dateLabel(briefing.talkingPoint.item.publishedAt,true)} ↗</button></div>}
     <div className="ws-brief-status" role="status"><i className={briefing.phase ? 'is-working' : ''}/>{briefing.phase || briefing.message}{briefing.elapsedMs != null && !briefing.phase ? ` · ${(briefing.elapsedMs / 1000).toFixed(1)}s` : ''}</div>
     <details className="ws-disclosure ws-policy"><summary>Mandate & allocation policy</summary><p>{m.instruction} Current objectives, investment horizon and loss capacity are not verified by this export. {m.cashLabel}.</p>{policies.map(p => <div key={p.portfolioId}><h4>{p.name}</h4><p>{p.reason}</p>{p.rows.length > 0 && <div className="ws-policy-scroll"><table><thead><tr><th>Asset class</th><th>Actual</th><th>Target</th><th>Deviation</th><th>Permitted band</th></tr></thead><tbody>{p.rows.map(r => <tr key={r.name}><td>{r.name}</td><td>{percent(r.actual)}</td><td>{percent(r.target)}</td><td>{r.actual >= r.target ? '+' : ''}{((r.actual - r.target) * 100).toFixed(1)} pp</td><td>{r.min == null ? '—' : percent(r.min)}–{r.max == null ? '—' : percent(r.max)}</td></tr>)}</tbody></table></div>}<button className="ws-link" onClick={() => onEvidence(allocationEvidence(analysis, p))}>Policy source ↗</button></div>)}</details>
   </section>;

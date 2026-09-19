@@ -4,10 +4,10 @@ import { ArrowUpRight, Network, RefreshCw, X } from 'lucide-react';
 import type { useBriefing } from './useBriefing';
 import type { Evidence } from './lib/types';
 import { contextEvidence, type ContextItem } from './lib/briefing';
-import { materialEvent } from './lib/events';
+import { materialEvent, compareNews } from './lib/events';
 import { dateLabel } from './lib/format';
 import { RangeControl } from './PortfolioOverview';
-export function rankedNews(items: ContextItem[]) { return [...items].sort((a,b)=>Number(!!materialEvent(b.title))-Number(!!materialEvent(a.title)) || Number(b.matchKind==='company')-Number(a.matchKind==='company') || (b.exposureWeight||0)-(a.exposureWeight||0) || b.publishedAt.localeCompare(a.publishedAt)); }
+export function rankedNews(items: ContextItem[]) { return [...items].sort(compareNews); }
 export function MarketNewsPanel({ briefing, focus, onClear, onEvidence, onGraph }: { briefing: ReturnType<typeof useBriefing>; focus: {id:string;name:string}|null; onClear:()=>void; onEvidence:(e:Evidence)=>void; onGraph:(id:string)=>void }) {
   const [all,setAll]=useState(false),[researchError,setResearchError]=useState('');
   const items=rankedNews((briefing.context?.items || []).filter(i=>!focus || i.entityIds.includes(focus.id)));

@@ -27,6 +27,7 @@ export function enrichRelevance(context:MarketContext,targets:NewsTarget[]):Mark
     const linked=targets.filter(t=>item.entityIds.includes(t.id));
     const companies=linked.filter(t=>!t.kind||t.kind==='company');
     const weight=companies.length?(companies.every(t=>t.weight!=null)?companies.reduce((n,t)=>n+t.weight!,0):null):linked.length && linked.every(t=>t.weight!=null)?Math.max(...linked.map(t=>t.weight!)):null;
-    return {...item,matchKind:companies.length?'company' as const:'topic' as const,exposureWeight:weight,relevance:`${linked.map(t=>`${t.name}: ${t.weight==null?'weight unavailable':percent(t.weight,2)} ${t.kind||'company'} exposure via ${t.via}`).join('; ')}. ${item.relevance}`};
+    const sourceRelevance=item.sourceRelevance ?? item.relevance;
+    return {...item,sourceRelevance,matchKind:companies.length?'company' as const:'topic' as const,exposureWeight:weight,relevance:`${linked.map(t=>`${t.name}: ${t.weight==null?'weight unavailable':percent(t.weight,2)} ${t.kind||'company'} exposure via ${t.via}`).join('; ')}. ${sourceRelevance}`};
   })};
 }

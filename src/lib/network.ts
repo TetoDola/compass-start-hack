@@ -1,3 +1,4 @@
+import { fundDenominator } from './types';
 import { aggregateProducts, productEvidence, lookThrough } from './advisory';
 import type { Analysis, Evidence, FundHoldingSnapshot } from './types';
 import { contextEvidence, instrumentId, type MarketContext } from './briefing';
@@ -29,7 +30,7 @@ export function buildNetwork(a: Analysis, expanded: Set<string>, context?: Marke
     }
     if (h.fundBreakdown) for (const [sector, weight] of Object.entries(h.fundBreakdown.sectors).filter(([, w]) => w > 0)) {
       const sid = `sector:${sector}`;
-      const source: Evidence = { id: `sector-source:${h.id}:${sector}`, title: `${h.displayName} · ${sector}`, type: 'calculation', location: 'reference.json / FundUnbundlingMappings', fields: [{ label: 'Normalized share of fund', value: percent(weight / h.fundBreakdown.total) }], note: 'Supplied category breakdown, normalized within the sector dimension. It does not identify underlying companies.' };
+      const source: Evidence = { id: `sector-source:${h.id}:${sector}`, title: `${h.displayName} · ${sector}`, type: 'calculation', location: 'reference.json / FundUnbundlingMappings', fields: [{ label: 'Known share of fund', value: percent(weight / fundDenominator(h.fundBreakdown.total)) }], note: 'Supplied category percentages; only totals within 1 percentage point of 100 are normalized for rounding. Uncovered allocation remains unknown. It does not identify underlying companies.' };
       put({ id: sid, name: sector, type: 'sector', evidence: [source], description: 'Sector exposure from supplied classifications and fund category mappings.' });
       edge(id, sid, 'has sector exposure', [source]);
     }
@@ -91,4 +92,19 @@ export function neighborhood(network: FinancialNetwork, ids: Set<string>, hops =
   const keep = new Set(ids);
   for (let i = 0; i < hops; i++) { const previous = new Set(keep); for (const e of network.edges) if (previous.has(e.source) || previous.has(e.target)) { keep.add(e.source); keep.add(e.target); } }
   return { nodes: network.nodes.filter(n => keep.has(n.id)), edges: network.edges.filter(e => keep.has(e.source) && keep.has(e.target)) };
+}
+
+// Follow only incoming evidence/ownership edges, without adding unrelated siblings.
+export function ownershipTrace(network: FinancialNetwork, eventId: string): FinancialNetwork {
+  const keep = new Set([eventId]);
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const edge of network.edges) {
+      if (keep.has(edge.target) && (edge.target === eventId || !edge.inferred) && !keep.has(edge.source)) {
+        keep.add(edge.source); changed = true;
+      }
+    }
+  }
+  return {nodes:network.nodes.filter(n=>keep.has(n.id)),edges:network.edges.filter(e=>keep.has(e.source)&&keep.has(e.target))};
 }

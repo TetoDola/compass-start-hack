@@ -1,3 +1,4 @@
+import { loadWorldLayers } from './world-layers';
 import { createHash } from 'node:crypto';
 import type { WorldArticle, WorldDigest } from '../src/lib/world';
 import type { ProviderConfig } from './providers';
@@ -29,12 +30,14 @@ export function createWorldResolver(config:ProviderConfig,request:typeof fetch=f
     if(cached&&Date.now()-at<(cached.state==='unavailable'?30000:300000))return cached;
     if(pending)return pending;
     pending=(async()=>{
+      const layers=loadWorldLayers(config,request);
       try {
         const url=new URL('/api/news/v1/list-feed-digest?variant=full&lang=en',config.WORLDMONITOR_BASE_URL);
         const response=await request(url,{headers:config.WORLDMONITOR_API_KEY?{'X-WorldMonitor-Key':config.WORLDMONITOR_API_KEY}:{},signal:AbortSignal.timeout(25000)});
         if(!response.ok)throw new Error('Digest unavailable');
         cached=parseWorldDigest(await response.json());
       }catch{cached=empty('unavailable','World Monitor could not be reached or its digest was unavailable. Portfolio news remains available.');}
+      cached={...cached,...await layers};
       at=Date.now();return cached;
     })();
     try{return await pending;}finally{pending=undefined;}

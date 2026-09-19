@@ -1,3 +1,4 @@
+import { fundDenominator } from './types';
 import { aggregateProducts, productEvidence, lookThrough, referencePriceReview, mandate, clientContextEvidence, allocationReview, allocationEvidence } from './advisory';
 import type { Analysis, Evidence, Holding, Row } from './types';
 import { dateLabel, percent } from './format';
@@ -43,12 +44,12 @@ export function portfolioExposures(a: Analysis, kind: ExposureKind): Exposure[] 
       continue;
     }
     if (kind === 'industry' && h.fundBreakdown?.total) {
-      for (const [name, amount] of Object.entries(h.fundBreakdown.sectors)) put(name, h.weight * amount / h.fundBreakdown.total, h, categoryEvidence(h, name, amount, 'IndustryName'));
+      for (const [name, amount] of Object.entries(h.fundBreakdown.sectors)) put(name, h.weight * amount / fundDenominator(h.fundBreakdown.total), h, categoryEvidence(h, name, amount, 'IndustryName'));
     }
     if ((kind === 'country' || kind === 'region') && h.fundBreakdown?.total) {
       for (const [raw, amount] of Object.entries(h.fundBreakdown.regions)) {
         const name = geography[raw] || raw;
-        if (kind === 'region' || specificCountries.has(name)) put(name, h.weight * amount / h.fundBreakdown.total, h, categoryEvidence(h, name, amount, 'CountryGroupName'));
+        if (kind === 'region' || specificCountries.has(name)) put(name, h.weight * amount / fundDenominator(h.fundBreakdown.total), h, categoryEvidence(h, name, amount, 'CountryGroupName'));
       }
     } else if (kind === 'country') {
       // Without a geographic breakdown, classify only constituents with an exact master-data match.
@@ -63,7 +64,7 @@ export function portfolioExposures(a: Analysis, kind: ExposureKind): Exposure[] 
   return [...result.values()].sort((a,b) => b.weight-a.weight);
 }
 function categoryEvidence(h: Holding, name: string, weight: number, field: string): Evidence {
-  return { id: `category:${h.id}:${field}:${name}`, title: `${h.displayName} · ${name}`, type: 'calculation', location: `reference.json / FundUnbundlingMappings / FundSecurityId=${h.securityId}`, fields: [{ label: 'Dimension', value: field }, { label: 'Share of fund', value: percent(weight/h.fundBreakdown!.total, 2) }, { label: 'Share of portfolio', value: percent(h.weight*weight/h.fundBreakdown!.total, 2) }], note: 'Position weight × category weight ÷ supplied fund breakdown total. Country groups may be regions, not individual countries.' };
+  return { id: `category:${h.id}:${field}:${name}`, title: `${h.displayName} · ${name}`, type: 'calculation', location: `reference.json / FundUnbundlingMappings / FundSecurityId=${h.securityId}`, fields: [{ label: 'Dimension', value: field }, { label: 'Share of fund', value: percent(weight/fundDenominator(h.fundBreakdown!.total), 2) }, { label: 'Share of portfolio', value: percent(h.weight*weight/fundDenominator(h.fundBreakdown!.total), 2) }], note: 'Position weight × category percentage / 100. Only totals within 1 percentage point of 100 are normalized for rounding; missing allocation remains unknown. Country groups may be regions, not individual countries.' };
 }
 export function violationEvidence(a: Analysis, v: Row): Evidence {
   return { id: `issue-${v.Id}`, title: v.RuleCode || 'Recorded suitability issue', type: 'record', date: v.LastViolatedDateUTC, location: `clients.json / ${a.customer.ClientRef} / SuitabilityViolations[Id=${v.Id}]`, fields: [{ label: 'Rule', value: v.RuleCode || 'Unknown' }, { label: 'Description', value: v.RuleDescription || 'Not supplied' }, { label: 'Severity', value: v.Severity || 'Not supplied' }, { label: 'Recorded inputs', value: typeof v.ViolationPath === 'string' ? v.ViolationPath : JSON.stringify(v.ViolationPath || []) }], note: 'Exported rule-engine finding. Verify whether it remains unresolved; it has not been recomputed.' };
@@ -77,6 +78,7 @@ export function violationMeasurement(v: Row): string {
 export interface AttentionItem { id: string; level: 'critical' | 'review' | 'gap'; label: string; title: string; detail: string; action: string; evidence: Evidence[]; findingId?: string; contextId?: string; metric?: string; graphNodeId?: string }
 export function portfolioAttention(a: Analysis): AttentionItem[] {
   const items: AttentionItem[] = [];
+  if(!a.weightsAvailable&&!a.scopeAmbiguous&&a.holdings.length)items.push({id:'missing-weights',level:'gap',label:'Missing weights',title:'Exposure weights are incomplete',detail:'At least one position weight is missing or invalid; combined exposure and scenarios are withheld.',action:'Obtain complete position weights for this portfolio.',evidence:a.holdings.map(h=>h.evidence)});
   if (a.scopeAmbiguous) items.push({ id: 'scope', level: 'gap', label: 'Resolve scope', title: 'Consolidated portfolios may overlap', detail: 'Combined totals and weights could double-count assets.', action: 'Choose one portfolio in the scope selector.', evidence: a.evidence.filter(e => e.id.startsWith('p-')) });
   const family=(rule:string) => /volatility/i.test(rule) ? 'Risk level and volatility' : /currency/i.test(rule) ? 'Currency concentration' : /single financial instrument/i.test(rule) ? 'Single-product concentration' : /equity (region|sector)/i.test(rule) ? 'Allocation drift' : 'Mandate and recorded instructions';
   const grouped = new Map<string, Row[]>();

@@ -1,3 +1,4 @@
+import { fundDenominator } from './types';
 import type { Analysis, Connection, Dataset, Entity, Evidence, Finding, Holding, Row } from './types';
 import { dateLabel, list, money, number, percent, redact, statusLabel } from './format';
 
@@ -16,7 +17,8 @@ export function analyze(dataset: Dataset, customer: Row, scope = 'all'): Analysi
   const scopeAmbiguous = portfolios.length > 1 && portfolios.some(p => p.IsConsolidated === true || /consolid|konsolid/i.test(`${p.Name || ''} ${p.PortfolioNr || ''}`));
   const aum = scopeAmbiguous ? null : sumKnown(portfolios.map(p => p.AssetsUnderManagementInDefaultCurrency));
   const liquidity = scopeAmbiguous ? null : sumKnown(portfolios.map(p => p.LiquidityInDefaultCurrency));
-  const weightsAvailable = !scopeAmbiguous && (portfolios.length === 1 || (aum != null && aum > 0));
+  const missingWeights = portfolios.some(p=>list(p.SecurityPositions).some(s=>number(s.PortfolioValuePercentage)==null || s.PortfolioValuePercentage<0 || s.PortfolioValuePercentage>1));
+  const weightsAvailable = !missingWeights && !scopeAmbiguous && (portfolios.length === 1 || (aum != null && aum > 0));
   const securities = new Map(dataset.reference.Securities.map(s => [s.Id, s]));
   const funds = new Map(dataset.reference.FundBreakdowns.map(f => [f.id, f]));
   const fundHoldings = new Map((dataset.reference.FundHoldings || []).map(f => [f.isin, f]));
@@ -42,6 +44,7 @@ export function analyze(dataset: Dataset, customer: Row, scope = 'all'): Analysi
   const add = (map: Map<string, number>, key: string, value: number) => map.set(key, (map.get(key) || 0) + value);
   const basePath = `clients.json / ${customer.ClientRef}`;
   if (scopeAmbiguous) warnings.push('A consolidated view may overlap another portfolio. Combined totals, history and exposure weights are unavailable. Select one portfolio to continue.');
+  if (missingWeights) warnings.push('Position weights are missing or invalid. Exposure totals and scenarios are withheld; supply complete weights for this scope.');
   if (unresolved) warnings.push(`${unresolved} advisory record${unresolved === 1 ? '' : 's'} reference a portfolio missing from this customer export. They are excluded from portfolio findings.`);
   if (!portfolios.length) warnings.push('No portfolio data is available for this customer.');
   if (aum == null && portfolios.length > 1 && !scopeAmbiguous) warnings.push('Some portfolio values are missing. Combined exposure weights are unavailable; select an individual portfolio.');
@@ -59,9 +62,9 @@ export function analyze(dataset: Dataset, customer: Row, scope = 'all'): Analysi
       const holding: Holding = { id, name: source.title, securityId: s.SecurityId, portfolioId: p.PortfolioId, portfolio: p.PortfolioNr || String(p.PortfolioId), currency: p.PortfolioCurrency || currency, value: number(s.TotalAmountInPortfolioCurrency), weight, asset: master?.SAA_AssetClassName || 'Not classified', sector: master?.IndustryName || 'Not classified', country: master?.CountryName, known: !!master, evidence: source, priceDate: master?.PriceDateUtc || s.PriceDateUtc, priceStale: !validDate(master?.PriceDateUtc || s.PriceDateUtc) || !validDate(p.FactoryDateUtc) || Date.parse(p.FactoryDateUtc) - Date.parse(master?.PriceDateUtc || s.PriceDateUtc) > 30 * 86400000, instrumentType, displayName: fundHoldings.get(isin)?.name || displayInstrumentName(source.title, instrumentType), isin, fundBreakdown: funds.get(s.SecurityId), fundHoldings: instrumentType === 'Investment fund' ? fundHoldings.get(isin) : undefined };
       holdings.push(holding); evidence.push(source); add(allocations, holding.asset, weight);
       const fund = funds.get(s.SecurityId);
-      if (fund && fund.total > 0) {
+      if (fund && fund.total > 0 && Number.isFinite(fundDenominator(fund.total))) {
         fundCoverage += weight;
-        for (const [category, value] of Object.entries(fund.sectors)) add(sectors, category, weight * value / fund.total);
+        for (const [category, value] of Object.entries(fund.sectors)) add(sectors, category, weight * value / fundDenominator(fund.total));
       }
     }
     for (const account of list(p.AccountPositions)) {
@@ -69,6 +72,7 @@ export function analyze(dataset: Dataset, customer: Row, scope = 'all'): Analysi
       add(allocations, fiat ? 'Cash accounts' : 'Other accounts', (number(account.PortfolioValuePercentage) || 0) * factor);
     }
   }
+  if (holdings.some(h=>h.fundBreakdown && Math.abs(h.fundBreakdown.total-100)>1)) warnings.push('Some fund category mappings are incomplete or invalid. Uncovered allocation is not scaled up.');
   holdings.sort((a, b) => b.weight - a.weight);
   const unknownCount = holdings.filter(h => !h.known).length;
   if (unknownCount) warnings.push(`${unknownCount} holding${unknownCount === 1 ? '' : 's'} have no matching security reference. Classifications remain unknown.`);
@@ -115,18 +119,18 @@ export function analyze(dataset: Dataset, customer: Row, scope = 'all'): Analysi
     findings.push({ id: 'recorded-issues', section: 'now', kind: 'attention', tag: 'Review point', metric: String(violations.length), title: `${violations.length} recorded issue${violations.length === 1 ? '' : 's'} deserve a review`, body: selected.map(v => v.RuleDescription || v.RuleCode).join('; ') + '. These are exported findings, not newly calculated breaches.', question: `Review the ${violations.length} recorded findings with the adviser, verify current limits and prices, and prepare options for the affected positions.`, evidence: sources, entities, connections });
   }
   const topSector = fundSectors.find(s => !/not classified|unknown/i.test(s.label));
-  if (topSector && fundCoverage > 0) {
-    const contribution = (h: Holding) => h.weight * funds.get(h.securityId)!.sectors[topSector.label] / funds.get(h.securityId)!.total;
+  if (weightsAvailable && topSector && fundCoverage > 0) {
+    const contribution = (h: Holding) => h.weight * funds.get(h.securityId)!.sectors[topSector.label] / fundDenominator(funds.get(h.securityId)!.total);
     const allContributors = holdings.filter(h => (funds.get(h.securityId)?.sectors[topSector.label] || 0) > 0).sort((a, b) => contribution(b) - contribution(a));
     const contributing = allContributors.slice(0, 3);
     const otherContribution = allContributors.slice(3).reduce((sum, h) => sum + contribution(h), 0);
-    const source: Evidence = { id: 'fund-exposure', title: `${topSector.label} exposure through funds`, type: 'calculation', location: 'reference.json / FundUnbundlingMappings + selected SecurityPositions', fields: fields({ 'Attributed portfolio exposure': percent(topSector.weight, 2), 'Portfolio weight with fund breakdowns': percent(fundCoverage, 2), 'Contributing fund positions': String(allContributors.length), ...Object.fromEntries(contributing.map(h => [h.name, `${percent(contribution(h), 2)} of portfolio value attributed to ${topSector.label}`])), ...(otherContribution > 0 ? { 'Remaining fund contributions': percent(otherContribution, 2) } : {}), Formula: 'Σ (portfolio holding weight × category weight ÷ fund breakdown total)' }), note: 'Only the exposure attributable to covered funds. This is not total sector exposure. Dimensions are aggregated separately and small fund rounding differences are normalized.' };
+    const source: Evidence = { id: 'fund-exposure', title: `${topSector.label} exposure through funds`, type: 'calculation', location: 'reference.json / FundUnbundlingMappings + selected SecurityPositions', fields: fields({ 'Attributed portfolio exposure': percent(topSector.weight, 2), 'Portfolio weight with fund breakdowns': percent(fundCoverage, 2), 'Contributing fund positions': String(allContributors.length), ...Object.fromEntries(contributing.map(h => [h.name, `${percent(contribution(h), 2)} of portfolio value attributed to ${topSector.label}`])), ...(otherContribution > 0 ? { 'Remaining fund contributions': percent(otherContribution, 2) } : {}), Formula: 'Σ (portfolio holding weight × category weight ÷ percentage denominator (100; near-100 rounding normalized))' }), note: 'Only the exposure attributable to covered funds. This is not total sector exposure. Dimensions are aggregated separately and small fund rounding differences are normalized.' };
     evidence.push(source);
     const involved = portfolios.filter(p => contributing.some(h => h.portfolioId === p.PortfolioId));
     findings.push({ id: 'fund-lookthrough', section: 'now', kind: 'insight', tag: 'Inside the funds', metric: percent(topSector.weight), title: `${percent(topSector.weight)} in ${topSector.label.toLowerCase()} through funds`, body: `The supplied fund breakdowns reveal this share of the selected portfolio value. Breakdowns cover ${percent(fundCoverage)} of the portfolio; direct holdings and uncovered exposure are separate.`, question: `Is this ${topSector.label.toLowerCase()} exposure consistent with the customer’s intended allocation?`, evidence: [source, ...contributing.map(h => h.evidence)], entities: [root, ...involved.map(portfolioEntity), ...contributing.map(h => ({ ...holdingEntity(h), value: `${percent(contribution(h), 2)} sector contribution`, evidenceId: source.id })), ...(otherContribution > 0 ? [{ id: 'other-funds', label: 'Other contributing funds', value: `${percent(otherContribution, 2)} sector contribution`, type: 'holding' as const, evidenceId: source.id }] : []), { id: 'sector', label: topSector.label, value: `${percent(topSector.weight)} through funds`, type: 'exposure', evidenceId: source.id }], connections: [...involved.map(p => ({ from: 'customer', to: `p-${p.PortfolioId}`, label: 'owns' })), ...contributing.flatMap(h => [{ from: `p-${h.portfolioId}`, to: h.id, label: 'holds' }, { from: h.id, to: 'sector', label: 'contributes exposure' }]), ...(otherContribution > 0 ? [{ from: 'customer', to: 'other-funds', label: 'also holds in scope' }, { from: 'other-funds', to: 'sector', label: 'contributes exposure' }] : [])] });
   }
   const top = holdings[0];
-  if (top && top.weight > 0) {
+  if (weightsAvailable && top && top.weight > 0) {
     const p = portfolios.find(p => p.PortfolioId === top.portfolioId)!;
     findings.push({ id: 'largest-holding', section: 'now', kind: 'context', tag: 'Portfolio composition', metric: percent(top.weight), title: `The largest position represents ${percent(top.weight)}`, body: `${top.name} is the largest security position in the selected scope. Its weight is an observation, not by itself a suitability breach.`, question: `Review ${top.displayName}'s ${percent(top.weight)} weight against the customer's intended allocation; consider diversification options after checking current prices and suitability.`, evidence: [top.evidence], entities: [root, portfolioEntity(p), holdingEntity(top)], connections: [{ from: 'customer', to: `p-${p.PortfolioId}`, label: 'owns' }, { from: `p-${p.PortfolioId}`, to: top.id, label: 'largest security position' }] });
   }

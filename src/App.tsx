@@ -1,3 +1,4 @@
+import { selectedEventFact, type EventDiscussion } from './lib/eventContext';
 import { WorldView } from './WorldView';
 import { aggregateProducts, clientContextEvidence, mandate } from './lib/advisory';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -7,7 +8,7 @@ import { analyze } from './lib/analysis';
 import { dateLabel, list, money, percent } from './lib/format';
 import { parseDatasetUpload } from './lib/import';
 import { advisorFacts } from './lib/advisor';
-import { sections } from './lib/briefing';
+import { sections, type ContextItem } from './lib/briefing';
 import type { TimeRange } from './lib/portfolio';
 import { EvidenceDrawer } from './components';
 import { useFundHoldings } from './useFundHoldings';
@@ -32,10 +33,12 @@ export default function App() {
   const uploadRef=useRef<HTMLInputElement>(null);
   const [theme,setTheme]=useState<'dark'|'light'>(()=>localStorage.getItem('compass-theme')==='light'?'light':'dark');
   useEffect(()=>{localStorage.setItem('compass-theme',theme);},[theme]);
-  const [chatOpen,setChatOpen]=useState(false),[chatDraft,setChatDraft]=useState<{text:string;id:number}>();
+  const [chatOpen,setChatOpen]=useState(false),[chatDraft,setChatDraft]=useState<{text:string;id:number;event?:EventDiscussion}>();
+  const [exploreEvent,setExploreEvent]=useState<ContextItem>();
   const chatRef=useRef<HTMLDivElement>(null),chatLauncher=useRef<HTMLButtonElement>(null);
   useEffect(()=>{if(chatOpen)chatRef.current?.querySelector('textarea')?.focus({preventScroll:true});},[chatOpen,chatDraft]);
   function openChat(question?:string){if(question)setChatDraft({text:question,id:Date.now()});setChatOpen(true);}
+  function discussEvent(event:EventDiscussion){closePanel();setChatDraft({text:'Explain this event’s relevance and prepare the client conversation.',id:Date.now(),event});setChatOpen(true);}
   function closeChat(){setChatOpen(false);chatLauncher.current?.focus({preventScroll:true});}
   useEffect(()=>{
     let alive=true;
@@ -52,6 +55,7 @@ export default function App() {
   const customer=dataset?.clients.find(c=>c.ClientId===customerId);
   const analysis=useMemo(()=>dataset && customer?analyze(dataset,customer,scope):null,[dataset,customer,scope]);
   const fundLookups=useFundHoldings(analysis,setDataset), briefing=useBriefing(analysis);
+  const graphContext=useMemo(()=>exploreEvent&&briefing.context?{...briefing.context,items:[...briefing.context.items.filter(i=>i.id!==exploreEvent.id),exploreEvent]}:briefing.context,[briefing.context,exploreEvent]);
   const selected=analysis?.findings.find(f=>f.id===selectedId) || analysis?.findings.find(f=>f.section==='now') || analysis?.findings[0];
   useEffect(()=>{
     if(customerId==null)return;const params=new URLSearchParams({customer:String(customerId),view:'overview'});
@@ -61,19 +65,20 @@ export default function App() {
   },[customerId,scope,panel,selectedId,graphOverview]);
   const showEvidence=(e:Evidence)=>{returnPanel.current=panel;setPanel(null);setEvidence(e);};
   const closeEvidence=useCallback(()=>{setEvidence(null);setPanel(returnPanel.current);returnPanel.current=null;},[]);
-  function resetContext(){setNewsFocus(null);setSelectedId('');setGraphOverview(true);setContextFocus('');setNodeFocus('');setPanel(null);setEvidence(null);setChatOpen(false);setChatDraft(undefined);returnPanel.current=null;}
+  function resetContext(){setExploreEvent(undefined);setNewsFocus(null);setSelectedId('');setGraphOverview(true);setContextFocus('');setNodeFocus('');setPanel(null);setEvidence(null);setChatOpen(false);setChatDraft(undefined);returnPanel.current=null;}
   function selectCustomer(id:number){setCustomerId(id);setScope('all');resetContext();window.scrollTo({top:0});}
   function closePanel(){setPanel(null);setNodeFocus('');setContextFocus('');}
   function openGraph(node=''){setNodeFocus(node);setContextFocus('');setGraphOverview(true);setPanel('graph');}
   function openFinding(id:string){setSelectedId(id);setNodeFocus('');setContextFocus('');setGraphOverview(false);setPanel('graph');}
-  function openNewsGraph(id:string){setContextFocus(id);setNodeFocus('');setGraphOverview(true);setPanel('graph');}
+  function openNewsGraph(id:string){setExploreEvent(undefined);setContextFocus(id);setNodeFocus('');setGraphOverview(true);setPanel('graph');}
+  function traceWorldEvent(item:ContextItem){setExploreEvent(item);setContextFocus(item.id);setNodeFocus('');setGraphOverview(true);setPanel('graph');}
   function openNews(id?:string,name?:string){setNewsFocus(id?{id,name:name || id}:null);setPanel('news');}
   async function importFile(file?:File){
     if(!file || !dataset)return;setImporting(true);setImportMessage('');
     try{if(file.size>25*1024*1024)throw new Error('Choose a customer JSON file smaller than 25 MB.');const imported=parseDatasetUpload(await file.text(),dataset.reference);setDataset({...dataset,clients:imported.clients,reference:imported.reference,version:`Imported · ${file.name}`});selectCustomer(imported.clients[0].ClientId);setImportError(false);setImportMessage(`Imported ${imported.clients.length} customer${imported.clients.length===1?'':'s'} from ${file.name}. ${imported.suppliedReference?'Uploaded reference data is active.':'Existing reference data is reused.'}`);}catch(e){setImportError(true);setImportMessage(e instanceof Error?e.message:'Unable to import this file.');}finally{setImporting(false);if(uploadRef.current)uploadRef.current.value='';}
   }
   function exportBrief(){
-    if(!analysis)return;const content=[`# Customer brief · ${analysis.customer.ClientRef}`,'',`Scope: ${scope==='all'?'All supplied portfolios':analysis.portfolios[0]?.PortfolioNr}`,'',briefing.message,'',...advisorFacts(analysis,briefing.context).filter(f=>['attention','events','customer'].includes(f.id)).flatMap(f=>[`## ${f.title}`,'',...f.text.map(point=>`- ${point}`),'',...f.evidence.map(e=>`Source: ${e.location}`),'']),...sections.flatMap(section=>[`## ${section.title}`,'',...briefing.selection[section.id].flatMap(id=>{const c=briefing.candidates.find(c=>c.id===id);return c?[...c.text.split('\n').filter(Boolean).map(point=>`- ${point}`),...c.sourceIds.map(id=>{const e=c.evidence?.find(e=>e.id===id)||analysis.evidence.find(e=>e.id===id),external=briefing.context?.items.find(i=>i.id===id);return `Source: ${e?.location || external?.url || id}`;}),'']:[];})]),'Case dates are shifted. Current news does not establish historical causality. Prepared for adviser review.'];
+    if(!analysis)return;const content=[`# Customer brief · ${analysis.customer.ClientRef}`,'',`Scope: ${scope==='all'?'All supplied portfolios':analysis.portfolios[0]?.PortfolioNr}`,'',briefing.message,'',...advisorFacts(analysis,briefing.context).filter(f=>['attention','events','customer'].includes(f.id)).flatMap(f=>[`## ${f.title}`,'',...f.text.map(point=>`- ${point}`),'',...f.evidence.map(e=>`Source: ${e.location}`),'']),...sections.flatMap(section=>[`## ${section.title}`,'',...briefing.selection[section.id].flatMap(id=>{const c=briefing.candidates.find(c=>c.id===id);return c?[...c.text.split('\n').filter(Boolean).map(point=>`- ${point}`),...c.sourceIds.map(id=>{const e=c.evidence?.find(e=>e.id===id)||analysis.evidence.find(e=>e.id===id),external=briefing.context?.items.find(i=>i.id===id);return `Source: ${e?.location || external?.url || id}`;}),'']:[];})]),...(briefing.talkingPoint?['## Selected meeting event','',...selectedEventFact(analysis,briefing.talkingPoint)!.text.map(p=>`- ${p}`),`Source: ${briefing.talkingPoint.item.url}`]:[]),'Case dates are shifted. Current news does not establish historical causality. Prepared for adviser review.'];
     const url=URL.createObjectURL(new Blob([content.join('\n')],{type:'text/markdown'}));const anchor=document.createElement('a');anchor.href=url;anchor.download=`${analysis.customer.ClientRef}-brief.md`;anchor.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
   }
   if(loadError)return <div className="boot-screen"><Compass size={42}/><h1>Let’s reconnect the data.</h1><p>{loadError}</p><button className="button primary" onClick={()=>location.reload()}>Retry loading</button></div>;
@@ -102,7 +107,7 @@ export default function App() {
       <ClientWorkspace key={`${customerId}:${scope}`} analysis={analysis} briefing={briefing} range={range} onRange={setRange} onEvidence={showEvidence} onGraph={openGraph} onFinding={openFinding} onNewsGraph={openNewsGraph} onNews={openNews} onRecords={()=>setPanel('records')}/>
       <footer className="ws-footer"><span>{latestFactory?`Risk snapshot ${dateLabel(latestFactory,true)}`:'Supplied customer records'} · Case dates are shifted</span><button className="ws-link" disabled={!!briefing.phase} onClick={()=>briefing.refresh()}><RefreshCw size={12}/>{briefing.phase?'Updating news…':'Refresh sources'}</button></footer>
     </main>
-    <WorkspaceDialog open={panel==='graph'||panel==='world'} title={`Explore · ${customer.ClientRef}`} wide onClose={closePanel}><nav className="ws-explore-tabs" aria-label="Explore view"><button aria-pressed={panel==='world'} onClick={()=>setPanel('world')}><Globe2 size={15}/>World</button><button aria-pressed={panel==='graph'} onClick={()=>openGraph()}><Network size={15}/>Connections</button></nav><div hidden={panel!=='world'}><WorldView key={`${customerId}:${scope}`} analysis={analysis} context={briefing.context} range={briefing.newsRange} onRange={briefing.setNewsRange} onEvidence={showEvidence} onGraph={openGraph} onNewsGraph={openNewsGraph} onAsk={question=>{closePanel();openChat(question);}} onRefresh={()=>briefing.refresh()} busy={!!briefing.phase}/></div><div hidden={panel!=='graph'}><CustomerGraph context={briefing.context} contextFocus={contextFocus} nodeFocus={nodeFocus} fundStatus={fundLookups.status} onRefreshFund={fundLookups.refresh} analysis={analysis} selected={selected} overview={graphOverview} onOverview={()=>{setGraphOverview(true);setContextFocus('');setNodeFocus('');}} onSelect={openFinding} onEvidence={showEvidence} onBrief={closePanel}/></div></WorkspaceDialog>
+    <WorkspaceDialog open={panel==='graph'||panel==='world'} title={`Explore · ${customer.ClientRef}`} wide onClose={closePanel}><nav className="ws-explore-tabs" aria-label="Explore view"><button aria-pressed={panel==='world'} onClick={()=>setPanel('world')}><Globe2 size={15}/>World</button><button aria-pressed={panel==='graph'} onClick={()=>openGraph()}><Network size={15}/>Connections</button></nav><div hidden={panel!=='world'}><WorldView key={`${customerId}:${scope}`} analysis={analysis} context={briefing.context} range={briefing.newsRange} onRange={briefing.setNewsRange} onEvidence={showEvidence} onGraph={openGraph} onTrace={traceWorldEvent} onAsk={discussEvent} onPin={item=>{briefing.pinEvent(item);closePanel();setTimeout(()=>document.querySelector('[aria-label="Client briefing"]')?.scrollIntoView({behavior:'smooth',block:'start'}),0);}} onRefresh={()=>briefing.refresh()} busy={!!briefing.phase}/></div><div hidden={panel!=='graph'}><CustomerGraph context={graphContext} onDiscuss={item=>discussEvent({item,customerId:analysis.customer.ClientId,scope:analysis.scope})} contextFocus={contextFocus} nodeFocus={nodeFocus} fundStatus={fundLookups.status} onRefreshFund={fundLookups.refresh} analysis={analysis} selected={selected} overview={graphOverview} onOverview={()=>{setGraphOverview(true);setContextFocus('');setNodeFocus('');}} onSelect={openFinding} onEvidence={showEvidence} onBrief={closePanel}/></div></WorkspaceDialog>
     <WorkspaceDialog open={panel==='records'} title={`Client records · ${customer.ClientRef}`} wide onClose={closePanel}><CustomerRecords key={`${customerId}:${scope}`} analysis={analysis} dataset={dataset} onEvidence={showEvidence}/></WorkspaceDialog>
     <WorkspaceDialog open={panel==='news'} title={newsFocus?`News · ${newsFocus.name}`:`Portfolio news · ${customer.ClientRef}`} onClose={closePanel}><MarketNewsPanel key={`${customerId}:${scope}`} briefing={briefing} focus={newsFocus} onClear={()=>setNewsFocus(null)} onEvidence={showEvidence} onGraph={openNewsGraph}/></WorkspaceDialog>
     <div ref={chatRef} id="workspace-assistant" className="ws-chat-popup" role="dialog" aria-label="Client assistant" hidden={!chatOpen} onKeyDown={e=>{if(e.key==='Escape'){e.stopPropagation();closeChat();}}}><AdvisorChat key={`${customerId}:${scope}`} compact analysis={analysis} context={briefing.context} phase={briefing.phase} draft={chatDraft} onClose={closeChat} onWorkspace={closeChat} onEvidence={showEvidence} onNews={openNews} onRefresh={()=>briefing.refresh()}/></div>

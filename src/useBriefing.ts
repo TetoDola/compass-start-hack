@@ -1,15 +1,21 @@
+import type { EventDiscussion } from './lib/eventContext';
 import { mergeWorldContext, worldContext, type WorldDigest } from './lib/world';
 import { loadMarketContext } from './lib/loadContext';
 import { parseResearch, researchItems, type ResearchView } from './lib/research';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { TimeRange } from './lib/portfolio';
 import type { Analysis } from './lib/types';
-import { briefingCandidates, defaultSelection, newsTargets, validateSelection, type BriefResult, type MarketContext } from './lib/briefing';
+import { briefingCandidates, defaultSelection, newsTargets, validateSelection, type BriefResult, type ContextItem, type MarketContext } from './lib/briefing';
 
 export function useBriefing(analysis: Analysis | null) {
   const [research,setResearch]=useState<ResearchView[]>(()=>{try{return parseResearch(localStorage.getItem('compass-research')||'[]');}catch{return [];}});
   function importResearch(text:string){const rows=parseResearch(text);localStorage.setItem('compass-research',JSON.stringify(rows));setResearch(rows);}
   function clearResearch(){localStorage.removeItem('compass-research');setResearch([]);}
+  const [pinnedEvent,setPinnedEvent]=useState<EventDiscussion>();
+  const talkingPoint=pinnedEvent?.customerId===analysis?.customer.ClientId&&pinnedEvent?.scope===analysis?.scope?pinnedEvent:undefined;
+  const pinEvent=(item:ContextItem)=>{if(analysis)setPinnedEvent({item,customerId:analysis.customer.ClientId,scope:analysis.scope});};
+  const clearEvent=()=>setPinnedEvent(undefined);
+  useEffect(()=>setPinnedEvent(undefined),[analysis?.customer.ClientId,analysis?.scope]);
   const [newsRange, setNewsRange] = useState<TimeRange>('1M');
   // Re-enrich automatically when a newly resolved fund changes the covered news universe.
   const key = analysis ? JSON.stringify([analysis.customer, analysis.scope, newsRange, research, newsTargets(analysis).map(t => [t.id, t.name, t.via])]) : '';
@@ -30,7 +36,7 @@ export function useBriefing(analysis: Analysis | null) {
     let worldLayer:MarketContext|undefined;
     let latestMarket:MarketContext={items:[],checked:0,requested:targets.length,warnings:[],elapsedMs:0,fetchedAt:new Date().toISOString(),providers:[]};
     let newsPhase='Screening news across covered holdings and exposures…';
-    const withResearch=(context:MarketContext)=>{const merged=worldLayer?mergeWorldContext(context,worldLayer):context;return {...merged,items:[...merged.items,...house]};};
+    const withResearch=(context:MarketContext)=>{const merged=worldLayer?mergeWorldContext(context,worldLayer,targets):context;return {...merged,items:[...merged.items,...house]};};
     // Shared public digest: no client records or portfolio identifiers leave Compass.
     const worldPromise=fetch('/api/world-context',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}',signal:AbortSignal.any([abort.signal,AbortSignal.timeout(27000)])})
       .then(async response=>{if(!response.ok)throw new Error('World feed unavailable');return await response.json() as WorldDigest;})
@@ -41,7 +47,7 @@ export function useBriefing(analysis: Analysis | null) {
     catch{if(abort.signal.aborted)return;context={items:house,checked:0,requested:targets.length,warnings:['News unavailable. Source-backed portfolio facts remain usable.'],elapsedMs:0,fetchedAt:new Date().toISOString(),providers:[]};}
     const world=await worldPromise;
     if(abort.signal.aborted)return;
-    context=mergeWorldContext(context,worldContext(world,targets,days));
+    context=mergeWorldContext(context,worldContext(world,targets,days),targets);
     setState({key,context,phase:'Refining the brief with AI · the sourced brief is ready below…'});
     const candidates = briefingCandidates(a, context);
     let result: BriefResult = { selection: defaultSelection(candidates), mode: 'structured', message: 'Structured brief · AI not configured', elapsedMs: 0 };
@@ -57,5 +63,5 @@ export function useBriefing(analysis: Analysis | null) {
   // Reject stale candidate IDs after a background reference update.
   let selection = defaultSelection(candidates);
   if (result) try { selection = validateSelection(result.selection, candidates); } catch { /* Updated evidence uses the structured selection. */ }
-  return { research, importResearch, clearResearch, context, candidates, selection, message: result?.message || 'Structured customer facts', mode: result?.mode || 'structured', phase: valid ? state.phase : '', elapsedMs: valid ? state.elapsedMs : undefined, refresh, newsRange, setNewsRange };
+  return { talkingPoint, pinEvent, clearEvent, research, importResearch, clearResearch, context, candidates, selection, message: result?.message || 'Structured customer facts', mode: result?.mode || 'structured', phase: valid ? state.phase : '', elapsedMs: valid ? state.elapsedMs : undefined, refresh, newsRange, setNewsRange };
 }

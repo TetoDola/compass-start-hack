@@ -29,7 +29,7 @@ export function aggregateProducts(a: Analysis) {
 
 export function productEvidence(a: Analysis, p: ReturnType<typeof aggregateProducts>[number]): Evidence {
   return { id: `product:${p.id}`, type: 'calculation', title: `${p.name} across selected accounts`, location: `clients.json / ${a.customer.ClientRef} / selected SecurityPositions joined by exact ISIN`,
-    fields: [{ label: 'Combined portfolio weight', value: a.weightsAvailable ? percent(p.weight,2) : 'Unavailable: resolve scope' }, { label: 'Combined position value', value: a.scopeAmbiguous ? 'Unavailable: resolve scope' : money(p.value,p.currency) }, ...p.positions.map(h=>({label:h.portfolio,value:`${money(h.value,h.currency)} · ${percent(h.weight,2)} of selected scope`}))], note: 'Same verified instrument across positions. This is product exposure, not an issuer-credit-risk estimate. Cross-currency amounts are not added.' };
+    fields: [{ label: 'Combined portfolio weight', value: a.weightsAvailable ? percent(p.weight,2) : 'Unavailable: resolve scope' }, { label: 'Combined position value', value: a.scopeAmbiguous ? 'Unavailable: resolve scope' : money(p.value,p.currency) }, ...p.positions.map(h=>({label:h.portfolio,value:`${money(h.value,h.currency)} · ${a.weightsAvailable?percent(h.weight,2):'Unknown weight'} of selected scope`}))], note: 'Same verified instrument across positions. This is product exposure, not an issuer-credit-risk estimate. Cross-currency amounts are not added.' };
 }
 
 // Applicability comes from the supplied asset classification, not the fund name.

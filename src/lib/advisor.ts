@@ -1,3 +1,4 @@
+import { selectedEventFact, type EventDiscussion } from './eventContext';
 import { mandate, clientContextEvidence, aggregateProducts, productEvidence, allocationReview, allocationEvidence } from './advisory';
 import type { Analysis, Evidence } from './types';
 import { contextEvidence, newsTargets, type MarketContext } from './briefing';
@@ -7,7 +8,7 @@ import { dateLabel, money, percent } from './format';
 
 export interface AnswerBlock { id: string; title: string; text: string[]; evidence: Evidence[]; rows?: { name: string; value: string; newsId?: string }[]; articles?: { id: string; title: string; url: string; source: string }[] }
 export interface AdvisorAnswer { blocks: AnswerBlock[]; mode: string }
-export function advisorFacts(a: Analysis, context?: MarketContext): AnswerBlock[] {
+export function advisorFacts(a: Analysis, context?: MarketContext, selection?: EventDiscussion): AnswerBlock[] {
   const note = a.findings.find(f => f.id === 'customer-context');
   const attention = portfolioAttention(a);
   const blocks: AnswerBlock[] = [
@@ -39,9 +40,12 @@ export function advisorFacts(a: Analysis, context?: MarketContext): AnswerBlock[
     const exposure = portfolioExposures(a,t.kind || 'company').find(e=>e.id===t.id);
     blocks.push({id:`entity:${t.id}`,title:t.name,text:[`${t.weight==null ? 'Combined exposure unavailable' : `${percent(t.weight,2)} of selected portfolio`}. ${t.via}.`, articles.length ? 'These headlines are linked by entity relevance. Verify their context before drawing a conclusion.' : 'No matching headlines returned so far. That does not mean there is no event or risk.'],evidence:[...(exposure?.evidence || []),...articles.map(contextEvidence)],articles:articles.map(i=>({id:i.id,title:i.title,url:i.url,source:i.source}))});
   }
+  const selected=selectedEventFact(a,selection);
+  if(selected)blocks.unshift(selected);
   return blocks;
 }
 export function routeQuestion(question: string, facts: AnswerBlock[], previousQuestions: string[] = []): string[] {
+  if(facts.some(f=>f.id==='selected-event'))return ['selected-event'];
   const q = question.toLowerCase(); const ids: string[] = [];
   const add = (id: string) => { if (facts.some(f=>f.id===id) && !ids.includes(id)) ids.push(id); };
   if (/brief|overview|summari[sz]e|summary/.test(q)) return [...(facts.find(f=>f.id==='events')?.articles?.length ? ['events'] : []),'attention','performance:1M','customer'];

@@ -2,7 +2,7 @@ import type { WorldStatus } from './world';
 import { aggregateProducts, clientContextEvidence, lookThrough, mandate } from './advisory';
 import type { Analysis, Evidence } from './types.ts';
 import { portfolioAttention, periodPerformance, portfolioExposures } from './portfolio';
-import { materialEvent, type MaterialEvent } from './events';
+import { materialEvent, compareNews, type MaterialEvent } from './events';
 import { dateLabel, money, percent } from './format.ts';
 
 export type SectionKey = 'development' | 'health' | 'outlook' | 'actions';
@@ -13,9 +13,9 @@ export const sections: { id: SectionKey; title: string; subtitle: string }[] = [
   { id: 'actions', title: 'What to do next', subtitle: 'Prepare the next conversation' },
 ];
 export interface NewsTarget { kind?: 'company' | 'industry' | 'country' | 'region'; id: string; name: string; isin?: string; symbol?: string; via: string; weight: number | null }
-export interface ContextItem { id: string; kind: 'news' | 'house-view'; title: string; source: string; url: string; publishedAt: string; retrievedAt: string; entityIds: string[]; relevance: string; imageUrl?: string; summary?: string; sample?: boolean; provider: string; provenance?: 'public-research' | 'bank-approved'; exposureWeight?: number | null; matchKind?: 'company' | 'topic'; event?: MaterialEvent; geo?: {coordinates:[number,number];label:string;basis:'article-location'} }
+export interface ContextItem { id: string; kind: 'news' | 'house-view'; title: string; source: string; url: string; publishedAt: string; retrievedAt: string; entityIds: string[]; relevance: string; imageUrl?: string; summary?: string; sample?: boolean; provider: string; provenance?: 'public-research' | 'bank-approved'; exposureWeight?: number | null; matchKind?: 'company' | 'topic'; event?: MaterialEvent; layer?: 'news'|'shipping'|'disaster'; sourceRelevance?: string; geo?: {coordinates:[number,number];label:string;basis:'article-location'|'event-location'|'country-mention'} }
 export interface MarketContext { items: ContextItem[]; checked: number; requested: number; totalEligible?: number; warnings: string[]; elapsedMs: number; fetchedAt: string; providers: string[]; checkedIds?: string[]; windowDays?: number; world?: WorldStatus }
-export interface BriefCandidate { id: string; section: SectionKey; text: string; sourceIds: string[]; findingId?: string; contextId?: string; evidence?: Evidence[] }
+export interface BriefCandidate { id: string; section: SectionKey; text: string; sourceIds: string[]; findingId?: string; contextId?: string; contextKind?: ContextItem['kind']; evidence?: Evidence[] }
 export interface BriefSelection { development: string[]; health: string[]; outlook: string[]; actions: string[] }
 export interface BriefResult { selection: BriefSelection; mode: 'structured' | 'ai-selected'; message: string; elapsedMs: number }
 
@@ -58,7 +58,7 @@ export function briefingCandidates(a: Analysis, context?: MarketContext | null):
   }
   if (a.scopeAmbiguous) add({ id: 'scope', section: 'health', text: 'Overlapping portfolios: combined totals may double-count assets.\nSelect one portfolio to see totals, liquidity and exposure weights.', sourceIds: a.portfolios.map(p => `p-${p.PortfolioId}`) });
   if (!candidates.some(c => c.section === 'development')) add({ id: 'no-history', section: 'development', text: 'No dated advisory history was supplied. Start by confirming the customer’s current objectives.', sourceIds: [] });
-  for (const item of [...(context?.items.filter(i => i.kind === 'news') || [])].sort((a,b) => Number(!!materialEvent(b.title))-Number(!!materialEvent(a.title)) || Number(b.matchKind==='company')-Number(a.matchKind==='company') || (b.exposureWeight||0)-(a.exposureWeight||0)).slice(0, 11).concat(context?.items.filter(i => i.kind === 'house-view') || [])) add({ id: item.id, section: 'outlook', text: item.kind === 'news' ? `${short(item.title, 20)} · ${dateLabel(item.publishedAt, true)}.\n${short(item.relevance.split('. Matches')[0],28)}. Impact unverified.` : `${item.provenance==='bank-approved'?'Bank view (uploader-declared)':'Public research'} · ${dateLabel(item.publishedAt,true)}: ${item.title}.\n${short(item.summary || item.relevance,28)}`, sourceIds: [item.id], contextId: item.id });
+  for (const item of [...(context?.items.filter(i => i.kind === 'news') || [])].sort(compareNews).slice(0, 11).concat(context?.items.filter(i => i.kind === 'house-view') || [])) add({ id: item.id, section: 'outlook', text: item.kind === 'news' ? `${short(item.title, 20)} · ${dateLabel(item.publishedAt, true)}.\n${short(item.relevance.split('. Matches')[0],28)}. Impact unverified.` : `${item.provenance==='bank-approved'?'Bank view (uploader-declared)':'Public research'} · ${dateLabel(item.publishedAt,true)}: ${item.title}.\n${short(item.summary || item.relevance,28)}`, sourceIds: [item.id], contextId: item.id, contextKind: item.kind });
   if (!context?.items.length) add({ id: 'no-outlook', section: 'outlook', text: `${context ? 'No recent matching news verified.' : 'Refresh to check current news.'}\nNo bank-approved house view supplied.`, sourceIds: [] });
   return candidates;
 }
@@ -66,7 +66,7 @@ export function defaultSelection(candidates: BriefCandidate[]): BriefSelection {
   const first = (section: SectionKey, preferred?: string) => candidates.find(c => c.section === section && c.id === preferred)?.id || candidates.find(c => c.section === section)?.id;
   const health = first('health', candidates.some(c=>c.id==='scope')?'scope':'agenda:health');
   const outlook = candidates.filter(c => c.section === 'outlook');
-  const chosenOutlook=[...outlook.filter(c=>c.id.startsWith('news:')).slice(0,1),...outlook.filter(c=>c.id.startsWith('house:')).slice(0,1),...outlook.filter(c=>c.id==='no-outlook')].map(c=>c.id);
+  const chosenOutlook=[...outlook.filter(c=>c.contextKind==='news').slice(0,1),...outlook.filter(c=>c.contextKind==='house-view').slice(0,1),...outlook.filter(c=>c.id==='no-outlook')].map(c=>c.id);
   return { development: [first('development', 'fact:value-development')!], health: [health!], outlook: chosenOutlook.length?chosenOutlook:[first('outlook')!], actions: [first('actions', 'agenda:actions')!] };
 }
 // AI selects source-backed sentences; it cannot invent amounts, trades, deadlines or causal claims.
@@ -78,7 +78,7 @@ export function validateSelection(value: unknown, candidates: BriefCandidate[]):
     if (!Array.isArray(chosen) || chosen.length < 1 || chosen.length > (id === 'outlook' ? 2 : 1) || new Set(chosen).size !== chosen.length || chosen.some(key => !candidates.some(c => c.id === key && c.section === id))) throw new Error('The AI selection was not grounded in this brief.');
   }
   if(candidates.some(c=>c.id==='fact:value-development') && !result.development.includes('fact:value-development'))throw new Error('The AI omitted observed portfolio development.');
-  if(result.outlook.filter(id=>candidates.find(c=>c.id===id)?.contextId?.startsWith('news:')).length>1)throw new Error('Choose one news item and, optionally, one research view.');
+  if(result.outlook.filter(id=>candidates.find(c=>c.id===id)?.contextKind==='news').length>1)throw new Error('Choose one news item and, optionally, one research view.');
   if (candidates.some(c => c.id === 'scope') && (!result.health.includes('scope') || !result.actions.includes('agenda:actions'))) throw new Error('The AI omitted the unresolved portfolio scope.');
   return result;
 }

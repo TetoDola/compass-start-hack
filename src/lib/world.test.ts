@@ -27,7 +27,7 @@ test('world filter excludes future, undated and out-of-window articles; null wei
 test('merging does not duplicate headlines, replace existing IDs or sum overlapping weights',()=>{
  const context=worldContext({articles:[article],state:'complete',retrievedAt:new Date(now).toISOString(),message:'Connected'},[target],7,now);
  const base={...context,items:context.items.map(i=>({...i,id:'existing',entityIds:['instrument:2']}))};
- const merged=mergeWorldContext(base,context);
+ const merged=mergeWorldContext(base,context,[target]);
  assert.equal(merged.items.length,1);assert.equal(merged.items[0].id,'existing');assert.deepEqual(merged.items[0].entityIds,['instrument:2',target.id]);assert.equal(merged.items[0].exposureWeight,.25);
 });
 test('hypothetical arithmetic never invents exposure or accepts invalid weights',()=>{assert.ok(Math.abs(scenarioEffect(.1,-.2)!+.02)<1e-10);assert.equal(scenarioEffect(null,-.2),null);assert.equal(scenarioEffect(2,-.2),null);});
