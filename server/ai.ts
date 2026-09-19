@@ -57,7 +57,8 @@ export async function selectJson(instructions: string, input: unknown, schema: u
   const headers: Record<string,string>=config.AI_PROVIDER==='azure'
     ? {'api-key':config.AZURE_OPENAI_API_KEY || '','Content-Type':'application/json'}
     : {Authorization:`Bearer ${config.OPENAI_API_KEY}`,'Content-Type':'application/json'};
-  const response=await fetch(endpoint,{method:'POST',signal:AbortSignal.timeout(18000),headers,body:JSON.stringify({model:config.AI_PROVIDER==='azure' ? config.AZURE_OPENAI_DEPLOYMENT : config.OPENAI_MODEL || 'gpt-5-mini',store:false,reasoning:{effort:'minimal'},input:[{role:'developer',content:instructions},{role:'user',content:JSON.stringify(input)}],text:{format:{type:'json_schema',name,strict:true,schema}}})});
+  const body={model:config.AI_PROVIDER==='azure' ? config.AZURE_OPENAI_DEPLOYMENT : config.OPENAI_MODEL || 'gpt-5-mini',store:false,input:[{role:'developer',content:instructions},{role:'user',content:JSON.stringify(input)}],text:{format:{type:'json_schema',name,strict:true,schema}},...(config.AI_PROVIDER==='azure' ? {} : {reasoning:{effort:'minimal'}})};
+  const response=await fetch(endpoint,{method:'POST',signal:AbortSignal.timeout(18000),headers,body:JSON.stringify(body)});
   if(!response.ok)throw new Error('AI service unavailable');
   const data=await response.json();
   return JSON.parse((data.output || []).flatMap((o:any)=>o.content || []).filter((c:any)=>c.type==='output_text').map((c:any)=>c.text).join(''));
