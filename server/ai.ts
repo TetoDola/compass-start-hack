@@ -5,7 +5,13 @@ import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import type { ProviderConfig } from './providers';
 
-export const aiConfigured = (c: ProviderConfig) => c.AI_PROVIDER === 'codex' || !!c.OPENAI_API_KEY;
+export const aiConfigured = (c: ProviderConfig) => {
+  if (c.AI_PROVIDER === 'codex') return true;
+  if (c.AI_PROVIDER === 'azure') return !!c.AZURE_OPENAI_ENDPOINT && !!c.AZURE_OPENAI_API_KEY && !!c.AZURE_OPENAI_DEPLOYMENT;
+  if (c.AI_PROVIDER === 'fireworks') return !!c.FIREWORKS_API_KEY;
+  return !!c.OPENAI_API_KEY;
+};
+export const aiLabel = (c: ProviderConfig) => c.AI_PROVIDER === 'codex' ? 'Codex' : c.AI_PROVIDER === 'azure' ? 'Azure AI' : c.AI_PROVIDER === 'fireworks' ? 'Fireworks' : 'AI';
 const cache = new Map<string, Promise<unknown>>();
 
 // Local Codex login; isolated, ephemeral classification with no repository or MCP tools.
@@ -36,7 +42,22 @@ export async function selectJson(instructions: string, input: unknown, schema: u
     if(!cache.has(key)) { if(cache.size>=100)cache.delete(cache.keys().next().value!); const job=codexJson(instructions,input,schema,config);cache.set(key,job);job.catch(()=>cache.delete(key)); }
     return cache.get(key)!;
   }
-  const response=await fetch('https://api.openai.com/v1/responses',{method:'POST',signal:AbortSignal.timeout(18000),headers:{Authorization:`Bearer ${config.OPENAI_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({model:config.OPENAI_MODEL || 'gpt-5-mini',store:false,reasoning:{effort:'minimal'},input:[{role:'developer',content:instructions},{role:'user',content:JSON.stringify(input)}],text:{format:{type:'json_schema',name,strict:true,schema}}})});
+  if(config.AI_PROVIDER==='fireworks') {
+    const base=(config.FIREWORKS_BASE_URL || 'https://api.fireworks.ai/inference/v1').replace(/\/+$/,'');
+    const response=await fetch(`${base}/chat/completions`,{method:'POST',signal:AbortSignal.timeout(12000),headers:{Authorization:`Bearer ${config.FIREWORKS_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({model:config.FIREWORKS_MODEL || 'accounts/fireworks/models/qwen3-8b',messages:[{role:'system',content:instructions},{role:'user',content:JSON.stringify(input)}],temperature:0,max_tokens:600,response_format:{type:'json_schema',json_schema:{name,schema}}})});
+    if(!response.ok)throw new Error('AI service unavailable');
+    const data=await response.json();
+    const text=data.choices?.[0]?.message?.content;
+    if(typeof text!=='string')throw new Error('AI response was not JSON text');
+    return JSON.parse(text);
+  }
+  const endpoint=config.AI_PROVIDER==='azure'
+    ? `${(config.AZURE_OPENAI_ENDPOINT || '').replace(/\/+$/,'')}${/\/openai\/v1$/i.test(config.AZURE_OPENAI_ENDPOINT || '') ? '' : '/openai/v1'}/responses`
+    : 'https://api.openai.com/v1/responses';
+  const headers: Record<string,string>=config.AI_PROVIDER==='azure'
+    ? {'api-key':config.AZURE_OPENAI_API_KEY || '','Content-Type':'application/json'}
+    : {Authorization:`Bearer ${config.OPENAI_API_KEY}`,'Content-Type':'application/json'};
+  const response=await fetch(endpoint,{method:'POST',signal:AbortSignal.timeout(18000),headers,body:JSON.stringify({model:config.AI_PROVIDER==='azure' ? config.AZURE_OPENAI_DEPLOYMENT : config.OPENAI_MODEL || 'gpt-5-mini',store:false,reasoning:{effort:'minimal'},input:[{role:'developer',content:instructions},{role:'user',content:JSON.stringify(input)}],text:{format:{type:'json_schema',name,strict:true,schema}}})});
   if(!response.ok)throw new Error('AI service unavailable');
   const data=await response.json();
   return JSON.parse((data.output || []).flatMap((o:any)=>o.content || []).filter((c:any)=>c.type==='output_text').map((c:any)=>c.text).join(''));

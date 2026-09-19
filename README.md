@@ -55,7 +55,13 @@ Optional provider configuration lives in `.env.local` (copy `.env.example` and r
 | `OPENBB_SYMBOLS` | Optional ISIN-to-ticker overrides; bundled yfinance accepts ISINs directly |
 | `OPENAI_API_KEY` | Enable AI selection of evidence-backed briefing and chat answer blocks |
 | `OPENAI_MODEL` | Model for Responses API selection; default `gpt-5-mini` |
-| `AI_PROVIDER` | Set `codex` to use your local Codex login instead of an API key |
+| `AI_PROVIDER` | Set `codex`, `azure` or `fireworks`; otherwise the OpenAI Responses path is used |
+| `AZURE_OPENAI_ENDPOINT` | Azure OpenAI resource or Foundry project endpoint; the adapter appends `/openai/v1` when needed |
+| `AZURE_OPENAI_API_KEY` | Server-only Azure key |
+| `AZURE_OPENAI_DEPLOYMENT` | Azure deployment name sent as the `model` value; default example is `gpt-5-mini` |
+| `FIREWORKS_API_KEY` | Server-only Fireworks key |
+| `FIREWORKS_BASE_URL` | Fireworks OpenAI-compatible API base; default `https://api.fireworks.ai/inference/v1` |
+| `FIREWORKS_MODEL` | Fireworks model; default `accounts/fireworks/models/qwen3-8b` for fast structured selection |
 | `CODEX_BIN` | Optional path to a current Codex executable; defaults to `codex` |
 | `CODEX_MODEL` | Optional Codex model override |
 
@@ -85,15 +91,17 @@ The teammate's Parse marketplace listing advertises ETF search/profile/prices/pe
 
 Official references: [OpenBB company news](https://docs.openbb.co/odp/python/reference/news/company), [FMP holdings](https://site.financialmodelingprep.com/developer/docs/stable/holdings), [FMP ISIN search](https://site.financialmodelingprep.com/developer/docs/stable/search-isin), [FMP company news](https://site.financialmodelingprep.com/developer/docs/stable/search-stock-news), [Parse listing](https://parse.bot/marketplace/9b0e18a9-ca27-4387-b170-39b5e2066411/justetf-com-api).
 
+For AI provider setup, see Microsoft's [Azure Responses API](https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/responses) and [Fireworks models on Microsoft Foundry](https://learn.microsoft.com/en-us/azure/foundry/how-to/fireworks/enable-fireworks-models), plus Fireworks' [OpenAI-compatible API](https://docs.fireworks.ai/guides/querying-text-models). Foundry Fireworks deployments use `AI_PROVIDER=azure`, the Foundry project endpoint, and the deployment name (for example `FW-DeepSeek-V4-Flash-0731`). A direct Fireworks account uses `AI_PROVIDER=fireworks` and the supplied Fireworks model ID.
+
 ## House view and AI boundaries
 
 Open **News & house views → House views & research → Import research**. Upload an array matching `public/research-template.json`: title, original source URL, publication date, summary, provenance and topics. Company topics require an ISIN; industry/country/region topics use exact exposure labels. Matching views join the brief, sources and graph. Unmatched views stay in the library. Research is kept in local browser storage and can be cleared. “Bank-approved” is an uploader declaration, never an approval independently verified by Compass. No hardcoded house view is injected.
 
 The current local demo uses Codex with its existing ChatGPT login. The Homebrew CLI's old MCP server rejected the configured current model; the bundled current runtime has removed MCP hosting. The adapter therefore uses **`codex exec`**, with an isolated temporary directory, user configuration disabled, read-only sandbox, shell tools disabled, ephemeral sessions and a JSON output schema. Set `AI_PROVIDER=codex`, `CODEX_BIN` to the current executable if needed, and `CODEX_MODEL` to an available model. This workspace was live-tested with the app's runtime and `gpt-5.6-luna`. Other machines need a compatible Codex install and login. No credential is exposed to the browser.
 
-Alternatively, `OPENAI_API_KEY` enables Responses API structured selection. Both routes choose from joined, evidence-backed briefing candidates and chat blocks. Server validation rejects unknown IDs, wrong sections, omitted value development and omitted scope safeguards. At most one news story plus one matched research view is selected. Calculations and identity joins remain deterministic. This is AI-assisted evidence prioritization, not an autonomous recommendation or trade engine. The sourced brief and local chat answer appear before the model responds and survive failure.
+Alternatively, `OPENAI_API_KEY` enables Responses API structured selection. `AI_PROVIDER=azure` uses Azure AI / Foundry's v1 Responses endpoint and treats the deployment name as the model. `AI_PROVIDER=fireworks` uses the OpenAI-compatible Fireworks chat endpoint with structured JSON; the small Qwen3 8B default is suited to this app's short evidence-ranking calls, while `FIREWORKS_MODEL` can point to another available model. Both routes choose from joined, evidence-backed briefing candidates and chat blocks. Server validation rejects unknown IDs, wrong sections, omitted value development and omitted scope safeguards. At most one news story plus one matched research view is selected. Calculations and identity joins remain deterministic. This is AI-assisted evidence prioritization, not an autonomous recommendation or trade engine. The sourced brief and local chat answer appear before the model responds and survive failure.
 
-AI requests send customer-note excerpts, selected financial facts and public context to the configured OpenAI service. Responses API uses `store: false`; local Codex uses ephemeral sessions (that is not a claim of zero provider retention). Client imports stay in browser memory; research is stored locally, and public fund/news caches stay on the local server. The app removes explicit name, birthday and account-ID fields and redacts account-number patterns. It does not claim comprehensive free-text anonymization or production bank-data approval.
+AI requests send customer-note excerpts, selected financial facts and public context to the configured provider. Responses API requests use `store: false`; local Codex uses ephemeral sessions (that is not a claim of zero provider retention). Client imports stay in browser memory; research is stored locally, and public fund/news caches stay on the local server. The app removes explicit name, birthday and account-ID fields and redacts account-number patterns. It does not claim comprehensive free-text anonymization or production bank-data approval.
 
 ## Import contract
 

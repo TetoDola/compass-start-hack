@@ -1,6 +1,24 @@
 import type { FundHoldingSnapshot } from '../src/lib/types.ts';
 
-export interface ProviderConfig { WORLDMONITOR_BASE_URL?: string; WORLDMONITOR_API_KEY?: string; FMP_API_KEY?: string; OPENBB_BASE_URL?: string; OPENBB_NEWS_PROVIDER?: string; OPENBB_SYMBOLS?: string; OPENAI_API_KEY?: string; OPENAI_MODEL?: string; AI_PROVIDER?: string; CODEX_MODEL?: string; CODEX_BIN?: string }
+export interface ProviderConfig {
+  WORLDMONITOR_BASE_URL?: string;
+  WORLDMONITOR_API_KEY?: string;
+  FMP_API_KEY?: string;
+  OPENBB_BASE_URL?: string;
+  OPENBB_NEWS_PROVIDER?: string;
+  OPENBB_SYMBOLS?: string;
+  OPENAI_API_KEY?: string;
+  OPENAI_MODEL?: string;
+  AZURE_OPENAI_ENDPOINT?: string;
+  AZURE_OPENAI_API_KEY?: string;
+  AZURE_OPENAI_DEPLOYMENT?: string;
+  FIREWORKS_API_KEY?: string;
+  FIREWORKS_BASE_URL?: string;
+  FIREWORKS_MODEL?: string;
+  AI_PROVIDER?: string;
+  CODEX_MODEL?: string;
+  CODEX_BIN?: string;
+}
 export const validIsin = (s: unknown): s is string => typeof s === 'string' && /^[A-Z]{2}[A-Z0-9]{9}[0-9]$/.test(s);
 export async function fmpGet(route: string, params: Record<string, string>, key: string, signal = AbortSignal.timeout(3000)) {
   const url = new URL(`https://financialmodelingprep.com/stable/${route}`);
