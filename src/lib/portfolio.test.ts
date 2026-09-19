@@ -36,6 +36,30 @@ test('attention groups actual rule names and preserves supplied thresholds and e
   const usd=items.find(i=>i.title==='Currency concentration')!;assert.ok(usd);assert.match(usd.metric!,/75.3%.*35.5%/);
   assert.equal(violationMeasurement({ViolationPath:'not-json'}),'');assert.ok(usd.evidence.every(e=>e.location.includes('SuitabilityViolations')));
 });
+test('supplied profile limits are compared even when the export records no violation',()=>{
+  const client=(id:number)=>analyze(data,data.clients.find(c=>c.ClientId===id)!);
+  const quiet=client(31909);assert.equal(quiet.violations.length,0);
+  const vol=portfolioAttention(quiet).find(i=>i.id.startsWith('profile-volatility:'))!;
+  assert.equal(vol.level,'critical');assert.match(vol.title,/60\.6% above the profile ceiling/);assert.match(vol.metric!,/15\.0% ceiling/);
+  assert.ok(vol.evidence.some(e=>e.location.includes('RiskProfiles[Id=18]')));
+  // Hard limits lead the agenda, so they reach the brief's health and action candidates.
+  const candidates=briefingCandidates(quiet);assert.match(candidates.find(c=>c.id==='agenda:health')!.text,/profile ceiling/);
+  const conservative=portfolioAttention(client(62909));
+  assert.match(conservative.find(i=>i.id==='profile-equity')!.title,/above the 45\.0% profile ceiling/);
+  assert.match(conservative.find(i=>i.id==='profile-product-risk')!.detail,/class 6/);
+  assert.match(portfolioAttention(client(49948)).find(i=>i.id.startsWith('profile-strategy:'))!.title,/sits above the recorded risk profile/);
+  const esg=portfolioAttention(client(40610)).find(i=>i.id==='profile-sustainability')!;
+  assert.equal(esg.level,'review');assert.match(esg.metric!,/minimum 5\.71 per position/);
+  // A client whose supplied figures sit inside every limit gains no invented finding.
+  assert.equal(portfolioAttention(client(911)).some(i=>i.id.startsWith('profile-')),false);
+});
+test('recorded volatility findings keep their direction and rule name',()=>{
+  const below=portfolioAttention(analyze(data,data.clients.find(c=>c.ClientId===4801)!)).find(i=>i.title==='Risk level and volatility')!;
+  assert.match(below.metric!,/Volatility range undershot/);
+  assert.match(below.action,/below the agreed range/);assert.doesNotMatch(below.action,/lower-risk/);
+  const mixed=portfolioAttention(analyze(data,data.clients.find(c=>c.ClientId===911)!)).find(i=>i.title==='Risk level and volatility')!;
+  assert.match(mixed.action,/opposite directions/);
+});
 test('distress triage prioritizes affirmative reports without labeling denials, questions or recovery as bankruptcy',()=>{
   for(const title of ['Example files for bankruptcy','Example enters administration','Example defaults on debt']) assert.equal(materialEvent(title)?.severity,'critical');
   for(const title of ['Example denies bankruptcy rumours','Example avoids bankruptcy','Could Example file for bankruptcy?','Example emerges from bankruptcy','Example may file for bankruptcy','Example dividend grows']) assert.equal(materialEvent(title),undefined,title);

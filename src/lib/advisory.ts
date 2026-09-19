@@ -16,6 +16,98 @@ export function clientContextEvidence(a: Analysis): Evidence {
     fields: [{ label: 'Service', value: m.label }, { label: 'Recorded strategy', value: a.strategy }, { label: 'Risk profile', value: a.customer.RiskProfileName || 'Not supplied' }, { label: 'Regulatory classification', value: a.customer.RegulatoryClientTypeName || 'Not supplied' }, { label: 'Last profiling', value: dateLabel(a.customer.ProfilingDateUtc, true) }, { label: 'Liquidity interpretation', value: m.cashLabel }], note: m.instruction };
 }
 
+const profileLimitEvidence = (a: Analysis): Evidence => ({
+  id: 'profile-limits', type: 'record', title: `${a.customer.RiskProfileName || 'Risk profile'} · supplied limits`,
+  location: `reference.json / RiskProfiles[Id=${a.customer.RiskProfileId}]`, date: a.customer.ProfilingDateUtc,
+  fields: [{ label: 'Risk profile', value: a.customer.RiskProfileName || 'Not supplied' },
+    { label: 'Maximum volatility', value: number(a.riskProfile?.MaxVola) != null ? percent(a.riskProfile!.MaxVola) : 'Not supplied' },
+    { label: 'Maximum equity quote', value: number(a.riskProfile?.EquityQuoteInPercent) != null ? percent(a.riskProfile!.EquityQuoteInPercent) : 'Not supplied' },
+    { label: 'Maximum product risk class', value: number(a.riskProfile?.MaxPRC) != null ? String(a.riskProfile!.MaxPRC) : 'Not supplied' },
+    { label: 'Last profiling', value: dateLabel(a.customer.ProfilingDateUtc, true) }],
+  note: 'Supplied profile limits compared with supplied portfolio figures. Neither side is recalculated here, and the suitability decision remains with the adviser.',
+});
+/** The inputs are supplied records; the comparison itself is calculated here and must not read as a recorded finding. */
+const comparisonEvidence = (id: string, title: string, location: string, rows: { label: string; value: string }[]): Evidence => ({
+  id, type: 'calculation', title, location, fields: rows,
+  note: 'Compass compared two supplied values. This is not an exported rule-engine finding, and it does not by itself establish a suitability breach.',
+});
+const securityLimitEvidence = (a: Analysis, h: Holding, rows: { label: string; value: string }[], note: string): Evidence => ({
+  id: `profile-security:${h.id}`, type: 'record', title: `${h.displayName} · supplied classification`,
+  location: `reference.json / Securities[Id=${h.securityId}]`,
+  fields: [...rows, { label: 'Portfolio weight', value: a.weightsAvailable ? percent(h.weight, 2) : 'Unavailable: resolve scope' }, { label: 'Account', value: h.portfolio }], note,
+});
+
+export interface ProfileBreach { id: string; kind: 'volatility' | 'equity' | 'product-risk-class' | 'sustainability' | 'strategy'; title: string; metric?: string; detail: string; action: string; evidence: Evidence[] }
+
+/** Compares supplied portfolio figures with the client's own supplied profile limits. Reported, not recalculated. */
+export function profileReview(a: Analysis): ProfileBreach[] {
+  const out: ProfileBreach[] = [];
+  const profile = a.riskProfile;
+  const limits = profileLimitEvidence(a);
+  const source = (portfolioId: number) => a.evidence.filter(e => e.id === `p-${portfolioId}`);
+  const weightOf = (hs: Holding[]) => hs.reduce((n, h) => n + h.weight, 0);
+  if (profile) {
+    const maxVola = number(profile.MaxVola), maxEquity = number(profile.EquityQuoteInPercent), maxPrc = number(profile.MaxPRC), profileLevel = number(profile.RiskLevel);
+    for (const p of a.portfolios) {
+      const actual = number(p.Volatility);
+      if (maxVola != null && actual != null && actual > maxVola) out.push({
+        id: `profile-volatility:${p.PortfolioId}`, kind: 'volatility',
+        title: `${p.PortfolioNr || 'Portfolio'}: volatility ${percent(actual)} above the profile ceiling`,
+        metric: `${percent(actual)} supplied · ${percent(maxVola)} ceiling for ${a.customer.RiskProfileName || 'the recorded profile'}`,
+        detail: 'The supplied portfolio volatility is higher than the maximum recorded for this client’s risk profile. Both are supplied snapshot figures; neither has been recalculated here.',
+        action: `Verify the current risk figure, then discuss whether the allocation or the recorded profile should change. ${mandate(a).instruction}`,
+        evidence: [comparisonEvidence(`profile-volatility-calc:${p.PortfolioId}`, `${p.PortfolioNr || 'Portfolio'} volatility versus profile ceiling`, `clients.json / Portfolios[PortfolioId=${p.PortfolioId}].Volatility vs reference.json / RiskProfiles[Id=${a.customer.RiskProfileId}].MaxVola`,
+          [{ label: 'Supplied volatility', value: percent(actual) }, { label: 'Profile maximum', value: percent(maxVola) }, { label: 'Difference', value: `${percent(actual - maxVola)} above the ceiling` }]), limits, ...source(p.PortfolioId)],
+      });
+      const strategyLevel = Number(/(\d+)/.exec(p.StrategyName || '')?.[1]);
+      if (profileLevel != null && Number.isFinite(strategyLevel) && strategyLevel !== profileLevel) out.push({
+        id: `profile-strategy:${p.PortfolioId}`, kind: 'strategy',
+        title: `${p.PortfolioNr || 'Portfolio'}: ${p.StrategyName} sits ${strategyLevel > profileLevel ? 'above' : 'below'} the recorded risk profile`,
+        metric: `Strategy level ${strategyLevel} · profile level ${profileLevel} (${a.customer.RiskProfileName || 'not supplied'})`,
+        detail: 'The portfolio’s recorded investment strategy and the client’s recorded risk profile are different levels. The export does not establish which one currently applies.',
+        action: `Confirm which record is current, and on what date it was agreed, before preparing a recommendation. ${mandate(a).instruction}`,
+        evidence: [comparisonEvidence(`profile-strategy-calc:${p.PortfolioId}`, `${p.PortfolioNr || 'Portfolio'} strategy versus recorded risk profile`, `clients.json / Portfolios[PortfolioId=${p.PortfolioId}].StrategyName vs reference.json / RiskProfiles[Id=${a.customer.RiskProfileId}].RiskLevel`,
+          [{ label: 'Portfolio strategy', value: p.StrategyName }, { label: 'Level read from strategy name', value: String(strategyLevel) }, { label: 'Risk profile', value: `${a.customer.RiskProfileName || 'Not supplied'} (level ${profileLevel})` }]), limits, ...source(p.PortfolioId)],
+      });
+    }
+    const equity = a.allocations.filter(x => /shares|equit/i.test(x.label)).reduce((n, x) => n + x.weight, 0);
+    if (maxEquity != null && a.weightsAvailable && equity > maxEquity) out.push({
+      id: 'profile-equity', kind: 'equity',
+      title: `Equity ${percent(equity)} above the ${percent(maxEquity)} profile ceiling`,
+      metric: `${percent(equity)} of the selected scope · ${percent(maxEquity)} maximum equity quote`,
+      detail: 'Equity share of the selected scope, measured against total reported value with cash and other accounts in the denominator. Supplied asset classifications; unclassified positions are not counted as equity.',
+      action: `Confirm the applicable equity limit and its measurement basis, then compare the current allocation with it. ${mandate(a).instruction}`,
+      evidence: [comparisonEvidence('profile-equity-calc', 'Equity share versus profile ceiling', `clients.json / ${a.customer.ClientRef} / selected positions grouped by supplied asset class vs reference.json / RiskProfiles[Id=${a.customer.RiskProfileId}].EquityQuoteInPercent`,
+        [{ label: 'Equity share of selected scope', value: percent(equity) }, { label: 'Profile maximum', value: percent(maxEquity) }, { label: 'Difference', value: `${percent(equity - maxEquity)} above the ceiling` }, { label: 'Denominator', value: 'Total reported value of the selected scope, including cash and other accounts' }]), limits, ...a.portfolios.flatMap(p => source(p.PortfolioId))],
+    });
+    const overPrc = a.holdings.filter(h => maxPrc != null && h.productRiskClass != null && h.productRiskClass > maxPrc);
+    if (overPrc.length) out.push({
+      id: 'profile-product-risk', kind: 'product-risk-class',
+      title: `${overPrc.length} position${overPrc.length === 1 ? '' : 's'} above product risk class ${maxPrc}`,
+      metric: a.weightsAvailable ? `${percent(weightOf(overPrc))} of the selected scope` : undefined,
+      detail: `Supplied product risk classes exceed the maximum recorded for ${a.customer.RiskProfileName || 'this profile'}: ${overPrc.map(h => `${h.displayName} (class ${h.productRiskClass})`).join('; ')}.`,
+      action: `Check whether these products were acquired under a different profile or an advised exception, and record the outcome. ${mandate(a).instruction}`,
+      evidence: [comparisonEvidence('profile-product-risk-calc', 'Product risk classes above the profile maximum', `reference.json / Securities[].PRC vs reference.json / RiskProfiles[Id=${a.customer.RiskProfileId}].MaxPRC`,
+        [{ label: 'Positions above maximum', value: String(overPrc.length) }, { label: 'Profile maximum', value: String(maxPrc) }, { label: 'Combined weight', value: a.weightsAvailable ? percent(weightOf(overPrc)) : 'Unavailable: resolve scope' }]),
+        limits, ...overPrc.map(h => securityLimitEvidence(a, h, [{ label: 'Product risk class', value: String(h.productRiskClass) }, { label: 'Profile maximum', value: String(maxPrc) }], 'Supplied product risk class compared with the supplied profile maximum.'))],
+    });
+  }
+  const minScore = number(a.esgProfile?.MinimumPositionLevel);
+  const belowEsg = a.holdings.filter(h => minScore != null && h.sustainabilityScore != null && h.sustainabilityScore < minScore);
+  if (belowEsg.length) out.push({
+    id: 'profile-sustainability', kind: 'sustainability',
+    title: `${belowEsg.length} position${belowEsg.length === 1 ? '' : 's'} below the recorded sustainability minimum`,
+    metric: `${a.weightsAvailable ? `${percent(weightOf(belowEsg))} of the selected scope · ` : ''}minimum ${minScore!.toFixed(2)} per position`,
+    detail: `The client's recorded ESG profile sets a minimum per-position sustainability score. Supplied scores below it: ${belowEsg.map(h => `${h.displayName} (${h.sustainabilityScore!.toFixed(2)})`).join('; ')}. Positions without a supplied score are not assessed.`,
+    action: 'Reconfirm the sustainability preference and whether these positions were agreed as exceptions.',
+    evidence: [comparisonEvidence('profile-sustainability-calc', 'Sustainability scores below the profile minimum', `reference.json / Securities[].SustainabilityScore vs reference.json / EsgProfiles[Id=${a.customer.EsgProfileId}].MinimumPositionLevel`,
+      [{ label: 'Positions below minimum', value: String(belowEsg.length) }, { label: 'Profile minimum', value: minScore!.toFixed(3) }, { label: 'Combined weight', value: a.weightsAvailable ? percent(weightOf(belowEsg)) : 'Unavailable: resolve scope' }, { label: 'Positions without a supplied score', value: String(a.holdings.filter(h => h.sustainabilityScore == null).length) }]),
+      { id: 'esg-profile', type: 'record', title: 'Recorded ESG profile', location: `reference.json / EsgProfiles[Id=${a.customer.EsgProfileId}]`, fields: [{ label: 'ESG profile', value: a.customer.EsgProfileName || 'Not supplied' }, { label: 'Minimum position level', value: minScore!.toFixed(3) }], note: 'Supplied ESG profile threshold. Scores are supplied reference values, not a Compass sustainability assessment.' },
+      ...belowEsg.map(h => securityLimitEvidence(a, h, [{ label: 'Sustainability score', value: h.sustainabilityScore!.toFixed(2) }, { label: 'Profile minimum', value: minScore!.toFixed(3) }], 'Supplied sustainability score compared with the supplied profile minimum.'))],
+  });
+  return out;
+}
+
 export function aggregateProducts(a: Analysis) {
   const products = new Map<string, { id: string; name: string; isin?: string; weight: number; value: number | null; currency: string; positions: Holding[] }>();
   for (const h of a.holdings) {

@@ -1,7 +1,7 @@
 import type { Row, Dataset, FundBreakdown } from './types';
 import { list, redact } from './format';
 
-const numericKeys = new Set(['ClientId','PortfolioId','ProposalId','SecurityId','Id','AssetsUnderManagementInDefaultCurrency','LiquidityInDefaultCurrency','Quantity','PricePerUnit','TotalAmountInPortfolioCurrency','PortfolioValuePercentage','Volatility','ExpectedReturn','ValueAtRisk','Value','TargetPercentage','MinPercentage','MaxPercentage','MaxVola','MaxPRC','EquityQuoteInPercent']);
+const numericKeys = new Set(['ClientId','PortfolioId','ProposalId','SecurityId','Id','AssetsUnderManagementInDefaultCurrency','LiquidityInDefaultCurrency','Quantity','PricePerUnit','TotalAmountInPortfolioCurrency','PortfolioValuePercentage','Volatility','ExpectedReturn','ValueAtRisk','Value','TargetPercentage','MinPercentage','MaxPercentage','MaxVola','MaxPRC','EquityQuoteInPercent','RiskLevel','PRC','SustainabilityScore','MinimumPositionLevel']);
 function check(value: unknown, path: string) {
   if (Array.isArray(value)) { value.forEach((v, i) => check(v, `${path}[${i}]`)); return; }
   if (!value || typeof value !== 'object') return;
@@ -35,7 +35,7 @@ export function parseDatasetUpload(text: string, reference: Dataset['reference']
   const ids = new Set<number>();
   const securities = records(raw, 'Securities').map(s => {
     if (!Number.isSafeInteger(s.Id) || ids.has(s.Id)) throw new Error('Securities need unique numeric Id values.'); ids.add(s.Id);
-    return pick(s, ['Id','Isin','Name','SecurityTypeName','Currency','PriceDateUtc','EndOfDayPrice','MaturityDateUtc','SAA_AssetClassName','IndustryName','CountryName','InRecommendationList']);
+    return pick(s, ['Id','Isin','Name','SecurityTypeName','Currency','PriceDateUtc','EndOfDayPrice','MaturityDateUtc','SAA_AssetClassName','IndustryName','CountryName','InRecommendationList','PRC','SustainabilityScore']);
   });
   const funds = new Map<number, FundBreakdown>();
   for (const row of records(raw, 'FundUnbundlingMappings')) {
@@ -58,6 +58,7 @@ export function parseDatasetUpload(text: string, reference: Dataset['reference']
   return { clients: parseCustomerUpload(JSON.stringify(data.clients)), suppliedReference: true, reference: {
     Securities: securities, FundBreakdowns: [...funds.values()],
     RiskProfiles: records(raw, 'RiskProfiles').map(r => pick(r, ['Id', 'Name', 'RiskLevel', 'MaxVola', 'MaxPRC', 'EquityQuoteInPercent'])),
+    EsgProfiles: records(raw, 'EsgProfiles').map(r => pick(r, ['Id', 'Name', 'MinimumPositionLevel'])),
     StrategicAssetAllocations: records(raw, 'StrategicAssetAllocations').map(r => ({ ...pick(r, ['Id', 'Name']), Mappings: records(r, 'Mappings').map(m => pick(m, ['Dimension', 'Category', 'TargetPercentage', 'MinPercentage', 'MaxPercentage'])) })),
     // Constituent snapshots are obtained through the verified server resolver, independently of security IDs.
     FundHoldings: reference.FundHoldings,
@@ -76,7 +77,7 @@ export function parseCustomerUpload(text: string): Row[] {
     ids.add(c.ClientId);
     const portfolioIds = new Set();
     return {
-      ...pick(c, ['ClientId','ClientRef','IsClientACompany','RegulatoryClientTypeName','ReportingCurrency','RiskProfileId','RiskProfileName','EsgProfileName','ProfilingDateUtc','AssetsUnderManagementInDefaultCurrency','LiquidityInDefaultCurrency']),
+      ...pick(c, ['ClientId','ClientRef','IsClientACompany','RegulatoryClientTypeName','ReportingCurrency','RiskProfileId','RiskProfileName','EsgProfileId','EsgProfileName','ProfilingDateUtc','AssetsUnderManagementInDefaultCurrency','LiquidityInDefaultCurrency']),
       ClientNotes: records(c, 'ClientNotes').map(n => pick(n, ['Note','CreatedByDateUTC'])),
       Tags: records(c, 'Tags').map(t => pick(t, ['TagName','TagTypeName'])),
       Portfolios: records(c, 'Portfolios').map(p => {

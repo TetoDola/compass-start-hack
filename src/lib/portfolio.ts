@@ -1,5 +1,5 @@
 import { fundDenominator } from './types';
-import { aggregateProducts, productEvidence, lookThrough, referencePriceReview, mandate, clientContextEvidence, allocationReview, allocationEvidence } from './advisory';
+import { aggregateProducts, productEvidence, lookThrough, referencePriceReview, mandate, clientContextEvidence, allocationReview, allocationEvidence, profileReview } from './advisory';
 import type { Analysis, Evidence, Holding, Row } from './types';
 import { dateLabel, percent } from './format';
 
@@ -75,18 +75,32 @@ export function violationMeasurement(v: Row): string {
   const comparisons = path.filter(r => /Volatility|PortfolioValue/i.test(r.FieldName) && typeof r.LeftValue === 'number' && typeof r.RightValue === 'number' && r.LeftValue >= 0 && r.LeftValue <= 1 && r.RightValue > 0 && r.RightValue <= 1);
   return [...new Set(comparisons.map(row => `${percent(row.LeftValue, 1)} recorded · ${percent(row.RightValue, 1)} rule threshold`))].slice(0, 2).join('; ');
 }
+// The supplied rule names carry the direction; a breach of a floor and a breach of a ceiling need opposite conversations.
+function volatilityAction(records: Row[]): string {
+  const codes = records.map(r => String(r.RuleCode || ''));
+  const belowRange = codes.some(c => /undershot|too low|minimum/i.test(c));
+  const aboveRange = codes.some(c => /exceed|too high|maximum/i.test(c));
+  if (belowRange && aboveRange) return 'These records point in opposite directions. Read each rule and its recorded values before proposing any change to portfolio risk.';
+  if (belowRange) return 'The recorded finding is that portfolio risk sits below the agreed range, not above it. Reconfirm the target risk level and horizon before treating the allocation as too defensive.';
+  if (aboveRange) return 'Reconfirm loss tolerance and the recorded risk profile; compare a lower-risk allocation only after validating the supplied limit.';
+  return 'The supplied rule does not state a direction. Read the recorded values before proposing any change to portfolio risk.';
+}
 export interface AttentionItem { id: string; level: 'critical' | 'review' | 'gap'; label: string; title: string; detail: string; action: string; evidence: Evidence[]; findingId?: string; contextId?: string; metric?: string; graphNodeId?: string }
 export function portfolioAttention(a: Analysis): AttentionItem[] {
   const items: AttentionItem[] = [];
   if(!a.weightsAvailable&&!a.scopeAmbiguous&&a.holdings.length)items.push({id:'missing-weights',level:'gap',label:'Missing weights',title:'Exposure weights are incomplete',detail:'At least one position weight is missing or invalid; combined exposure and scenarios are withheld.',action:'Obtain complete position weights for this portfolio.',evidence:a.holdings.map(h=>h.evidence)});
   if (a.scopeAmbiguous) items.push({ id: 'scope', level: 'gap', label: 'Resolve scope', title: 'Consolidated portfolios may overlap', detail: 'Combined totals and weights could double-count assets.', action: 'Choose one portfolio in the scope selector.', evidence: a.evidence.filter(e => e.id.startsWith('p-')) });
+  // Hard profile limits lead; a recorded preference is reviewed alongside concentration rather than ahead of it.
+  const profileBreaches = profileReview(a);
+  for (const b of profileBreaches.filter(b => b.kind !== 'sustainability')) items.push({ id:b.id,level:'critical',label:b.kind==='strategy'?'Mandate alignment':'Profile limit',title:b.title,metric:b.metric,detail:b.detail,action:b.action,evidence:b.evidence });
   const family=(rule:string) => /volatility/i.test(rule) ? 'Risk level and volatility' : /currency/i.test(rule) ? 'Currency concentration' : /single financial instrument/i.test(rule) ? 'Single-product concentration' : /equity (region|sector)/i.test(rule) ? 'Allocation drift' : 'Mandate and recorded instructions';
   const grouped = new Map<string, Row[]>();
   for (const v of a.violations) { const key=family(v.RuleCode || ''); grouped.set(key,[...(grouped.get(key)||[]),v]); }
   for (const [title, records] of grouped) {
     const v = records.find(v => v.Severity === 'Error') || records[0];
-    const measurements=[...new Set(records.map(violationMeasurement).filter(Boolean))];
-    const action = title==='Risk level and volatility' ? 'Reconfirm loss tolerance and the recorded risk profile; compare a lower-risk allocation only after validating the supplied limit.' : title==='Currency concentration' ? 'Check currency needs and hedge status; compare hedged and unhedged exposure against the recorded limits.' : title==='Single-product concentration' ? 'Review the combined direct and fund exposures, then prepare diversification options within the mandate.' : title==='Allocation drift' ? 'Compare the recorded regional and sector deviations with the agreed policy before proposing rebalancing.' : 'Resolve the recorded instruction or proposal-authorisation issue before proceeding.';
+    // Keep each supplied rule name beside its own measurement; bare numbers do not say which limit or direction.
+    const measurements=[...new Set(records.map(r=>{const m=violationMeasurement(r);return m?`${r.RuleCode||'Recorded rule'} — ${m}`:'';}).filter(Boolean))];
+    const action = title==='Risk level and volatility' ? volatilityAction(records) : title==='Currency concentration' ? 'Check currency needs and hedge status; compare hedged and unhedged exposure against the recorded limits.' : title==='Single-product concentration' ? 'Review the combined direct and fund exposures, then prepare diversification options within the mandate.' : title==='Allocation drift' ? 'Compare the recorded regional and sector deviations with the agreed policy before proposing rebalancing.' : 'Resolve the recorded instruction or proposal-authorisation issue before proceeding.';
     items.push({ id:`rule:${title}`,level:v.Severity==='Error'?'critical':'review',label:'Recorded findings',title,metric:measurements.slice(0,2).join('; '),detail:`${records.length} source records grouped. ${[...new Set(records.map(r=>r.RuleCode))].join('; ')}. Latest record ${dateLabel([...records].sort((a,b)=>String(b.LastViolatedDateUTC).localeCompare(String(a.LastViolatedDateUTC)))[0].LastViolatedDateUTC,true)}; current resolution unknown.`,action,evidence:records.map(v=>violationEvidence(a,v)),findingId:'recorded-issues'});
   }
   const need = a.findings.find(f => f.id === 'customer-context' && /cash need/i.test(f.title));
@@ -96,6 +110,7 @@ export function portfolioAttention(a: Analysis): AttentionItem[] {
   if (a.weightsAvailable && largest?.weight>=.2) items.push({id:'product-concentration',level:'review',label:'Product concentration',title:`${largest.name}: ${percent(largest.weight)} combined`,metric:`${largest.positions.length} position${largest.positions.length===1?'':'s'} · same verified instrument`,detail:'Combined across selected accounts by exact ISIN. The 20% review trigger is a demo heuristic, not a suitability limit. Product exposure is not issuer-credit exposure.',action:`Check whether this concentration is intentional and within the agreed limits. ${mandate(a).instruction}`,evidence:[productEvidence(a,largest),...largest.positions.map(h=>h.evidence)],graphNodeId:largest.id});
   const company=portfolioExposures(a,'company')[0];
   if(company?.weight>=.2 && company.weight>(largest?.weight || 0)+.005)items.push({id:'company-concentration',level:'review',label:'Equity exposure',title:`${company.name}: ${percent(company.weight)} direct + indirect`,detail:'Covered equity holdings only. A 20% review trigger is a demo heuristic, not a suitability limit. Share classes remain separate.',action:'Check whether fund holdings duplicate the direct position before preparing diversification options.',evidence:company.evidence,graphNodeId:company.id});
+  for (const b of profileBreaches.filter(b => b.kind === 'sustainability')) items.push({ id:b.id,level:'review',label:'Sustainability preference',title:b.title,metric:b.metric,detail:b.detail,action:b.action,evidence:b.evidence });
   const stale=referencePriceReview(a);
   if(stale.length)items.push({id:'price-freshness',level:'review',label:'Data reliability',title:`${stale.length} reference-price dates need verification`,metric:a.weightsAvailable?`${percent(stale.reduce((n,r)=>n+r.holding.weight,0))} of portfolio affected`:undefined,detail:'Security reference dates are missing, later than the portfolio snapshot or more than 30 days older. This does not prove the exported position valuations are stale.',action:'Reconcile reference prices with the portfolio valuation source before using these securities in a proposal.',evidence:stale.map(r=>({...r.holding.evidence,id:`freshness:${r.holding.id}`,fields:[...r.holding.evidence.fields,{label:'Portfolio snapshot',value:dateLabel(r.asOf,true)},{label:'Reference-price age at snapshot',value:r.ageDays==null?'Unknown':`${Math.round(r.ageDays)} days`}]})),graphNodeId:stale[0].holding.isin?`instrument:${stale[0].holding.isin}`:stale[0].holding.id});
   for(const policy of allocationReview(a)) {

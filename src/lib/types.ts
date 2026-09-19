@@ -4,7 +4,7 @@ export interface FundHoldingSnapshot { isin: string; name: string; asOf: string;
 export interface Dataset {
   version: string;
   clients: Row[];
-  reference: { Securities: Row[]; RiskProfiles: Row[]; StrategicAssetAllocations: Row[]; FundBreakdowns: FundBreakdown[]; FundHoldings?: FundHoldingSnapshot[] };
+  reference: { Securities: Row[]; RiskProfiles: Row[]; StrategicAssetAllocations: Row[]; FundBreakdowns: FundBreakdown[]; EsgProfiles?: Row[]; FundHoldings?: FundHoldingSnapshot[] };
 }
 export interface Evidence {
   id: string; title: string; location: string; date?: string;
@@ -22,6 +22,7 @@ export interface Holding {
   currency: string; value: number | null; weight: number; asset: string; sector: string; country?: string;
   known: boolean; evidence: Evidence;
   instrumentType: string; displayName: string; isin?: string; priceDate?: string; priceStale?: boolean; fundBreakdown?: FundBreakdown; fundHoldings?: FundHoldingSnapshot;
+  productRiskClass?: number; sustainabilityScore?: number;
 }
 export interface Analysis {
   customer: Row; portfolios: Row[]; scope: string; currency: string;
@@ -32,7 +33,7 @@ export interface Analysis {
   fundCoverage: number; fundSectors: { label: string; weight: number }[];
   notes: Row[]; proposals: Row[]; violations: Row[]; unresolved: number;
   warnings: string[]; summary: string; strategy: string;
-  riskProfile?: Row; policyTargets?: { portfolioId: number; name: string; mappings: Row[] }[];
+  riskProfile?: Row; esgProfile?: Row; policyTargets?: { portfolioId: number; name: string; mappings: Row[] }[];
 }
 
 // Only rounding differences in a complete percentage-point mapping may be normalized.

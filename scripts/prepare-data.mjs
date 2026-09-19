@@ -13,7 +13,7 @@ const redact = value => typeof value === 'string'
 const pick = (obj, keys) => Object.fromEntries(keys.filter(k => obj[k] != null).map(k => [k, redact(k === 'ViolationPath' && Array.isArray(obj[k]) ? JSON.stringify(obj[k].map(r => pick(r, ['FieldName','LeftValue','RightValue','Operator']))) : obj[k])]));
 const list = value => Array.isArray(value) ? value : [];
 const sanitized = clients.map(c => ({
-  ...pick(c, ['ClientId','ClientRef','IsClientACompany','RegulatoryClientTypeName','ReportingCurrency','RiskProfileId','RiskProfileName','EsgProfileName','ProfilingDateUtc','AssetsUnderManagementInDefaultCurrency','LiquidityInDefaultCurrency']),
+  ...pick(c, ['ClientId','ClientRef','IsClientACompany','RegulatoryClientTypeName','ReportingCurrency','RiskProfileId','RiskProfileName','EsgProfileId','EsgProfileName','ProfilingDateUtc','AssetsUnderManagementInDefaultCurrency','LiquidityInDefaultCurrency']),
   ClientNotes: list(c.ClientNotes).map(n => pick(n, ['Note','CreatedByDateUTC'])),
   Tags: list(c.Tags).map(t => pick(t, ['TagName','TagTypeName'])),
   Portfolios: list(c.Portfolios).map(p => ({
@@ -57,8 +57,9 @@ const output = {
   version: '134d6ff',
   clients: sanitized,
   reference: {
-    Securities: reference.Securities.map(s => pick(s, ['Id','Isin','Name','SecurityTypeName','Currency','PriceDateUtc','EndOfDayPrice','MaturityDateUtc','SAA_AssetClassName','IndustryName','CountryName','InRecommendationList'])),
+    Securities: reference.Securities.map(s => pick(s, ['Id','Isin','Name','SecurityTypeName','Currency','PriceDateUtc','EndOfDayPrice','MaturityDateUtc','SAA_AssetClassName','IndustryName','CountryName','InRecommendationList','PRC','SustainabilityScore'])),
     RiskProfiles: reference.RiskProfiles,
+    EsgProfiles: reference.EsgProfiles,
     StrategicAssetAllocations: reference.StrategicAssetAllocations,
     FundBreakdowns: [...funds.values()],
     FundHoldings: fundHoldings,
