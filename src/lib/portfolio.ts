@@ -19,7 +19,7 @@ export function periodPerformance(a: Analysis, range: TimeRange) {
   return { start, end, points, startDate, available, change: available ? end!.value / start!.value - 1 : null, amount: available ? end!.value - start!.value : null };
 }
 export type ExposureKind = 'industry' | 'country' | 'company' | 'region';
-export interface Exposure { id: string; name: string; kind: ExposureKind; weight: number; evidence: Evidence[]; via: string[]; isin?: string }
+export interface Exposure { id: string; name: string; kind: ExposureKind; weight: number; evidence: Evidence[]; via: string[]; contributions: { id: string; name: string; weight: number }[]; isin?: string }
 export const companyId = (isin: string | undefined, fallback: string) => isin ? `instrument:${isin}` : fallback;
 export const isCompany = (h: Holding) => ['Shares', 'Dividend right certificates', 'Participation certificate'].includes(h.instrumentType);
 export const geography: Record<string, string> = { 'Equities Switzerland': 'Switzerland', 'Equities Euroland': 'Euro area', 'Aktien UK': 'United Kingdom', 'Equities EmMa': 'Emerging markets', 'Equities Japan': 'Japan', 'Equities Pacific': 'Pacific', 'Equities North America': 'North America' };
@@ -32,8 +32,12 @@ export function portfolioExposures(a: Analysis, kind: ExposureKind): Exposure[] 
     if (!classified(name) || !Number.isFinite(weight) || weight <= 0) return;
     const key = id || `${kind === 'industry' ? 'sector' : kind}:${name}`;
     const old = result.get(key);
-    if (old) { old.weight += weight; old.evidence = [...new Map([...old.evidence, evidence].map(e => [e.id, e])).values()]; old.via = [...new Set([...old.via, h.displayName])]; }
-    else result.set(key, { id: key, name: name!, kind, weight, evidence: [evidence], via: [h.displayName], isin });
+    if (old) {
+      old.weight += weight; old.evidence = [...new Map([...old.evidence, evidence].map(e => [e.id, e])).values()]; old.via = [...new Set([...old.via, h.displayName])];
+      const existing = old.contributions.find(c => c.id === h.id);
+      if (existing) existing.weight += weight; else old.contributions.push({ id: h.id, name: h.displayName, weight });
+    }
+    else result.set(key, { id: key, name: name!, kind, weight, evidence: [evidence], via: [h.displayName], contributions: [{ id: h.id, name: h.displayName, weight }], isin });
   }
   for (const h of a.holdings) {
     const fund = h.instrumentType === 'Investment fund';

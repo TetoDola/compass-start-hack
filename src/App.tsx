@@ -2,7 +2,7 @@ import { selectedEventFact, type EventDiscussion } from './lib/eventContext';
 import { WorldView } from './WorldView';
 import { aggregateProducts, clientContextEvidence, mandate } from './lib/advisory';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Globe2, ArrowDownToLine, ArrowUpRight, Check, ChevronDown, Compass, FileText, Info, MessageCircle, Network, RefreshCw, Upload, X, Moon, Sun } from 'lucide-react';
+import { Globe2, ArrowDownToLine, ArrowUpRight, Check, ChevronDown, Compass, FileText, Gauge, Info, Layers3, MessageCircle, Network, RefreshCw, Upload, X, Moon, Sun } from 'lucide-react';
 import type { Dataset, Evidence } from './lib/types';
 import { analyze } from './lib/analysis';
 import { dateLabel, list, money, percent } from './lib/format';
@@ -15,6 +15,7 @@ import { useFundHoldings } from './useFundHoldings';
 import { useBriefing } from './useBriefing';
 import { CustomerGraph } from './CustomerGraph';
 import { ClientWorkspace } from './ClientWorkspace';
+import { Cockpit } from './Cockpit';
 import { AdvisorChat } from './AdvisorChat';
 import { CustomerRecords } from './CustomerRecords';
 import { WorkspaceDialog } from './WorkspaceDialog';
@@ -26,6 +27,7 @@ export default function App() {
   const [dataset,setDataset]=useState<Dataset|null>(null), initialDataset=useRef<Dataset|null>(null);
   const [loadError,setLoadError]=useState(''), [customerId,setCustomerId]=useState<number|null>(null), [scope,setScope]=useState('all');
   const [range,setRange]=useState<TimeRange>('1M'), [panel,setPanel]=useState<Panel>(null);
+  const [body,setBody]=useState<'cockpit'|'workspace'>('cockpit');
   const [newsFocus,setNewsFocus]=useState<{id:string;name:string}|null>(null), [selectedId,setSelectedId]=useState('');
   const [graphOverview,setGraphOverview]=useState(true), [contextFocus,setContextFocus]=useState(''), [nodeFocus,setNodeFocus]=useState('');
   const [evidence,setEvidence]=useState<Evidence|null>(null), returnPanel=useRef<Panel>(null);
@@ -93,7 +95,7 @@ export default function App() {
       <section className="ws-client-header">
         <div className="ws-identity"><label className="ws-client-picker"><span className="ws-kicker">Client workspace</span><div><select aria-label="Choose client" value={customerId!} onChange={e=>selectCustomer(Number(e.target.value))}>{dataset.clients.map(c=><option key={c.ClientId} value={c.ClientId}>{c.ClientRef}</option>)}</select><ChevronDown size={16}/></div></label><div className="ws-client-description"><span>{kind} · {customer.ReportingCurrency || 'Currency unavailable'}</span><button onClick={()=>showEvidence(clientContextEvidence(analysis))}>{service.label || 'Mandate not supplied'}<ArrowUpRight size={12}/></button></div></div>
         <label className={`ws-scope ${analysis.scopeAmbiguous?'is-ambiguous':''}`}><span>Portfolio scope</span><select aria-label="Portfolio scope" value={scope} onChange={e=>{setScope(e.target.value);resetContext();}}><option value="all">All portfolios ({list(customer.Portfolios).length})</option>{list(customer.Portfolios).map(p=><option key={p.PortfolioId} value={String(p.PortfolioId)}>{p.PortfolioNr}</option>)}</select></label>
-        <div className="ws-client-actions"><button className="ws-button" onClick={()=>setPanel('records')}><FileText size={14}/>Records</button><button className="ws-button" onClick={exportBrief}><ArrowDownToLine size={14}/>Export brief</button><button className="ws-button" onClick={()=>openGraph()}><Network size={15}/>Connections</button></div>
+        <div className="ws-client-actions"><div className="ws-body-switch" role="group" aria-label="Workspace layout"><button className="ws-button" aria-pressed={body==='cockpit'} onClick={()=>setBody('cockpit')}><Gauge size={14}/>Cockpit</button><button className="ws-button" aria-pressed={body==='workspace'} onClick={()=>setBody('workspace')}><Layers3 size={14}/>Brief</button></div><button className="ws-button" onClick={()=>setPanel('records')}><FileText size={14}/>Records</button><button className="ws-button" onClick={exportBrief}><ArrowDownToLine size={14}/>Export brief</button><button className="ws-button" onClick={()=>openGraph()}><Network size={15}/>Connections</button></div>
       </section>
       <div className="ws-context-strip"><span>{analysis.strategy}<span className="ws-separator">/</span>Profile {dateLabel(customer.ProfilingDateUtc,true)}</span><span>{latestFactory?`Record snapshot ${dateLabel(latestFactory,true)}`:'Snapshot date unavailable'} · Case dates shifted</span></div>
       {analysis.scopeAmbiguous && <div className="ws-scope-warning" role="alert"><Info size={15}/><span>Portfolios may overlap. Select one portfolio above to see reliable totals and weights.</span></div>}
@@ -104,7 +106,9 @@ export default function App() {
         <div className="ws-largest"><span>Largest investment</span><strong>{largest && analysis.weightsAvailable?percent(largest.weight,1):'—'}<small> of portfolio</small></strong>{largest && analysis.weightsAvailable?<button onClick={()=>openGraph(largest.id)} title={largest.name}>{largest.name}<ArrowUpRight size={12}/></button>:<small>{analysis.scopeAmbiguous?'Choose a scope to compare holdings':'Position weights unavailable'}</small>}</div>
       </section>
       <div className="ws-mandate-line"><span>Mandate</span><p>{service.instruction}</p><button className="ws-link" onClick={()=>showEvidence(clientContextEvidence(analysis))}>Source<ArrowUpRight size={11}/></button></div>
-      <ClientWorkspace key={`${customerId}:${scope}`} analysis={analysis} briefing={briefing} range={range} onRange={setRange} onEvidence={showEvidence} onGraph={openGraph} onFinding={openFinding} onNewsGraph={openNewsGraph} onNews={openNews} onRecords={()=>setPanel('records')}/>
+      {body==='cockpit'
+        ? <Cockpit key={`${customerId}:${scope}`} analysis={analysis} dataset={dataset} context={briefing.context} range={range} onRange={setRange} onEvidence={showEvidence} onNews={openNews}/>
+        : <ClientWorkspace key={`${customerId}:${scope}`} analysis={analysis} briefing={briefing} range={range} onRange={setRange} onEvidence={showEvidence} onGraph={openGraph} onFinding={openFinding} onNewsGraph={openNewsGraph} onNews={openNews} onRecords={()=>setPanel('records')}/>}
       <footer className="ws-footer"><span>{latestFactory?`Risk snapshot ${dateLabel(latestFactory,true)}`:'Supplied customer records'} · Case dates are shifted</span><button className="ws-link" disabled={!!briefing.phase} onClick={()=>briefing.refresh()}><RefreshCw size={12}/>{briefing.phase?'Updating news…':'Refresh sources'}</button></footer>
     </main>
     <WorkspaceDialog open={panel==='graph'||panel==='world'} title={`Explore · ${customer.ClientRef}`} wide onClose={closePanel}><nav className="ws-explore-tabs" aria-label="Explore view"><button aria-pressed={panel==='world'} onClick={()=>setPanel('world')}><Globe2 size={15}/>World</button><button aria-pressed={panel==='graph'} onClick={()=>openGraph()}><Network size={15}/>Connections</button></nav><div hidden={panel!=='world'}><WorldView key={`${customerId}:${scope}`} analysis={analysis} context={briefing.context} range={briefing.newsRange} onRange={briefing.setNewsRange} onEvidence={showEvidence} onGraph={openGraph} onTrace={traceWorldEvent} onAsk={discussEvent} onPin={item=>{briefing.pinEvent(item);closePanel();setTimeout(()=>document.querySelector('[aria-label="Client briefing"]')?.scrollIntoView({behavior:'smooth',block:'start'}),0);}} onRefresh={()=>briefing.refresh()} busy={!!briefing.phase}/></div><div hidden={panel!=='graph'}><CustomerGraph context={graphContext} onDiscuss={item=>discussEvent({item,customerId:analysis.customer.ClientId,scope:analysis.scope})} contextFocus={contextFocus} nodeFocus={nodeFocus} fundStatus={fundLookups.status} onRefreshFund={fundLookups.refresh} analysis={analysis} selected={selected} overview={graphOverview} onOverview={()=>{setGraphOverview(true);setContextFocus('');setNodeFocus('');}} onSelect={openFinding} onEvidence={showEvidence} onBrief={closePanel}/></div></WorkspaceDialog>
