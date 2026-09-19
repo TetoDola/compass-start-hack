@@ -18,7 +18,7 @@ const sanitized = clients.map(c => ({
   Tags: list(c.Tags).map(t => pick(t, ['TagName','TagTypeName'])),
   Portfolios: list(c.Portfolios).map(p => ({
     ...pick(p, ['PortfolioId','PortfolioNr','Name','IsConsolidated','PortfolioCurrency','StrategicAssetAllocationId','InvestmentServiceName','StrategyName','ReferenceCurrency','AssetsUnderManagementInDefaultCurrency','LiquidityInDefaultCurrency','Volatility','ExpectedReturn','ValueAtRisk','FactoryDateUtc']),
-    SecurityPositions: list(p.SecurityPositions).map(s => pick(s, ['SecurityId','SecurityName','Isin','SecurityIsin','SecurityTypeName','PriceDateUtc','Currency','Quantity','PricePerUnit','TotalAmountInPortfolioCurrency','PortfolioValuePercentage'])),
+    SecurityPositions: list(p.SecurityPositions).map(s => pick(s, ['SecurityId','SecurityName','Isin','SecurityIsin','SecurityTypeName','PriceDateUtc','Currency','Quantity','PricePerUnit','TotalAmountInPortfolioCurrency','PortfolioValuePercentage','ContributionVolatility'])),
     AccountPositions: list(p.AccountPositions).map(a => pick(a, ['Currency','TotalAmountInPortfolioCurrency','PortfolioValuePercentage'])),
     PerformanceHistory: list(p.PerformanceHistory).map(h => pick(h, ['Date','Value'])),
   })),

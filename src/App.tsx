@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowDownToLine, ArrowUpRight, BookOpen, Check, ChevronDown, ChevronRight, CircleHelp, Compass, Database, FileText, Fingerprint, Info, Layers3, Menu, Network, Search, ShieldCheck, SlidersHorizontal, Upload, Users, Wallet, X } from 'lucide-react';
+import { ArrowDownToLine, ArrowUpRight, BookOpen, Check, ChevronDown, ChevronRight, CircleHelp, Compass, Database, FileText, Fingerprint, Gauge, Info, Layers3, Menu, Network, Search, ShieldCheck, SlidersHorizontal, Upload, Users, Wallet, X } from 'lucide-react';
 import type { Analysis, Dataset, Evidence, Row } from './lib/types';
 import { analyze } from './lib/analysis';
 import { dateLabel, list, money, number, percent, statusLabel } from './lib/format';
@@ -14,11 +14,13 @@ import { AdvisorChat } from './AdvisorChat';
 import { BriefOverview } from './BriefOverview';
 import { useBriefing } from './useBriefing';
 import { AttentionPanel, ExposurePanel } from './PortfolioOverview';
+import { Cockpit } from './Cockpit';
 import type { TimeRange } from './lib/portfolio';
 import { sections } from './lib/briefing';
 
-type View = 'chat' | 'information' | 'brief' | 'graph';
-const viewOptions = [{ id: 'chat', title: 'Advisor chat', icon: BookOpen }, { id: 'brief', title: 'Portfolio workspace', icon: Layers3 }] as const;
+type View = 'cockpit' | 'chat' | 'information' | 'brief' | 'graph';
+const viewOptions = [{ id: 'cockpit', title: 'Adviser cockpit', icon: Gauge }, { id: 'chat', title: 'Advisor chat', icon: BookOpen }, { id: 'brief', title: 'Portfolio workspace', icon: Layers3 }] as const;
+const activeTab = (view: View) => view === 'cockpit' || view === 'chat' ? view : 'brief';
 const workspaceViews = [{id:'brief',title:'Overview'}, {id:'graph',title:'Connection graph'}, {id:'information',title:'Source records'}] as const;
 
 export default function App() {
@@ -29,7 +31,7 @@ export default function App() {
   const [scope, setScope] = useState('all');
   const [range, setRange] = useState<TimeRange>('1M');
   const [newsFocus, setNewsFocus] = useState<{ id: string; name: string } | null>(null);
-  const [view, setView] = useState<View>('chat');
+  const [view, setView] = useState<View>('cockpit');
   const [selectedId, setSelectedId] = useState('');
   const [graphOverview, setGraphOverview] = useState(true);
   const [contextFocus, setContextFocus] = useState('');
@@ -53,7 +55,7 @@ export default function App() {
       setCustomerId(customer.ClientId);
       const nextScope = query.get('portfolio');
       if (nextScope && list(customer.Portfolios).some(p => String(p.PortfolioId) === nextScope)) setScope(nextScope);
-      const nextView = query.get('view'); if (['chat','brief','graph','information'].includes(nextView || '')) setView(nextView as View);
+      const nextView = query.get('view'); if (['cockpit','chat','brief','graph','information'].includes(nextView || '')) setView(nextView as View);
       setSelectedId(query.get('finding') || '');
       setGraphOverview(query.get('graph') !== 'finding');
     }).catch(e => { if (alive) setLoadError(e.message); });
@@ -118,10 +120,11 @@ export default function App() {
         {importMessage && <div className={`notice ${importError ? 'error' : 'success'}`} role={importError ? 'alert' : 'status'}>{importError ? <Info size={18} /> : <Check size={18} />}<p>{importMessage}</p><button className="icon-button" aria-label="Dismiss import message" onClick={() => setImportMessage('')}><X size={16} /></button></div>}
         <section className="page-heading"><div><div className="eyebrow heading-eyebrow">CUSTOMER INTELLIGENCE <span>/</span> {customer.ClientRef}</div><h1>Your customer, in focus<span>.</span></h1><p>The context you need. The connections that matter.</p></div><button className="button secondary export-button" onClick={exportBrief}><ArrowDownToLine size={16} />Export brief</button></section>
         <section className="customer-summary"><div className="customer-identity"><div className="large-avatar"><Users size={24} strokeWidth={1.5} /></div><div><h2>{customer.ClientRef}<span className="client-type">{customer.IsClientACompany === true ? 'Company' : customer.IsClientACompany === false ? 'Private client' : 'Customer'}</span></h2><p>{analysis.strategy}<span>·</span>{customer.ReportingCurrency || 'Currency unavailable'}</p></div></div><label className="portfolio-filter"><Layers3 size={16} /><select aria-label="Portfolio scope" value={scope} onChange={e => { setScope(e.target.value); setNewsFocus(null); setSelectedId(''); setContextFocus(''); setEvidence(null); }}><option value="all">All portfolios ({list(customer.Portfolios).length})</option>{list(customer.Portfolios).map(p => <option key={p.PortfolioId} value={String(p.PortfolioId)}>{p.PortfolioNr}</option>)}</select><ChevronDown size={14} /></label></section>
-        <section className="metrics-row" aria-label="Customer snapshot"><Metric label="PORTFOLIO ASSETS" value={money(analysis.aum, analysis.currency)} detail={`${analysis.portfolios.length} portfolio${analysis.portfolios.length === 1 ? '' : 's'} in scope`} icon={<Wallet size={17} />} /><Metric label="REPORTED LIQUIDITY" value={money(analysis.liquidity, analysis.currency)} detail={analysis.aum && analysis.liquidity != null ? `${percent(analysis.liquidity/analysis.aum)} of reported assets` : 'Supplied snapshot value'} icon={<Layers3 size={17} />} /><Metric label="SECURITY POSITIONS" value={String(analysis.holdings.length)} detail={`${analysis.portfolios.reduce((sum, p) => sum + list(p.AccountPositions).length, 0)} account positions separately`} icon={<Database size={17} />} /><Metric label="RECORDED REVIEW POINTS" value={String(analysis.violations.length)} detail={analysis.violations.length ? 'Linked suitability findings' : 'None supplied in this scope'} icon={<ShieldCheck size={17} />} /></section>
-        <div className="view-bar"><div className="view-tabs" role="tablist" aria-label="Customer views">{viewOptions.map(option => <button key={option.id} id={`tab-${option.id}`} role="tab" aria-selected={option.id === 'chat' ? view === 'chat' : view !== 'chat'} aria-controls="customer-view" className={(option.id === 'chat' ? view === 'chat' : view !== 'chat') ? 'active' : ''} onClick={() => { setView(option.id);  }}><option.icon size={16} />{option.title}</button>)}</div><span className="data-date"><Fingerprint size={13} />{latestFactory ? `Risk snapshot · ${dateLabel(latestFactory, true)}` : 'Supplied dataset snapshot'}</span></div>
-        {view !== 'chat' && <div className="workspace-switch" role="group" aria-label="Portfolio workspace pages">{workspaceViews.map(v=><button aria-pressed={view===v.id} key={v.id} onClick={()=>{setView(v.id); if(v.id==='graph'){setGraphOverview(true);setContextFocus('');}}}>{v.title}</button>)}</div>}
-        <div id="customer-view" role="tabpanel" aria-labelledby={`tab-${view === 'chat' ? 'chat' : 'brief'}`}>
+        {view !== 'cockpit' && <section className="metrics-row" aria-label="Customer snapshot"><Metric label="PORTFOLIO ASSETS" value={money(analysis.aum, analysis.currency)} detail={`${analysis.portfolios.length} portfolio${analysis.portfolios.length === 1 ? '' : 's'} in scope`} icon={<Wallet size={17} />} /><Metric label="REPORTED LIQUIDITY" value={money(analysis.liquidity, analysis.currency)} detail={analysis.aum && analysis.liquidity != null ? `${percent(analysis.liquidity/analysis.aum)} of reported assets` : 'Supplied snapshot value'} icon={<Layers3 size={17} />} /><Metric label="SECURITY POSITIONS" value={String(analysis.holdings.length)} detail={`${analysis.portfolios.reduce((sum, p) => sum + list(p.AccountPositions).length, 0)} account positions separately`} icon={<Database size={17} />} /><Metric label="RECORDED REVIEW POINTS" value={String(analysis.violations.length)} detail={analysis.violations.length ? 'Linked suitability findings' : 'None supplied in this scope'} icon={<ShieldCheck size={17} />} /></section>}
+        <div className="view-bar"><div className="view-tabs" role="tablist" aria-label="Customer views">{viewOptions.map(option => <button key={option.id} id={`tab-${option.id}`} role="tab" aria-selected={option.id === activeTab(view)} aria-controls="customer-view" className={option.id === activeTab(view) ? 'active' : ''} onClick={() => { setView(option.id);  }}><option.icon size={16} />{option.title}</button>)}</div><span className="data-date"><Fingerprint size={13} />{latestFactory ? `Risk snapshot · ${dateLabel(latestFactory, true)}` : 'Supplied dataset snapshot'}</span></div>
+        {activeTab(view) === 'brief' && <div className="workspace-switch" role="group" aria-label="Portfolio workspace pages">{workspaceViews.map(v=><button aria-pressed={view===v.id} key={v.id} onClick={()=>{setView(v.id); if(v.id==='graph'){setGraphOverview(true);setContextFocus('');}}}>{v.title}</button>)}</div>}
+        <div id="customer-view" role="tabpanel" aria-labelledby={`tab-${activeTab(view)}`}>
+          {view === 'cockpit' && <Cockpit key={`${customer.ClientId}:${scope}`} analysis={analysis} dataset={dataset} context={briefing.context} phase={briefing.phase} range={range} onRange={setRange} onEvidence={setEvidence} onNews={(id,name)=>{setNewsFocus({id,name});setView('brief');}} onWorkspace={() => setView('brief')} onRefresh={()=>void briefing.refresh()} />}
           <div hidden={view !== 'chat'}><AdvisorChat key={`${customer.ClientId}:${scope}`} analysis={analysis} context={briefing.context} phase={briefing.phase} onWorkspace={() => setView('brief')} onEvidence={setEvidence} onNews={(id,name)=>{setNewsFocus({id,name});setView('brief');}} onRefresh={()=>void briefing.refresh()}/></div>
           {view === 'brief' && <BriefOverview key={`${customer.ClientId}:${scope}`} range={range} onRange={setRange} newsFocus={newsFocus} onNewsFocus={setNewsFocus} analysis={analysis} briefing={briefing} onGraph={id => { setContextFocus(''); setSelectedId(id); setGraphOverview(false); setView('graph'); }} onContextGraph={id => { setContextFocus(id); setGraphOverview(true); setView('graph'); }} onEvidence={setEvidence} />}
           {view === 'information' && <><AttentionPanel key={`${customer.ClientId}:${scope}`} analysis={analysis} context={briefing.context} onEvidence={setEvidence} onGraph={id => { setContextFocus(''); setSelectedId(id); setGraphOverview(false); setView('graph'); }} onContextGraph={id => { setContextFocus(id); setGraphOverview(true); setView('graph'); }}/><InformationView analysis={analysis} dataset={dataset} onEvidence={setEvidence} /><ExposurePanel analysis={analysis} context={briefing.context} onEvidence={setEvidence} onNews={(id,name) => { setNewsFocus({id,name}); setView('brief'); }}/></>}

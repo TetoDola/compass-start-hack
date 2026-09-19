@@ -22,6 +22,7 @@ export interface Holding {
   currency: string; value: number | null; weight: number; asset: string; sector: string; country?: string;
   known: boolean; evidence: Evidence;
   instrumentType: string; displayName: string; isin?: string; priceDate?: string; priceStale?: boolean; fundBreakdown?: FundBreakdown; fundHoldings?: FundHoldingSnapshot;
+  riskContribution?: number;
 }
 export interface Analysis {
   customer: Row; portfolios: Row[]; scope: string; currency: string;
