@@ -32,9 +32,8 @@
   gap: 38px;
   box-shadow: 0 1px 0 #14243e03;
 }
-.ws-brand { gap: 12px; flex: none; min-width: 0; }
+.ws-brand { flex: none; min-width: 0; }
 .ws-brand>img { display: block; width: 158px; height: auto; }
-.ws-brand-product { border-left: 1px solid var(--line); padding-left: 12px; color: var(--secondary); font-size: 11px; font-weight: 600; letter-spacing: .02em; }
 .ws-primary-nav { align-self: stretch; display: flex; align-items: stretch; }
 .ws-primary-nav a { display: flex; align-items: center; padding: 0 8px; font-size: 12px; color: var(--ink); font-weight: 600; border-bottom: 2px solid var(--ink); }
 .ws-topbar-actions { gap: 10px; min-width: 0; }
@@ -85,7 +84,6 @@
 }
 @media (max-width: 1180px) {
   .ws-topbar { gap: 22px; padding-inline: 20px; }
-  .ws-brand-product { display: none; }
   .ws-page { padding-inline: 20px; }
   .ws-client-header { gap: 16px; }
   .ws-client-description { display: none; }
